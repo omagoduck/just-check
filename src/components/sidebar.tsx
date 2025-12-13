@@ -1,0 +1,523 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Search,
+  Image,
+  Code,
+  MessageSquareText,
+  SquarePen,
+  Sparkles,
+  MoreHorizontal,
+  PencilLine,
+  Share2,
+  Trash2,
+  HelpCircle,
+  Settings,
+  User,
+  ChevronDown,
+  LogOut,
+  PanelLeftOpen,
+  PanelLeftClose,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownSurface,
+  DropdownTrigger
+} from '@/components/experimental-components/Experimental_DropDown';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+interface SidebarV2Props {
+  isMobileMenuOpen: boolean;
+  onMobileMenuToggle: () => void;
+}
+
+const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
+  const router = useRouter();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+  // Chat history state
+  const [chatHistory, setChatHistory] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [showLoadMoreSkeletons, setShowLoadMoreSkeletons] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initial data load
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      const initialChats = Array.from({ length: 10 }, (_, i) => `Chat History Item ${i + 1}`);
+      setChatHistory(initialChats);
+      setIsLoading(false);
+      setHasMore(true);
+    }, 1500);
+  }, []);
+
+  // Infinite scroll logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 10;
+
+        if (isAtBottom && hasMore && !showLoadMoreSkeletons) {
+          setShowLoadMoreSkeletons(true);
+          setTimeout(() => {
+            const newChats = Array.from({ length: 5 }, (_, i) => `Newly Loaded Chat ${i + 1}`);
+            setChatHistory(prev => [...prev, ...newChats]);
+            setShowLoadMoreSkeletons(false);
+            setHasMore(false);
+          }, 1500);
+        }
+      }
+    };
+
+    const currentRef = scrollContainerRef.current;
+    if (currentRef) {
+      currentRef.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [hasMore, showLoadMoreSkeletons]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        if (isMobileMenuOpen) {
+          onMobileMenuToggle();
+        }
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMobileMenuOpen, onMobileMenuToggle]);
+
+  const isMobile = useIsMobile(); // Using the custom hook
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(false); // Ensure sidebar is not collapsed in mobile view
+    }
+  }, [isMobile]);
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+    if (!isCollapsed) {
+      setAccountMenuOpen(false);
+    }
+  };
+
+  const NavItem = ({ 
+    icon: Icon, 
+    label, 
+    onClick, 
+    isCollapsed,
+    className = "",
+    isActive = false
+  }: {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    label: string;
+    onClick: () => void;
+    isCollapsed: boolean;
+    className?: string;
+    isActive?: boolean;
+  }) => (
+    <button
+      className={cn(
+        "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+        "text-gray-300 hover:text-white hover:bg-[#2A2A2A]",
+        isActive ? "bg-[#2A2A2A] text-white" : "",
+        className
+      )}
+      style={{
+        width: isCollapsed ? '40px' : '100%',
+        paddingLeft: isCollapsed ? '0' : '12px',
+        paddingRight: isCollapsed ? '0' : '12px',
+        justifyContent: isCollapsed ? 'center' : 'flex-start'
+      }}
+      onClick={onClick}
+      aria-label={isCollapsed ? label : undefined}
+    >
+      <Icon 
+        size={20} 
+        className="flex-shrink-0" 
+      />
+      <span 
+        className={cn(
+          "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+          isCollapsed ? "opacity-0" : "opacity-100"
+        )}
+        style={{
+          marginLeft: isCollapsed ? '0px' : '12px',
+          width: isCollapsed ? '0px' : 'auto',
+          overflow: 'hidden'
+        }}
+      >
+        {label}
+      </span>
+    </button>
+  );
+
+  return (
+    <div
+      ref={sidebarRef}
+      className={cn(
+        "flex flex-col h-screen bg-[#1E1E1E] text-white shadow-lg z-30",
+        // Mobile styles - using pixel-based positioning for reliable animation
+        "fixed inset-y-0",
+        isMobileMenuOpen ? "left-0" : "left-[-272px] md:left-0",
+        // Desktop styles
+        "md:relative"
+      )}
+      style={{
+        width: isCollapsed ? '64px' : '272px',
+        transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1), left 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      {/* Top Section */}
+      <div className="flex items-center border-b border-gray-700 h-16 flex-shrink-0"
+        style={{
+          paddingLeft: isCollapsed ? '0' : '16px',
+          paddingRight: isCollapsed ? '0' : '16px',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
+          transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1), justify-content 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        <h1 
+          className={cn(
+            "text-xl font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+            isCollapsed ? "opacity-0" : "opacity-100"
+          )}
+          style={{
+            width: isCollapsed ? '0' : 'auto',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Lumy
+        </h1>
+        <button
+          onClick={toggleCollapse}
+          className="text-gray-400 p-1.5 rounded-md hover:bg-[#2A2A2A] transition-colors duration-200 hidden md:flex items-center justify-center flex-shrink-0"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+        </button>
+      </div>
+
+      {/* New Chat Button */}
+      <div className="py-3 flex-shrink-0"
+        style={{
+          paddingLeft: isCollapsed ? '12px' : '16px',
+          paddingRight: isCollapsed ? '12px' : '16px',
+          transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        <button
+          className={cn(
+            "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+            "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800",
+            "text-white font-medium shadow-sm hover:shadow-md"
+          )}
+          style={{
+            width: isCollapsed ? '40px' : '100%',
+            paddingLeft: isCollapsed ? '0' : '12px',
+            paddingRight: isCollapsed ? '0' : '12px',
+            justifyContent: isCollapsed ? 'center' : 'flex-start'
+          }}
+          onClick={() => router.push('/')}
+        >
+          <SquarePen size={20} className="flex-shrink-0" />
+          <span 
+            className={cn(
+              "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+              isCollapsed ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              marginLeft: isCollapsed ? '0px' : '12px',
+              width: isCollapsed ? '0px' : 'auto',
+              overflow: 'hidden'
+            }}
+          >
+            New Chat
+          </span>
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-grow overflow-y-auto"
+        style={{
+          opacity: isCollapsed ? 0 : 1,
+          transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: isCollapsed ? 'none' : 'auto'
+        }}
+      >
+        <div className="px-4 space-y-6 pb-4">
+          {/* Chat History */}
+          <div className="space-y-1">
+            <h3 
+              className={cn(
+                "text-xs font-semibold text-gray-500 uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
+                isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
+              )}
+              style={{
+                maxWidth: isCollapsed ? '0' : '200px'
+              }}
+            >
+              Chat History
+            </h3>
+            {isLoading ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-8 bg-[#2A2A2A] rounded-md" />
+                ))}
+              </div>
+            ) : chatHistory.length === 0 ? (
+              <p className="text-gray-500 text-sm py-2 text-center">No chat history</p>
+            ) : (
+              <div className="space-y-1">
+                {chatHistory.map((chatTitle, index) => (
+                  <div
+                    key={index}
+                    className="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-[#2A2A2A] cursor-pointer transition-colors duration-200"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        console.log('Chat title clicked:', chatTitle);
+                      }
+                    }}
+                  >
+                    <span className="truncate text-gray-300 group-hover:text-white transition-colors duration-200">{chatTitle}</span>
+                    <Dropdown align="center">
+                      <DropdownTrigger asChild>
+                        <button
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 -mr-1 rounded-md hover:bg-[#3A3A3A] transition-all duration-200"
+                          tabIndex={0}
+                          aria-label="Chat options"
+                        >
+                          <MoreHorizontal size={16} className="text-gray-400" />
+                        </button>
+                      </DropdownTrigger>
+                      <DropdownSurface className="bg-[#2A2A2A] border border-gray-700 text-white min-w-[180px] shadow-lg">
+                        <DropdownItem 
+                          icon={<PencilLine size={16} />} 
+                          className="flex items-center gap-2 p-2 hover:bg-white/10 transition-colors duration-200"
+                        >
+                          Rename
+                        </DropdownItem>
+                        <DropdownItem 
+                          icon={<Share2 size={16} />} 
+                          className="flex items-center gap-2 p-2 hover:bg-white/10 transition-colors duration-200"
+                        >
+                          Share
+                        </DropdownItem>
+                        <DropdownItem 
+                          icon={<Trash2 size={16} />} 
+                          className="flex items-center gap-2 p-2 text-red-400 hover:bg-red-500/10! transition-colors duration-200"
+                        >
+                          Delete
+                        </DropdownItem>
+                      </DropdownSurface>
+                    </Dropdown>
+                  </div>
+                ))}
+                {showLoadMoreSkeletons && (
+                  <div className="space-y-2 pt-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-8 bg-[#2A2A2A] rounded-md" />
+                    ))}
+                  </div>
+                )}
+                {!hasMore && (
+                  <p className="text-gray-500 text-xs text-center pt-2">End of history</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bespoke Lumy */}
+          <div className="space-y-1">
+            <h3 
+              className={cn(
+                "text-xs font-semibold text-gray-500 uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
+                isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
+              )}
+              style={{
+                maxWidth: isCollapsed ? '0' : '200px'
+              }}
+            >
+              Bespoke Lumy
+            </h3>
+            <NavItem 
+              icon={MessageSquareText} 
+              label="Translate this" 
+              onClick={() => {}} 
+              isCollapsed={isCollapsed} 
+            />
+            <NavItem 
+              icon={Image} 
+              label="Image Generator" 
+              onClick={() => {}} 
+              isCollapsed={isCollapsed} 
+            />
+            <NavItem 
+              icon={Code} 
+              label="Code Helper" 
+              onClick={() => {}} 
+              isCollapsed={isCollapsed} 
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="mt-auto pt-4 border-t border-gray-700 pb-4 flex-shrink-0"
+        style={{
+          paddingLeft: isCollapsed ? '12px' : '16px',
+          paddingRight: isCollapsed ? '12px' : '16px',
+          transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        {/* Upgrade Button */}
+        <button
+          className={cn(
+            "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+            "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
+            "text-white font-medium shadow-sm hover:shadow-md"
+          )}
+          style={{
+            width: isCollapsed ? '40px' : '100%',
+            paddingLeft: isCollapsed ? '0' : '12px',
+            paddingRight: isCollapsed ? '0' : '12px',
+            justifyContent: isCollapsed ? 'center' : 'flex-start'
+          }}
+          onClick={() => router.push('/upgrade')}
+        >
+          <Sparkles size={20} className="flex-shrink-0" />
+          <span 
+            className={cn(
+              "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+              isCollapsed ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              marginLeft: isCollapsed ? '0px' : '12px',
+              width: isCollapsed ? '0px' : 'auto',
+              overflow: 'hidden'
+            }}
+          >
+            Upgrade to Pro
+          </span>
+        </button>
+
+        {/* Account Section */}
+        <div className="relative mt-3">
+          <Dropdown 
+            open={accountMenuOpen} 
+            onOpenChange={setAccountMenuOpen}
+            align="center"
+            className="w-full"
+          >
+            <DropdownTrigger asChild>
+              <button
+                className={cn(
+                  "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+                  "text-gray-300 hover:text-white hover:bg-[#2A2A2A]"
+                )}
+                style={{
+                  width: isCollapsed ? '40px' : '100%',
+                  paddingLeft: isCollapsed ? '0' : '12px',
+                  paddingRight: isCollapsed ? '0' : '12px',
+                  justifyContent: isCollapsed ? 'center' : 'flex-start'
+                }}
+                aria-label={isCollapsed ? "Account menu" : undefined}
+              >
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src="/lumy_gradient_logo.svg" alt="User Avatar" />
+                  <AvatarFallback className="bg-gray-700">
+                    <User className="text-gray-400" size={18} />
+                  </AvatarFallback>
+                </Avatar>
+                <span 
+                  className={cn(
+                    "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+                    isCollapsed ? "opacity-0" : "opacity-100"
+                  )}
+                  style={{
+                    marginLeft: isCollapsed ? '0px' : '12px',
+                    width: isCollapsed ? '0px' : 'auto',
+                    overflow: 'hidden'
+                  }}
+                >
+                  User Name
+                </span>
+                {!isCollapsed && (
+                  <ChevronDown 
+                    size={16} 
+                    className={cn(
+                      "ml-auto transition-transform duration-300",
+                      accountMenuOpen && "rotate-180"
+                    )} 
+                  />
+                )}
+              </button>
+            </DropdownTrigger>
+
+            <DropdownSurface
+              className="bg-[#2A2A2A] border border-gray-700 text-white shadow-lg w-76"
+              align="center"
+              sideOffset={8}
+            >
+              <DropdownItem
+                icon={<Settings size={24} />}
+                className="flex items-center gap-3 px-4 py-3 text-md text-gray-300 hover:text-white hover:bg-white/10 transition-colors duration-200 font-medium"
+                onSelect={() => router.push('/settings')}
+              >
+                Settings
+              </DropdownItem>
+              <DropdownItem
+                icon={<HelpCircle size={24} />}
+                className="flex items-center gap-3 px-4 py-3 text-md text-gray-300 hover:text-white hover:bg-white/10 transition-colors duration-200 font-medium"
+              >
+                Help & Support
+              </DropdownItem>
+              <div className="h-px bg-gray-700 w-full" />
+              <DropdownItem
+                icon={<LogOut size={24} />}
+                className="flex items-center gap-3 px-4 py-3 text-md text-red-400 hover:text-red-300 hover:bg-red-500/10! transition-colors duration-200 font-medium"
+              >
+                Sign out
+              </DropdownItem>
+            </DropdownSurface>
+          </Dropdown>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SidebarV2;
