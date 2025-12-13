@@ -384,10 +384,10 @@ export function ChatInput({
 
   return (
     <TooltipProvider>
-      <div className="relative w-full max-w-3xl">
+      <div className="relative w-full">
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-        <div 
+        <div
           ref={suggestionsRef}
           className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-800/95 backdrop-blur-lg border border-neutral-600/50 rounded-xl shadow-2xl z-20"
         >
