@@ -2,13 +2,12 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, Bot, User, Clock, Square } from 'lucide-react';
+import { Bot, User, Clock } from 'lucide-react';
 import { Markdown } from '@/components/markdown';
+import { ChatInput } from '@/components/chat-input';
 import { GetTimeInput, GetTimeOutput } from '@/lib/tools/tools';
 
 export default function ChatPage({
@@ -70,7 +69,6 @@ export default function ChatPage({
     },
   });
 
-  const [input, setInput] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,13 +80,13 @@ export default function ChatPage({
     scrollToBottom();
   }, [messages]);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (input.trim()) {
-      sendMessage({ text: input });
-      setInput('');
-    }
+  const handleSendMessage = (text: string, attachments?: File[]) => {
+    sendMessage({ text });
   };
+
+  // Determine loading states based on chat status
+  const isLoading = status === 'submitted'; // When message is submitted
+  const isGenerating = status === 'streaming'; // When AI is generating response
 
   return (
     <div className="flex h-screen bg-background">
@@ -218,37 +216,16 @@ export default function ChatPage({
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t bg-background">
-          <form onSubmit={onSubmit} className="flex space-x-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+        <div className="border-t bg-background">
+          <div className="flex justify-center p-4">
+            <ChatInput
+              onSubmit={handleSendMessage}
+              isLoading={isLoading}
+              isAiGenerating={isGenerating}
+              onStopGenerating={stop}
               placeholder="Type your message... (try asking 'What time is it?')"
-              className="flex-1"
-              disabled={status === 'streaming'}
             />
-            
-            {status === 'streaming' ? (
-              <Button
-                type="button"
-                onClick={stop}
-                variant="destructive"
-                size="icon"
-                className="bg-red-500 hover:bg-red-600"
-                title="Stop generating response"
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={!input.trim()}
-                size="icon"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            )}
-          </form>
+          </div>
         </div>
       </div>
     </div>
