@@ -6,6 +6,7 @@
  */
 
 import { executeGetTime } from './executor/get-time-executor';
+import { executeGetWeatherClient } from './executor/get-weather-client-executor';
 
 /**
  * Type for a tool call from useChat's onToolCall callback
@@ -31,8 +32,8 @@ export type ClientToolExecutor<TInput = unknown, TOutput = unknown> = (
  */
 export const clientToolExecutors: Record<string, ClientToolExecutor> = {
   getTime: executeGetTime,
+  getWeather: executeGetWeatherClient,
   // Add more client-side tool executors here as you create them
-  // getWeather: executeGetWeather,
   // getLocation: executeGetLocation,
 };
 
@@ -70,4 +71,3 @@ export async function executeClientTool(
     };
   }
 }
-

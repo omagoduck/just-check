@@ -1,10 +1,8 @@
 import { z } from 'zod';
-import { executeGetWeather } from './executor/get-weather-executor';
 
 // Type definitions for getWeather tool
 export interface GetWeatherInput {
   location?: string;
-  useCurrentLocation?: boolean;
 }
 
 export interface WeatherData {
@@ -39,10 +37,8 @@ export interface GetWeatherOutput {
 
 // Weather tool definition with executor
 export const getWeatherTool = {
-  description: 'Get current weather and forecast for a location. If no location is specified, will try to use current location.',
+  description: 'Get current weather and forecast for a location. Keep empty for user\'s current location.',
   inputSchema: z.object({
-    location: z.string().optional().describe('Location to get weather for (e.g., "London, UK" or "New York")'),
-    useCurrentLocation: z.boolean().optional().describe('Whether to use current location (defaults to true if no location provided)'),
+    location: z.string().optional().describe('Location to get weather for (e.g., "London, UK" or "New York"). Keep empty for user\'s current location.'),
   }) as z.ZodType<GetWeatherInput>,
-  execute: executeGetWeather,
 };

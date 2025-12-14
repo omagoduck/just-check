@@ -5,17 +5,17 @@
 import type { GetWeatherInput, GetWeatherOutput, WeatherData, ForecastDay } from '../get-weather';
 
 // Utility function to get location from coordinates
-const getLocationFromCoordinates = async (lat: number, lon: number): Promise<string> => {
+export const getLocationFromCoordinates = async (lat: number, lon: number): Promise<string> => {
   try {
     // Using OpenWeatherMap's reverse geocoding API
     const response = await fetch(
       `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`
     );
-    
+
     if (!response.ok) {
       throw new Error('Failed to get location name');
     }
-    
+
     const data = await response.json();
     if (data.length > 0) {
       return `${data[0].name}, ${data[0].country}`;
@@ -28,14 +28,14 @@ const getLocationFromCoordinates = async (lat: number, lon: number): Promise<str
 };
 
 // Utility function to make weather API calls
-const fetchWeatherData = async (lat: number, lon: number) => {
+export const fetchWeatherData = async (lat: number, lon: number) => {
   const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
   if (!apiKey) {
     throw new Error('OpenWeatherMap API key not configured');
   }
 
   const baseUrl = 'https://api.openweathermap.org/data/2.5';
-  
+
   // Fetch current weather and forecast in parallel
   const [currentResponse, forecastResponse] = await Promise.all([
     fetch(`${baseUrl}/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`),
@@ -45,7 +45,7 @@ const fetchWeatherData = async (lat: number, lon: number) => {
   if (!currentResponse.ok) {
     throw new Error('Failed to fetch current weather data');
   }
-  
+
   if (!forecastResponse.ok) {
     throw new Error('Failed to fetch weather forecast data');
   }
@@ -73,22 +73,22 @@ export async function executeGetWeather(
       const geocodeResponse = await fetch(
         `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`
       );
-      
+
       if (!geocodeResponse.ok) {
         throw new Error('Failed to geocode location');
       }
-      
+
       const geocodeData = await geocodeResponse.json();
       if (geocodeData.length === 0) {
         throw new Error(`Location "${location}" not found`);
       }
-      
+
       lat = geocodeData[0].lat;
       lon = geocodeData[0].lon;
       locationName = `${geocodeData[0].name}, ${geocodeData[0].country}`;
     } else {
       // For server-side, we can't use browser geolocation, so throw an error
-      throw new Error('Location is required for server-side weather queries');
+      throw new Error('Location must be provided for server-side weather queries');
     }
 
     // Fetch weather data
@@ -152,4 +152,3 @@ export async function executeGetWeather(
     };
   }
 }
-
