@@ -6,7 +6,7 @@ import { useRef, useEffect } from 'react';
 import { Bot } from 'lucide-react';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
-import { GetTimeInput, GetTimeOutput } from '@/lib/tools';
+import { executeClientTool } from '@/lib/tools/client-executors';
 
 export default function ChatPage({
   children,
@@ -20,49 +20,27 @@ export default function ChatPage({
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Handle client-side tools that should be automatically executed
     async onToolCall({ toolCall }) {
-      // Check if it's a dynamic tool first for proper type narrowing
-      if (toolCall.dynamic) {
+      const result = await executeClientTool(toolCall);
+      
+      if (!result) {
+        // Tool not found in registry - it might be a server-side tool or needs special handling
         return;
       }
 
-      if (toolCall.toolName === 'getTime') {
-        const input = toolCall.input as GetTimeInput;
-        const timezone = input.timezone || 'Asia/Dhaka';
-        
-        try {
-          // Get the current time in the specified timezone
-          const now = new Date();
-          const timeString = new Intl.DateTimeFormat('en-US', {
-            timeZone: timezone,
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            timeZoneName: 'short',
-          }).format(now);
-
-          const output: GetTimeOutput = {
-            time: timeString,
-            timezone: timezone,
-            iso: now.toISOString(),
-          };
-
-          // No await - avoids potential deadlocks
-          addToolOutput({
-            tool: 'getTime',
-            toolCallId: toolCall.toolCallId,
-            output,
-          });
-        } catch (err) {
-          addToolOutput({
-            tool: 'getTime',
-            toolCallId: toolCall.toolCallId,
-            state: 'output-error',
-            errorText: 'Unable to get the current time',
-          });
-        }
+      // No await - avoids potential deadlocks
+      if (result.error) {
+        addToolOutput({
+          tool: toolCall.toolName as any,
+          toolCallId: toolCall.toolCallId,
+          state: result.error.state,
+          errorText: result.error.errorText,
+        });
+      } else {
+        addToolOutput({
+          tool: toolCall.toolName as any,
+          toolCallId: toolCall.toolCallId,
+          output: result.output,
+        });
       }
     },
   });
