@@ -6,7 +6,7 @@ import { useRef, useEffect } from 'react';
 import { Bot } from 'lucide-react';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
-import { GetTimeInput, GetTimeOutput } from '@/lib/tools/tools';
+import { GetTimeInput, GetTimeOutput } from '@/lib/tools';
 
 export default function ChatPage({
   children,
@@ -126,7 +126,7 @@ export default function ChatPage({
                 isLoading={isLoading}
                 isAiGenerating={isGenerating}
                 onStopGenerating={stop}
-                placeholder="Type your message... (try asking 'What time is it?')"
+                placeholder="Type your message..."
               />
             </div>
           </div>
