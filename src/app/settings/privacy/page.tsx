@@ -1,0 +1,129 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+
+export default function PrivacySettingsPage() {
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Privacy Settings</h1>
+
+      <div className="space-y-6">
+        {/* Data Collection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Collection</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="analytics">Collect usage analytics</Label>
+                <p className="text-sm text-gray-500">Help us improve the app by collecting anonymous usage data</p>
+              </div>
+              <Checkbox id="analytics" defaultChecked className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="crash-reports">Send crash reports</Label>
+                <p className="text-sm text-gray-500">Automatically send crash reports to help us fix bugs</p>
+              </div>
+              <Checkbox id="crash-reports" defaultChecked className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="personalization">Personalize experience</Label>
+                <p className="text-sm text-gray-500">Use your data to personalize recommendations and content</p>
+              </div>
+              <Checkbox id="personalization" className="mt-1" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy Controls */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Privacy Controls</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="search-history">Save search history</Label>
+                <p className="text-sm text-gray-500">Keep a history of your searches for quick access</p>
+              </div>
+              <Checkbox id="search-history" defaultChecked className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="location">Use precise location</Label>
+                <p className="text-sm text-gray-500">Allow the app to access your precise location for better results</p>
+              </div>
+              <Checkbox id="location" className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="camera">Camera access</Label>
+                <p className="text-sm text-gray-500">Allow the app to access your camera</p>
+              </div>
+              <Checkbox id="camera" className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="microphone">Microphone access</Label>
+                <p className="text-sm text-gray-500">Allow the app to access your microphone</p>
+              </div>
+              <Checkbox id="microphone" className="mt-1" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Sharing */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Sharing</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="share-anonymous">Share anonymous data with partners</Label>
+                <p className="text-sm text-gray-500">Help our partners improve their services with anonymous data</p>
+              </div>
+              <Checkbox id="share-anonymous" className="mt-1" />
+            </div>
+
+            <div className="flex items-start justify-between">
+              <div className="flex flex-col">
+                <Label htmlFor="share-diagnostics">Share diagnostic data</Label>
+                <p className="text-sm text-gray-500">Share technical data to help improve app performance</p>
+              </div>
+              <Checkbox id="share-diagnostics" className="mt-1" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Request */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Request</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="data-request">Request your data</Label>
+              <Textarea
+                id="data-request"
+                placeholder="Describe what data you would like to request or any privacy concerns you have..."
+                className="min-h-[100px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
