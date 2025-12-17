@@ -36,10 +36,10 @@ const settingsSections = [
     href: "/settings/ai-customization"
   },
   {
-    key: "subscriptions",
-    label: "Subscriptions",
+    key: "usage",
+    label: "Usage",
     icon: Plug,
-    href: "/settings/subscriptions"
+    href: "/settings/usage"
   },
   {
     key: "account",
