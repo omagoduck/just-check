@@ -1,6 +1,6 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { getTimeTool, getWeatherTool } from '@/lib/tools';
+import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openrouter.chat('z-ai/glm-4.5-air:free'),
+    model: openrouter.chat('mistralai/devstral-2512:free'),
     messages: convertToModelMessages(messages),
     system: `You are Lumy, a helpful AI assistant built with the AI SDK.
              You are friendly, knowledgeable, and provide helpful responses.
@@ -21,11 +21,13 @@ export async function POST(req: Request) {
              You have access to tools that can provide:
              - getTime: Current date and time
              - getWeather: Current weather and forecast for any location
+             - webSearch: Search the web for information using AI-powered search providers
              You can automatically detect user location for weather queries if they don't specify a location.
              Always be respectful and helpful in your responses.`,
     tools: {
       getTime: getTimeTool,
       getWeather: getWeatherTool,
+      webSearch: webSearchTool
     },
   });
 

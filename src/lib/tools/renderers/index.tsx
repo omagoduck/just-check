@@ -11,6 +11,7 @@ import React, { type ReactNode } from 'react';
 import type { UIMessage } from 'ai';
 import { GetTimeRenderer } from './GetTimeRenderer';
 import { GetWeatherRenderer } from './GetWeatherRenderer';
+import { WebSearchRenderer } from './WebSearchRenderer';
 
 /**
  * Type for a tool renderer component
@@ -28,6 +29,7 @@ export type ToolRenderer = (props: {
 export const toolRenderers: Record<string, ToolRenderer> = {
   'tool-getTime': GetTimeRenderer,
   'tool-getWeather': GetWeatherRenderer,
+  'tool-webSearch': WebSearchRenderer,
   // Add more tool renderers here as you create them
   // 'tool-getLocation': GetLocationRenderer,
 };
@@ -70,4 +72,3 @@ export function renderToolPart(
 
   return renderer({ part, isStreaming });
 }
-
