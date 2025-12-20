@@ -3,10 +3,10 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { useRef, useEffect } from 'react';
-import { Bot } from 'lucide-react';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
 import { executeClientTool } from '@/lib/tools/client-executors';
+import { motion } from 'framer-motion';
 
 export default function ChatPage({
   children,
@@ -70,43 +70,45 @@ export default function ChatPage({
         {/* Messages container - takes all available space and scrolls */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6"
+          className="flex-1 overflow-y-auto p-4"
         >
           <div className="space-y-6 min-h-full max-w-3xl mx-auto">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Bot className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold">Start chatting</h3>
-                  <p className="text-muted-foreground mt-2">
-                    Ask me anything! Try asking "What time is it?"
-                  </p>
-                </div>
-              </div>
-            ) : (
-              messages.map((message) => {
-                const isStreaming = status === 'streaming';
-                return (
-                  <MessageRenderer key={message.id} message={message} isStreaming={isStreaming} />
-                );
-              })
-            )}
+            {messages.map((message) => {
+              const isStreaming = status === 'streaming';
+              return (
+                <MessageRenderer key={message.id} message={message} isStreaming={isStreaming} />
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* Fixed input at bottom */}
-        <div className="border-t bg-background p-4">
-          <div className="flex justify-center">
-            <div className="w-full max-w-3xl">
-              <ChatInput
-                onSubmit={handleSendMessage}
-                isLoading={isLoading}
-                isAiGenerating={isGenerating}
-                onStopGenerating={stop}
-                placeholder="Type your message..."
-              />
-            </div>
+            
+        <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
+          <div className="w-full max-w-3xl mx-auto flex flex-col">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 flex flex-col"
+            >
+              <motion.div
+                layoutId="chat-input-container"
+                className="flex-1"
+              >
+                <ChatInput
+                  onSubmit={handleSendMessage}
+                  isLoading={isLoading}
+                  isAiGenerating={isGenerating}
+                  onStopGenerating={stop}
+                  placeholder="Type your message..."
+                />
+              </motion.div>
+              <p className="text-center text-[12px] text-gray-500 mt-1">
+                AI can make mistakes, consider checking important information.
+              </p>
+            </motion.div>
           </div>
         </div>
       </div>
