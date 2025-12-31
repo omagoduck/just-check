@@ -2,7 +2,8 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
 import { executeClientTool } from '@/lib/tools/client-executors';
@@ -13,15 +14,53 @@ export default function ChatPage({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const params = useParams();
+  const router = useRouter();
+  const chatId = params['chat-id'] as string;
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Validate conversation existence and ownership
+  useEffect(() => {
+    const validateConversation = async () => {
+      try {
+        const response = await fetch(`/api/conversations/existance?id=${chatId}`);
+        const data = await response.json();
+
+        if (!data.valid) {
+          // Redirect to home page if conversation is invalid
+          router.push('/');
+          return;
+        }
+
+        setIsValid(true);
+      } catch (error) {
+        console.error('Error validating conversation:', error);
+        // Redirect to home page on error
+        router.push('/');
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateConversation();
+  }, [chatId, router]);
+
   const { messages, sendMessage, status, addToolOutput, stop } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      // Pass conversationId with every request for message storage
+      body: {
+        conversationId: chatId,
+      },
     }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Handle client-side tools that should be automatically executed
     async onToolCall({ toolCall }) {
       const result = await executeClientTool(toolCall);
-      
+
       if (!result) {
         // Tool not found in registry - it might be a server-side tool or needs special handling
         return;
@@ -45,9 +84,6 @@ export default function ChatPage({
     },
   });
 
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -63,6 +99,23 @@ export default function ChatPage({
   // Determine loading states based on chat status
   const isLoading = status === 'submitted'; // When message is submitted
   const isGenerating = status === 'streaming'; // When AI is generating response
+
+  // Show loading state while validating
+  if (isValidating) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render chat if not valid (will be redirected)
+  if (!isValid) {
+    return null;
+  }
 
   return (
     <div className="flex h-full w-full bg-background">
@@ -83,7 +136,7 @@ export default function ChatPage({
           </div>
         </div>
 
-            
+
         <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
           <div className="w-full max-w-3xl mx-auto flex flex-col">
             <motion.div
