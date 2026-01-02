@@ -18,16 +18,16 @@ const openrouter = createOpenRouter({
 
 export async function POST(req: Request) {
   try {
-    const { messages, conversationId }: { messages: UIMessage[]; conversationId: string } = await req.json();
-
-    // Get the last message from the database to link the new user message
-    const lastMessageFromDB = await getLastMessageFromDB(conversationId);
+    const { messages, id: conversationId }: { messages: UIMessage[]; id: string } = await req.json();
 
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
 
     // Save only if it's a user message
     if (lastMessageInArray.role === 'user') {
+      // Get the last message from the database to link the new user message.
+      const lastMessageFromDB = await getLastMessageFromDB(conversationId);
+
       await saveUserMessage({
         conversationId,
         userMessage: lastMessageInArray,
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
 
     const result = streamText({
-      model: openrouter.chat('mistralai/devstral-2512:free'),
+      model: openrouter.chat('xiaomi/mimo-v2-flash:free'),
       messages: convertToModelMessages(messages),
       system: `You are Lumy, a helpful AI assistant built with the AI SDK.
               You are friendly, knowledgeable, and provide helpful responses.
@@ -49,22 +49,27 @@ export async function POST(req: Request) {
               You can automatically detect user location for weather queries if they don't specify a location.
               Always be respectful and helpful in your responses.`,
       tools: {
-        getTime: getTimeTool,
-        getWeather: getWeatherTool,
+        // Client side tools
+        getTime: getTimeTool, //Needs client time
+        getWeather: getWeatherTool, //Needs client location also works with given location
+        // Server side tools
         webSearch: webSearchTool
       },
     });
 
     return result.toUIMessageStreamResponse({
       originalMessages: messages,
-      onFinish: async ({ messages: completedMessages, isContinuation, finishReason }) => {
+      onFinish: async ({ messages: completedMessages, finishReason }) => {
 
         if (finishReason === 'tool-calls') {
-          return; // Skip saving for intermediate steps
+          return; // Skip saving for intermediate steps in case of tool calls specially often client side tool calls
         }
 
         // The assistant message is the last one in the completed messages
         const assistantMessage = completedMessages[completedMessages.length - 1];
+
+        // Fetch again for latest data or it may stale.
+        const lastMessageFromDB = await getLastMessageFromDB(conversationId);
 
         // Save the final assistant message, linking to the user message if it exists
         await saveAssistantMessage({

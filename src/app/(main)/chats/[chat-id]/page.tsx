@@ -49,12 +49,13 @@ export default function ChatPage({
   }, [chatId, router]);
 
   const { messages, sendMessage, status, addToolOutput, stop } = useChat({
+    id: chatId,
     transport: new DefaultChatTransport({
       api: '/api/chat',
-      // Pass conversationId with every request for message storage
-      body: {
-        conversationId: chatId,
-      },
+      // We don't need the body right now because we can use the id parameter provided by the useChat hook.
+      // body: {
+      //   conversationId: chatId,
+      // },
     }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Handle client-side tools that should be automatically executed
