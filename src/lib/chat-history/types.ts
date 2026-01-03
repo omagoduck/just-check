@@ -60,6 +60,8 @@ export interface StoredMessage {
   metadata?: MessageMetadata;
   /** When the message was created */
   created_at?: string;
+  /** When the message was last updated */
+  updated_at?: string;
   /** Soft delete timestamp */
   deleted_at?: string | null;
 }

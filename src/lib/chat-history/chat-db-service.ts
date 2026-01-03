@@ -172,6 +172,33 @@ export async function saveAssistantMessage(params: {
   });
 }
 
+/**
+ * Updates an existing message in the database.
+ * 
+ * @param id - The ID of the message to update
+ * @param updates - The updates to apply
+ * @returns The updated message
+ */
+export async function updateMessage(
+  id: string,
+  updates: Partial<Pick<StoredMessage, 'content' | 'metadata' | 'sender_type'>>
+): Promise<StoredMessage> {
+  const supabase = getSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from('messages')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update message: ${error.message}`);
+  }
+
+  return data as StoredMessage;
+}
+
 // ============================================================================
 // MESSAGE RETRIEVAL FUNCTIONS
 // ============================================================================

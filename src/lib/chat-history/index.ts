@@ -23,6 +23,7 @@ export {
   saveConversationTurn,
   saveUserMessage,
   saveAssistantMessage,
+  updateMessage,
   getConversationMessages,
   getLastMessageFromDB,
   storedMessagesToUIMessages,

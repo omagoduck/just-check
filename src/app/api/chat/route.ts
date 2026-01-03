@@ -5,6 +5,7 @@ import {
   saveUserMessage,
   saveAssistantMessage,
   getLastMessageFromDB,
+  updateMessage,
   storedMessagesToUIMessages,
   getConversationMessages
 } from '@/lib/chat-history';
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       tools: {
         // Client side tools
         getTime: getTimeTool, //Needs client time
-        getWeather: getWeatherTool, //Needs client location also works with given location
+        getWeather: getWeatherTool, //Needs client location also works with given location, no matter what it runs client side.
         // Server side tools
         webSearch: webSearchTool
       },
@@ -59,19 +60,24 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       originalMessages: messages,
-      onFinish: async ({ messages: completedMessages, finishReason }) => {
-
-        if (finishReason === 'tool-calls') {
-          return; // Skip saving for intermediate steps in case of tool calls specially often client side tool calls
-        }
-
-        // The assistant message is the last one in the completed messages
-        const assistantMessage = completedMessages[completedMessages.length - 1];
+      onFinish: async ({ messages: completedMessages, isContinuation, finishReason }) => {
 
         // Fetch again for latest data or it may stale.
         const lastMessageFromDB = await getLastMessageFromDB(conversationId);
 
-        // Save the final assistant message, linking to the user message if it exists
+        // The assistant message is the last one in the completed messages
+        const assistantMessage = completedMessages[completedMessages.length - 1];
+
+        if (isContinuation && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
+          // If it's a continuation, update the existing assistant message
+          await updateMessage(lastMessageFromDB.id, {
+            content: assistantMessage.parts,
+            metadata: assistantMessage.metadata as any,
+          });
+          return;
+        }
+
+        // Save a new assistant message, linking to the previous message if it exists
         await saveAssistantMessage({
           conversationId,
           assistantMessage,

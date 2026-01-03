@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   content JSONB NOT NULL DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   deleted_at TIMESTAMP WITH TIME ZONE,
   
   -- Ensure messages belong to a conversation
@@ -60,3 +61,20 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 -- Since we're using service role key, disable RLS for simpler integration
 ALTER TABLE public.conversations DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages DISABLE ROW LEVEL SECURITY;
+
+-- 6. CREATE UPDATED_AT TRIGGERS
+-- (Note: update_updated_at_column function is created in 001_complete_profiles_setup.sql)
+
+-- Trigger for conversations
+DROP TRIGGER IF EXISTS update_conversations_updated_at ON public.conversations;
+CREATE TRIGGER update_conversations_updated_at
+    BEFORE UPDATE ON public.conversations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger for messages
+DROP TRIGGER IF EXISTS update_messages_updated_at ON public.messages;
+CREATE TRIGGER update_messages_updated_at
+    BEFORE UPDATE ON public.messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
