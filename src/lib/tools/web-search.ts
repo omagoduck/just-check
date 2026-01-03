@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { SearchQuery } from '../web-search/search-query';
 import { SearchResultItem } from '../web-search/search-result';
-import { TimeRange } from '../web-search/time-range';
+// import { TimeRange } from '../web-search/time-range';
 import { executeWebSearch } from './executor/web-search-executor';
 
 // Type definitions for web search tool
-export interface WebSearchInput extends SearchQuery {}
+export interface WebSearchInput extends SearchQuery { }
 
 // Simplified output for AI - only essential information
 export interface WebSearchOutput {
@@ -14,7 +14,7 @@ export interface WebSearchOutput {
 
 // Web search tool definition with AI SDK format
 export const webSearchTool = {
-  description: 'Search the web for information using AI-powered search providers. Supports both fast keyword search and advanced neural search modes.',
+  description: 'Search the web for information using AI-powered search providers. Supports both fast keyword based search and advanced neural search modes.',
   inputSchema: z.object({
     query: z.string().describe('The search query string'),
     requestPageContent: z.boolean().optional().default(false).describe('Flag to request page content in results. When true, includes full page text and images.'),
@@ -24,7 +24,10 @@ export const webSearchTool = {
     dateRange: z.object({
       start: z.string().optional().describe('Start date in DD-MM-YYYY format'),
       end: z.string().optional().describe('End date in DD-MM-YYYY format'),
-      timeRange: z.enum(Object.values(TimeRange)).optional().describe('Preset time range for quick filtering')
+      // timeRange: z.enum(Object.values(TimeRange)).optional().describe('Preset time range enum for quick filtering. Provide it when you don\'t want to provide start and end dates. It will override start and end dates if both are provided. When you need recent results, use these instead of start and end dates. Because you don\'t actually know current date.'),
+      /*
+        FIXME: timeRange is causing error. debug soon.
+      */
     }).optional().describe('Date range for filtering search results'),
     mode: z.enum(['auto', 'fast', 'advanced']).optional().default('auto').describe('Search mode: fast (keyword-based) or advanced (neural, goes beyond keywords to understand intent)'),
     country: z.string().optional().describe('Country code for region-specific search results (e.g., "US", "GB")'),
