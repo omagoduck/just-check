@@ -1,25 +1,25 @@
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { streamText, stepCountIs, convertToModelMessages, UIMessage, hasToolCall } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
 import {
   saveUserMessage,
   saveAssistantMessage,
   getLastMessageFromDB,
   updateMessage,
-  storedMessagesToUIMessages,
-  getConversationMessages
 } from '@/lib/chat-history';
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-// Allow streaming responses up to 2 minutes.
-// export const maxDuration = 120; // Right now we don't want to limit it for user.
+import { resolveModelRoute, getLanguageModel } from '@/lib/models';
 
 export async function POST(req: Request) {
   try {
-    const { messages, id: conversationId }: { messages: UIMessage[]; id: string } = await req.json();
+    const { messages, id: conversationId, modelId } = await req.json();
+
+    // Calculate Routing Context
+    const hasImages = messages.some((m: UIMessage) =>
+      m.parts.some(p => p.type === 'file' && p.mediaType.startsWith('image/'))
+    );
+
+    // Resolve the UI Model to a technical route using the context
+    const route = resolveModelRoute(modelId, { hasImages });
+    const modelInstance = getLanguageModel(route);
 
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
@@ -36,10 +36,11 @@ export async function POST(req: Request) {
       });
     }
 
+    const modelMessages = convertToModelMessages(messages);
 
     const result = streamText({
-      model: openrouter.chat('xiaomi/mimo-v2-flash:free'),
-      messages: convertToModelMessages(messages),
+      model: modelInstance,
+      messages: modelMessages,
       system: `You are Lumy, a helpful AI assistant built with the AI SDK.
               You are friendly, knowledgeable, and provide helpful responses.
               You can help with coding, writing, analysis, and answering questions.

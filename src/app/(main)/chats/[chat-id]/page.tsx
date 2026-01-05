@@ -93,8 +93,10 @@ export default function ChatPage({
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (text: string, attachments?: File[]) => {
-    sendMessage({ text });
+  const handleSendMessage = (text: string, attachments?: File[], modelId?: string) => {
+    sendMessage({ text }, {
+      body: { modelId }
+    });
   };
 
   // Determine loading states based on chat status
