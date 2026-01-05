@@ -47,6 +47,7 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   onAttachmentUpload?: (files: File[]) => void;
   onLiveVoiceChat?: () => void;
   initialModelId?: string;
+  maxInputCharacterLength?: number;
 }
 interface AttachedFile {
   id: string;
@@ -64,6 +65,7 @@ export function ChatInput({
   onAttachmentUpload,
   onLiveVoiceChat,
   initialModelId = "fast",
+  maxInputCharacterLength,
   ...props
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
@@ -392,10 +394,10 @@ export function ChatInput({
     textareaRef.current?.focus();
   };
 
-  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating;
   const characterCount = inputValue.length;
-  const isNearLimit = false; // No limit, so never near limit
-  const isOverLimit = false; // No limit, so never over limit
+  const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
+  const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
+  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit;
 
   return (
     <TooltipProvider>
@@ -551,6 +553,15 @@ export function ChatInput({
                 rows={1}
               />
 
+              {/* TODO || EXPERIMENTAL: This is under consideration */}
+              {maxInputCharacterLength && (
+                <div className={cn(
+                  "absolute bottom-2 right-4 text-[10px] font-medium transition-colors duration-200",
+                  isOverLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-neutral-500"
+                )}>
+                  {characterCount} / {maxInputCharacterLength}
+                </div>
+              )}
             </div>
 
             {/* Enhanced toolbar */}
