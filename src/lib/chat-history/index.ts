@@ -1,6 +1,6 @@
 /**
  * Chat History Module
- * 
+ *
  * Provides functions for storing and retrieving chat messages.
  * Messages are stored with links to previous messages forming a conversation tree.
  */
@@ -15,6 +15,12 @@ export type {
   StoredMessage,
   CreateMessageInput,
   StoredConversation,
+  AssistantResponseMetadata,
+  ModelData,
+  TotalUsage,
+  StepUsage,
+  StepData,
+  CreateAssistantMetadataInput,
 } from './types';
 
 // Export all database service functions

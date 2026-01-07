@@ -1,10 +1,15 @@
-import { streamText, stepCountIs, convertToModelMessages, UIMessage, hasToolCall } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
 import {
   saveUserMessage,
   saveAssistantMessage,
   getLastMessageFromDB,
   updateMessage,
+  type AssistantResponseMetadata,
+  type StepData,
+  type ModelData,
+  type TotalUsage,
+  type StepUsage,
 } from '@/lib/chat-history';
 import { resolveModelRoute, getLanguageModel } from '@/lib/models';
 
@@ -17,24 +22,73 @@ export async function POST(req: Request) {
       m.parts.some(p => p.type === 'file' && p.mediaType.startsWith('image/'))
     );
 
+    const hasFiles = messages.some((m: UIMessage) =>
+      m.parts.some(p => p.type === 'file')
+    );
+
     // Resolve the UI Model to a technical route using the context
     const route = resolveModelRoute(modelId, { hasImages });
     const modelInstance = getLanguageModel(route);
 
+    // Get model info for metadata
+    const modelID = modelId;
+    const internalModelId = route.id;
+    const provider = route.provider;
+
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
+    const isNewUserTurn = lastMessageInArray.role === 'user';
+
+    // Fetch the last message from DB to check for context or continuations
+    let lastMessageFromDB = await getLastMessageFromDB(conversationId);
 
     // Save only if it's a user message
-    if (lastMessageInArray.role === 'user') {
-      // Get the last message from the database to link the new user message.
-      const lastMessageFromDB = await getLastMessageFromDB(conversationId);
-
+    if (isNewUserTurn) {
       await saveUserMessage({
         conversationId,
         userMessage: lastMessageInArray,
         previousMessageId: lastMessageFromDB?.id ?? null,
       });
+      // Refresh to point to User message
+      lastMessageFromDB = await getLastMessageFromDB(conversationId);
     }
+
+    // Initialize Metadata Accumulators
+    let accumulatedStepCount = 0;
+    let accumulatedToolCallsCount = 0;
+    // We use a Set to track unique tool names across the entire response (previous + current)
+    const accumulatedToolsCalled = new Set<string>();
+
+    let accumulatedUsage: TotalUsage = {
+      totalUsedTokens: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalReasoningTokens: 0,
+      totalCachedInputTokens: 0,
+    };
+
+    let previousStepData: StepData[] = [];
+
+    // If this is NOT a new turn (e.g. tool result continuation), try to restore previous state
+    if (!isNewUserTurn && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
+      const prevMeta = lastMessageFromDB.metadata as any as AssistantResponseMetadata | null;
+      if (prevMeta && prevMeta.totalUsage) {
+        accumulatedStepCount = prevMeta.stepCount || 0;
+        accumulatedToolCallsCount = prevMeta.toolCallsCount || 0;
+        if (prevMeta.toolsCalled) {
+          prevMeta.toolsCalled.forEach(t => accumulatedToolsCalled.add(t));
+        }
+        if (prevMeta.totalUsage) {
+          accumulatedUsage = { ...prevMeta.totalUsage };
+        }
+        if (prevMeta.step_data) {
+          previousStepData = [...prevMeta.step_data];
+        }
+      }
+    }
+
+    const currentStepData: StepData[] = [];
+
 
     const modelMessages = convertToModelMessages(messages);
 
@@ -57,20 +111,100 @@ export async function POST(req: Request) {
         // Server side tools
         webSearch: webSearchTool
       },
+
+      // Track each step as it happens
+      onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
+        // Collect Step Data - use AI SDK v5 standard field names
+        const stepUsage: StepUsage = {
+          totalTokens: usage.totalTokens || 0,
+          inputTokens: usage.inputTokens || 0,
+          outputTokens: usage.outputTokens || 0,
+          reasoningTokens: usage.reasoningTokens || 0,
+          cachedInputTokens: usage.cachedInputTokens || 0,
+        };
+
+        // Add to current steps
+        currentStepData.push({
+          timestamp: new Date().toISOString(),
+          finishReason,
+          usage: stepUsage,
+          toolCallsCount: toolCalls?.length || 0,
+          warnings: warnings || [],
+          providerMetadata: providerMetadata || {},
+        });
+
+        // Add to tools called
+        if (toolCalls) {
+          toolCalls.forEach(tc => accumulatedToolsCalled.add(tc.toolName));
+        }
+
+        console.log('onStepFinish step logged');
+      },
+
+      onFinish: ({ finishReason, totalUsage, steps }) => {
+        console.log('Stream finished. Reason:', finishReason);
+        console.log('Stream Usage:', totalUsage);
+      }
     });
 
     return result.toUIMessageStreamResponse({
+      // 1. Define message metadata behavior
+      messageMetadata: ({ part }) => {
+        if (part.type === 'start') {
+          return {
+            model_data: {
+              modelID,
+              internalModelId,
+              provider,
+            } as ModelData,
+          };
+        }
+
+        if (part.type === 'finish') {
+          // Calculate final aggregated totals
+          // note: part.totalUsage is for the CURRENT stream only.
+          const currentUsage = part.totalUsage;
+
+          const finalUsage: TotalUsage = {
+            totalUsedTokens: accumulatedUsage.totalUsedTokens + (currentUsage?.totalTokens || 0),
+            totalInputTokens: accumulatedUsage.totalInputTokens + (currentUsage?.inputTokens || 0),
+            totalOutputTokens: accumulatedUsage.totalOutputTokens + (currentUsage?.outputTokens || 0),
+            totalReasoningTokens: accumulatedUsage.totalReasoningTokens + (currentUsage?.reasoningTokens || 0),
+            totalCachedInputTokens: accumulatedUsage.totalCachedInputTokens + (currentUsage?.cachedInputTokens || 0),
+          };
+
+          const finalStepCount = accumulatedStepCount + currentStepData.length;
+
+          // toolCallsCount mapping
+          // We can sum up tool calls from current steps
+          const currentToolCallsCount = currentStepData.reduce((acc, step) => acc + step.toolCallsCount, 0);
+          const finalToolCallsCount = accumulatedToolCallsCount + currentToolCallsCount;
+
+          return {
+            hasAttachments: hasFiles,
+            finishReason: part.finishReason,
+            totalUsage: finalUsage,
+            stepCount: finalStepCount,
+            toolCallsCount: finalToolCallsCount,
+            toolsCalled: Array.from(accumulatedToolsCalled),
+            step_data: [...previousStepData, ...currentStepData],
+            model_data: { modelID, internalModelId, provider },
+          } as any;
+        }
+
+        return {};
+      },
+
+      // 2. Handle original messages and DB saving
       originalMessages: messages,
       onFinish: async ({ messages: completedMessages, isContinuation, finishReason }) => {
-
-        // Fetch again for latest data or it may stale.
-        const lastMessageFromDB = await getLastMessageFromDB(conversationId);
 
         // The assistant message is the last one in the completed messages
         const assistantMessage = completedMessages[completedMessages.length - 1];
 
         if (isContinuation && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
           // If it's a continuation, update the existing assistant message
+          // The assistantMessage.metadata SHOULD contain the metadata we returned above.
           await updateMessage(lastMessageFromDB.id, {
             content: assistantMessage.parts,
             metadata: assistantMessage.metadata as any,

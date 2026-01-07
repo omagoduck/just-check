@@ -13,6 +13,16 @@ import type { UIMessage } from 'ai';
 // Re-export UIMessage for convenience
 export type { UIMessage };
 
+// Re-export assistant response metadata types
+export type {
+  AssistantResponseMetadata,
+  ModelData,
+  TotalUsage,
+  StepUsage,
+  StepData,
+  CreateAssistantMetadataInput,
+} from './assistant-response-metadata';
+
 /**
  * Extract the parts type from UIMessage
  * This gives us the array type of all possible UI message parts

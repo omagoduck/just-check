@@ -1,0 +1,100 @@
+/**
+ * Assistant Response Metadata Types
+ *
+ * Defines the structure for AI response metadata stored in message.metadata.
+ * Includes model info, token usage, step data, and tool call tracking.
+ */
+
+/**
+ * Model information for the AI response
+ */
+export interface ModelData {
+  /** The model ID used (e.g., 'gpt-4', 'claude-sonnet-4-5') */
+  modelID: string;
+  /** The actual technical model ID used from the provider */
+  internalModelId: string;
+  /** The provider name (e.g., 'openai', 'anthropic') */
+  provider: string;
+}
+
+/**
+ * Token usage breakdown for a step or total response
+ */
+export interface StepUsage {
+  /** Total tokens for this step */
+  totalTokens: number;
+  /** Input/prompt tokens */
+  inputTokens: number;
+  /** Output/completion tokens */
+  outputTokens: number;
+  /** Reasoning tokens (if supported by model) */
+  reasoningTokens: number;
+  /** Cached input tokens (if supported by model) */
+  cachedInputTokens: number;
+}
+
+/**
+ * Complete token usage for the entire response
+ */
+export interface TotalUsage {
+  /** Sum of all tokens used */
+  totalUsedTokens: number;
+  /** Total input/prompt tokens */
+  totalInputTokens: number;
+  /** Total output/completion tokens */
+  totalOutputTokens: number;
+  /** Total reasoning tokens */
+  totalReasoningTokens: number;
+  /** Total cached input tokens */
+  totalCachedInputTokens: number;
+}
+
+/**
+ * Metadata for a single step in the AI response
+ */
+export interface StepData {
+  /** ISO timestamp when this step finished */
+  timestamp: string;
+  /** Why the step finished (stop, length, tool-calls, etc.) */
+  finishReason: string;
+  /** Token usage for this step */
+  usage: StepUsage;
+  /** Number of tool calls in this step */
+  toolCallsCount: number;
+  /** Warnings from the provider */
+  warnings: any[];
+  /** Provider-specific metadata */
+  providerMetadata: Record<string, unknown>;
+}
+
+/**
+ * Complete assistant response metadata stored in message.metadata
+ */
+export interface AssistantResponseMetadata {
+  /** Information about the model used */
+  model_data: ModelData;
+  /** Whether the response has file attachments */
+  hasAttachments: boolean;
+  /** Why the response finished */
+  finishReason: string;
+  /** Total token usage for the entire response */
+  totalUsage: TotalUsage;
+  /** Number of steps executed */
+  stepCount: number;
+  /** Total number of tool calls */
+  toolCallsCount: number;
+  /** List of unique tool names called */
+  toolsCalled: string[];
+  /** Array of step-by-step metadata */
+  step_data: StepData[];
+}
+
+/**
+ * Input for creating assistant response metadata
+ */
+export interface CreateAssistantMetadataInput {
+  modelID: string;
+  internalModelId: string;
+  provider: string;
+  hasAttachments?: boolean;
+}
