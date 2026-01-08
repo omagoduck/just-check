@@ -4,10 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  Search,
-  Image,
-  Code,
-  MessageSquareText,
   SquarePen,
   Sparkles,
   MoreHorizontal,
@@ -361,7 +357,9 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           </div>
 
           {/* Bespoke Lumy */}
-          <div className="space-y-1">
+          {/* TODO: This section is disabled for now as it was just for UI testing purposes which came in my mind.
+               Will be enabled after actual implementation is completed. */}
+          {/* <div className="space-y-1">
             <h3
               className={cn(
                 "text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
@@ -391,7 +389,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
               onClick={() => { }}
               isCollapsed={isCollapsed}
             />
-          </div>
+          </div> */}
         </div>
       </div>
 
