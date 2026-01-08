@@ -2,87 +2,59 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useTheme } from "next-themes";
+import { Moon, Sun, Monitor } from "lucide-react";
 
 export default function GeneralSettingsPage() {
+  const { theme, setTheme } = useTheme();
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">General Settings</h1>
 
       <div className="space-y-6">
-        {/* Language Settings */}
+        {/* Theme Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Language & Region</CardTitle>
+            <CardTitle>Appearance</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <Input id="language" defaultValue="English" />
-              </div>
+          <CardContent>
+            <div className="space-y-4">
+              <Label>Theme</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setTheme("system")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "system"
+                    ? "border-primary bg-primary/10"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                >
+                  <Monitor className="h-6 w-6" />
+                  <span className="text-sm font-medium">System</span>
+                </button>
 
-              <div className="space-y-2">
-                <Label htmlFor="region">Region</Label>
-                <Input id="region" defaultValue="United States" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "light"
+                    ? "border-primary bg-primary/10"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                >
+                  <Sun className="h-6 w-6" />
+                  <span className="text-sm font-medium">Day</span>
+                </button>
 
-        {/* App Behavior */}
-        <Card>
-          <CardHeader>
-            <CardTitle>App Behavior</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="auto-update">Auto-update app</Label>
-                <p className="text-sm text-gray-500">Automatically download and install updates</p>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "dark"
+                    ? "border-primary bg-primary/10"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                >
+                  <Moon className="h-6 w-6" />
+                  <span className="text-sm font-medium">Night</span>
+                </button>
               </div>
-              <Checkbox id="auto-update" defaultChecked />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="dark-mode">Dark mode</Label>
-                <p className="text-sm text-gray-500">Enable dark theme for the application</p>
-              </div>
-              <Checkbox id="dark-mode" defaultChecked />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="notifications">Enable notifications</Label>
-                <p className="text-sm text-gray-500">Receive desktop notifications</p>
-              </div>
-              <Checkbox id="notifications" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Management</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="sync-data">Sync data across devices</Label>
-                <p className="text-sm text-gray-500">Keep your settings and preferences synchronized</p>
-              </div>
-              <Checkbox id="sync-data" defaultChecked />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="backup">Automatic backups</Label>
-                <p className="text-sm text-gray-500">Create automatic backups of your data</p>
-              </div>
-              <Checkbox id="backup" />
             </div>
           </CardContent>
         </Card>
