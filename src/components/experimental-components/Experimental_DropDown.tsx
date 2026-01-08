@@ -383,7 +383,7 @@ export const DropdownSurface = forwardRef<HTMLDivElement, DropdownSurfaceProps>(
         data-state={open ? "open" : "closed"}
         // --- FIX: Updated styles slightly to rely on opacity for the "show" animation
         className={cn(
-          "fixed z-50 min-w-[160px] overflow-hidden rounded-xl border border-neutral-600/50 bg-neutral-800/95 shadow-2xl backdrop-blur-lg",
+          "fixed z-50 min-w-40 overflow-hidden rounded-xl border bg-popover/95 shadow-2xl backdrop-blur-lg text-popover-foreground",
           "transition-opacity duration-150 transform-gpu", // using transform-gpu for better perf
           "scale-[0.95] opacity-0", // Start hidden, will be overridden by JS
           "focus:outline-none", // Hide the focus ring on the container
@@ -435,8 +435,8 @@ export const DropdownItem = forwardRef<HTMLButtonElement, DropdownItemProps>(
         type="button"
         tabIndex={-1}
         className={cn(
-          "flex w-full items-center space-x-2 px-3 py-2 text-left text-sm text-neutral-200 outline-none transition-colors",
-          "focus:bg-neutral-700/50 hover:bg-neutral-700/50",
+          "flex w-full items-center space-x-2 px-3 py-2 text-left text-sm outline-none transition-colors",
+          "focus:bg-accent hover:bg-accent",
           "disabled:pointer-events-none disabled:opacity-50",
           className
         )}

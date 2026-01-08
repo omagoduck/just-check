@@ -114,11 +114,11 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
     };
   }, [isMobileMenuOpen, onMobileMenuToggle]);
 
-  const isMobile = useIsMobile(); // Using the custom hook
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isMobile) {
-      setIsCollapsed(false); // Ensure sidebar is not collapsed in mobile view
+      setIsCollapsed(false);
     }
   }, [isMobile]);
 
@@ -129,10 +129,10 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
     }
   };
 
-  const NavItem = ({ 
-    icon: Icon, 
-    label, 
-    onClick, 
+  const NavItem = ({
+    icon: Icon,
+    label,
+    onClick,
     isCollapsed,
     className = "",
     isActive = false
@@ -147,8 +147,8 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
     <button
       className={cn(
         "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-        "text-gray-300 hover:text-white hover:bg-[#2A2A2A]",
-        isActive ? "bg-[#2A2A2A] text-white" : "",
+        "text-sidebar-foreground hover:bg-accent",
+        isActive ? "bg-accent" : "",
         className
       )}
       style={{
@@ -160,11 +160,11 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
       onClick={onClick}
       aria-label={isCollapsed ? label : undefined}
     >
-      <Icon 
-        size={20} 
-        className="flex-shrink-0" 
+      <Icon
+        size={20}
+        className="flex-shrink-0"
       />
-      <span 
+      <span
         className={cn(
           "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
           isCollapsed ? "opacity-0" : "opacity-100"
@@ -184,8 +184,8 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
     <div
       ref={sidebarRef}
       className={cn(
-        "flex flex-col h-screen bg-[#1E1E1E] text-white shadow-lg z-30",
-        // Mobile styles - using pixel-based positioning for reliable animation
+        "flex flex-col h-screen bg-sidebar border-r border-border shadow-lg z-30",
+        // Mobile styles
         "fixed inset-y-0",
         isMobileMenuOpen ? "left-0" : "left-[-272px] md:left-0",
         // Desktop styles
@@ -197,7 +197,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
       }}
     >
       {/* Top Section */}
-      <div className="flex items-center border-b border-gray-700 h-16 flex-shrink-0"
+      <div className="flex items-center border-b border-border h-16 flex-shrink-0"
         style={{
           paddingLeft: isCollapsed ? '0' : '16px',
           paddingRight: isCollapsed ? '0' : '16px',
@@ -205,9 +205,9 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1), justify-content 300ms cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        <h1 
+        <h1
           className={cn(
-            "text-xl font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+            "text-xl font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] text-sidebar-foreground",
             isCollapsed ? "opacity-0" : "opacity-100"
           )}
           style={{
@@ -220,7 +220,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
         </h1>
         <button
           onClick={toggleCollapse}
-          className="text-gray-400 p-1.5 rounded-md hover:bg-[#2A2A2A] transition-colors duration-200 hidden md:flex items-center justify-center flex-shrink-0"
+          className="text-muted-foreground p-1.5 rounded-md hover:bg-accent hover:text-sidebar-foreground transition-colors duration-200 hidden md:flex items-center justify-center flex-shrink-0"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
@@ -238,8 +238,8 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
         <button
           className={cn(
             "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-            "bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800",
-            "text-white font-medium shadow-sm hover:shadow-md"
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "font-medium shadow-sm hover:shadow-md"
           )}
           style={{
             width: isCollapsed ? '40px' : '100%',
@@ -250,7 +250,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           onClick={() => router.push('/')}
         >
           <SquarePen size={20} className="flex-shrink-0" />
-          <span 
+          <span
             className={cn(
               "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
               isCollapsed ? "opacity-0" : "opacity-100"
@@ -267,7 +267,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
       </div>
 
       {/* Main Content */}
-      <div 
+      <div
         ref={scrollContainerRef}
         className="flex-grow overflow-y-auto"
         style={{
@@ -279,9 +279,9 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
         <div className="px-4 space-y-6 pb-4">
           {/* Chat History */}
           <div className="space-y-1">
-            <h3 
+            <h3
               className={cn(
-                "text-xs font-semibold text-gray-500 uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
+                "text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
                 isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
               )}
               style={{
@@ -293,17 +293,17 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-8 bg-[#2A2A2A] rounded-md" />
+                  <Skeleton key={i} className="h-8 rounded-md" />
                 ))}
               </div>
             ) : chatHistory.length === 0 ? (
-              <p className="text-gray-500 text-sm py-2 text-center">No chat history</p>
+              <p className="text-muted-foreground text-sm py-2 text-center">No chat history</p>
             ) : (
               <div className="space-y-1">
                 {chatHistory.map((chatTitle, index) => (
                   <div
                     key={index}
-                    className="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-[#2A2A2A] cursor-pointer transition-colors duration-200"
+                    className="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-sidebar-accent cursor-pointer transition-colors duration-200"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -312,33 +312,33 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                       }
                     }}
                   >
-                    <span className="truncate text-gray-300 group-hover:text-white transition-colors duration-200">{chatTitle}</span>
-                    <Dropdown align="center">
+                    <span className="truncate text-sidebar-foreground transition-colors duration-200">{chatTitle}</span>
+                    <Dropdown align="left">
                       <DropdownTrigger asChild>
                         <button
-                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 -mr-1 rounded-md hover:bg-[#3A3A3A] transition-all duration-200"
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200"
                           tabIndex={0}
                           aria-label="Chat options"
                         >
-                          <MoreHorizontal size={16} className="text-gray-400" />
+                          <MoreHorizontal size={16} className="text-sidebar-foreground" />
                         </button>
                       </DropdownTrigger>
-                      <DropdownSurface className="bg-[#2A2A2A] border border-gray-700 text-white min-w-[180px] shadow-lg">
-                        <DropdownItem 
-                          icon={<PencilLine size={16} />} 
-                          className="flex items-center gap-2 p-2 hover:bg-white/10 transition-colors duration-200"
+                      <DropdownSurface className="bg-popover border border-border text-popover-foreground min-w-[180px] shadow-lg">
+                        <DropdownItem
+                          icon={<PencilLine size={16} />}
+                          className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
                         >
                           Rename
                         </DropdownItem>
-                        <DropdownItem 
-                          icon={<Share2 size={16} />} 
-                          className="flex items-center gap-2 p-2 hover:bg-white/10 transition-colors duration-200"
+                        <DropdownItem
+                          icon={<Share2 size={16} />}
+                          className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
                         >
                           Share
                         </DropdownItem>
-                        <DropdownItem 
-                          icon={<Trash2 size={16} />} 
-                          className="flex items-center gap-2 p-2 text-red-400 hover:bg-red-500/10! transition-colors duration-200"
+                        <DropdownItem
+                          icon={<Trash2 size={16} />}
+                          className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
                         >
                           Delete
                         </DropdownItem>
@@ -349,12 +349,12 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                 {showLoadMoreSkeletons && (
                   <div className="space-y-2 pt-2">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-8 bg-[#2A2A2A] rounded-md" />
+                      <Skeleton key={i} className="h-8 rounded-md" />
                     ))}
                   </div>
                 )}
                 {!hasMore && (
-                  <p className="text-gray-500 text-xs text-center pt-2">End of history</p>
+                  <p className="text-muted-foreground text-xs text-center pt-2">End of history</p>
                 )}
               </div>
             )}
@@ -362,9 +362,9 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
 
           {/* Bespoke Lumy */}
           <div className="space-y-1">
-            <h3 
+            <h3
               className={cn(
-                "text-xs font-semibold text-gray-500 uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
+                "text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
                 isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
               )}
               style={{
@@ -373,37 +373,37 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
             >
               Bespoke Lumy
             </h3>
-            <NavItem 
-              icon={MessageSquareText} 
-              label="Translate this" 
-              onClick={() => {}} 
-              isCollapsed={isCollapsed} 
+            <NavItem
+              icon={MessageSquareText}
+              label="Translate this"
+              onClick={() => { }}
+              isCollapsed={isCollapsed}
             />
-            <NavItem 
-              icon={Image} 
-              label="Image Generator" 
-              onClick={() => {}} 
-              isCollapsed={isCollapsed} 
+            <NavItem
+              icon={Image}
+              label="Image Generator"
+              onClick={() => { }}
+              isCollapsed={isCollapsed}
             />
-            <NavItem 
-              icon={Code} 
-              label="Code Helper" 
-              onClick={() => {}} 
-              isCollapsed={isCollapsed} 
+            <NavItem
+              icon={Code}
+              label="Code Helper"
+              onClick={() => { }}
+              isCollapsed={isCollapsed}
             />
           </div>
         </div>
       </div>
 
       {/* Bottom Section */}
-      <div className="mt-auto pt-4 border-t border-gray-700 pb-4 flex-shrink-0"
+      <div className="mt-auto pt-4 border-t border-border pb-4 flex-shrink-0"
         style={{
           paddingLeft: isCollapsed ? '12px' : '16px',
           paddingRight: isCollapsed ? '12px' : '16px',
           transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        {/* Upgrade Button */}
+        {/* Upgrade Button - Keeping gradient as requested */}
         <button
           className={cn(
             "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
@@ -419,7 +419,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           onClick={() => router.push('/upgrade')}
         >
           <Sparkles size={20} className="flex-shrink-0" />
-          <span 
+          <span
             className={cn(
               "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
               isCollapsed ? "opacity-0" : "opacity-100"
@@ -436,8 +436,8 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
 
         {/* Account Section */}
         <div className="relative mt-3">
-          <Dropdown 
-            open={accountMenuOpen} 
+          <Dropdown
+            open={accountMenuOpen}
             onOpenChange={setAccountMenuOpen}
             align="center"
             className="w-full"
@@ -446,7 +446,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
               <button
                 className={cn(
                   "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-                  "text-gray-300 hover:text-white hover:bg-[#2A2A2A]"
+                  "text-sidebar-foreground hover:bg-accent"
                 )}
                 style={{
                   width: isCollapsed ? '40px' : '100%',
@@ -458,11 +458,11 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
               >
                 <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src="/lumy_gradient_logo.svg" alt="User Avatar" />
-                  <AvatarFallback className="bg-gray-700">
-                    <User className="text-gray-400" size={18} />
+                  <AvatarFallback className="bg-secondary">
+                    <User className="text-secondary-foreground" size={18} />
                   </AvatarFallback>
                 </Avatar>
-                <span 
+                <span
                   className={cn(
                     "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
                     isCollapsed ? "opacity-0" : "opacity-100"
@@ -476,39 +476,39 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                   User Name
                 </span>
                 {!isCollapsed && (
-                  <ChevronDown 
-                    size={16} 
+                  <ChevronDown
+                    size={16}
                     className={cn(
                       "ml-auto transition-transform duration-300",
                       accountMenuOpen && "rotate-180"
-                    )} 
+                    )}
                   />
                 )}
               </button>
             </DropdownTrigger>
 
             <DropdownSurface
-              className="bg-[#2A2A2A] border border-gray-700 text-white shadow-lg w-76"
+              className="bg-popover border border-border text-popover-foreground shadow-lg w-76"
               align="center"
               sideOffset={8}
             >
               <DropdownItem
                 icon={<Settings size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md text-gray-300 hover:text-white hover:bg-white/10 transition-colors duration-200 font-medium"
+                className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
                 onSelect={() => router.push('/settings')}
               >
                 Settings
               </DropdownItem>
               <DropdownItem
                 icon={<HelpCircle size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md text-gray-300 hover:text-white hover:bg-white/10 transition-colors duration-200 font-medium"
+                className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
               >
                 Help & Support
               </DropdownItem>
-              <div className="h-px bg-gray-700 w-full" />
+              <div className="h-px bg-border w-full" />
               <DropdownItem
                 icon={<LogOut size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md text-red-400 hover:text-red-300 hover:bg-red-500/10! transition-colors duration-200 font-medium"
+                className="flex items-center gap-3 px-4 py-3 text-md text-destructive hover:bg-destructive/10! transition-colors duration-200 font-medium"
               >
                 Sign out
               </DropdownItem>

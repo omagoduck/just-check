@@ -406,15 +406,15 @@ export function ChatInput({
         {showSuggestions && suggestions.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-800/95 backdrop-blur-lg border border-neutral-600/50 rounded-xl shadow-2xl z-20"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-2xl z-20"
           >
             <div className="p-2">
-              <p className="text-xs text-neutral-400 mb-2 px-2">Suggestions</p>
+              <p className="text-xs text-muted-foreground mb-2 px-2">Suggestions</p>
               {suggestions.slice(0, 4).map((suggestion, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className="w-full text-left px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700/50 rounded-lg transition-colors duration-150"
+                  className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-150"
                 >
                   {suggestion}
                 </button>
@@ -426,9 +426,9 @@ export function ChatInput({
         {/* Main input container */}
         <div className={cn(
           "flex w-full items-end space-x-3 p-2 rounded-2xl transition-all duration-300 shadow-xl",
-          "bg-gradient-to-br from-neutral-900/90 via-neutral-800/90 to-neutral-900/90",
-          "border border-neutral-700/30 backdrop-blur-xl",
-          isFocused && "ring-2 ring-emerald-500/30 border-emerald-500/30",
+          "bg-gradient-to-br from-card/90 via-secondary/90 to-card/90",
+          "border border-border/30 backdrop-blur-xl",
+          isFocused && "ring-2 ring-primary/30 border-primary/30",
           isLoading && "opacity-90",
           className
         )} {...props}>
@@ -457,12 +457,12 @@ export function ChatInput({
                         const isImage = file.type.startsWith('image/');
 
                         return (
-                          <motion.div
+                            <motion.div
                             key={id}
                             layout
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="group relative bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700/50 hover:border-neutral-600/50 shadow-md"
+                            className="group relative bg-muted rounded-lg overflow-hidden border border-border hover:border-border/80 shadow-md"
                           >
                             {isImage && previewUrl ? (
                               <div className="relative">
@@ -475,11 +475,11 @@ export function ChatInput({
                                 <div className="absolute bottom-1 left-1.5 right-1.5 text-xs">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <p className="text-white font-medium truncate cursor-default">{file.name}</p>
+                                      <p className="text-foreground font-medium truncate cursor-default">{file.name}</p>
                                     </TooltipTrigger>
                                     <TooltipContent side="bottom"><p>{file.name}</p></TooltipContent>
                                   </Tooltip>
-                                  <p className="text-neutral-300">
+                                  <p className="text-muted-foreground">
                                     {formatFileSize(file.size)}
                                   </p>
                                 </div>
@@ -491,7 +491,7 @@ export function ChatInput({
                                     "h-8 w-8",
                                     file.type.includes('pdf') ? 'text-red-400' :
                                       file.type.includes('doc') || file.type.includes('text') ? 'text-blue-400' :
-                                        'text-neutral-400'
+                                        'text-muted-foreground'
                                   )} />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -502,7 +502,7 @@ export function ChatInput({
                                     </TooltipTrigger>
                                     <TooltipContent side="bottom"><p>{file.name}</p></TooltipContent>
                                   </Tooltip>
-                                  <p className="text-neutral-300">
+                                  <p className="text-muted-foreground">
                                     {formatFileSize(file.size)}
                                   </p>
                                 </div>
@@ -512,7 +512,7 @@ export function ChatInput({
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => removeAttachment(id)}
-                                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                                  className="absolute top-1 right-1 w-5 h-5 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -520,7 +520,7 @@ export function ChatInput({
                               <TooltipContent><p>Remove file</p></TooltipContent>
                             </Tooltip>
                             {!isImage && (
-                              <div className="absolute top-1 left-1 bg-neutral-900/80 px-1.5 py-0.5 rounded-sm text-xs font-mono text-neutral-300 transition-opacity duration-200">
+                              <div className="absolute top-1 left-1 bg-card/80 px-1.5 py-0.5 rounded-sm text-xs font-mono text-muted-foreground transition-opacity duration-200">
                                 {getFileDisplayName(file)}
                               </div>
                             )}
@@ -541,7 +541,7 @@ export function ChatInput({
                 placeholder={placeholder}
                 className={cn(
                   "flex-1 resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none",
-                  "!bg-transparent text-white placeholder:text-neutral-400 text-base leading-relaxed",
+                  "!bg-transparent text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
                   "pr-4 pb-4 min-h-[32px] transition-all duration-200",
                   isOverLimit && "text-red-200"
                 )}
@@ -557,7 +557,7 @@ export function ChatInput({
               {maxInputCharacterLength && (
                 <div className={cn(
                   "absolute bottom-2 right-4 text-[10px] font-medium transition-colors duration-200",
-                  isOverLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-neutral-500"
+                  isOverLimit ? "text-red-400" : isNearLimit ? "text-amber-400" : "text-muted-foreground"
                 )}>
                   {characterCount} / {maxInputCharacterLength}
                 </div>
@@ -571,7 +571,7 @@ export function ChatInput({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="bg-neutral-700/40 text-neutral-300 hover:text-white hover:bg-neutral-600/60 rounded-xl transition-all duration-200 h-9 px-3"
+                    className="bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200 h-9 px-3"
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -579,17 +579,17 @@ export function ChatInput({
                   </Button>
 
                   {showAttachments && (
-                    <div className="absolute bottom-full left-0 mb-2 bg-neutral-800/95 backdrop-blur-lg border border-neutral-600/50 rounded-xl shadow-xl z-10 p-2 min-w-[160px]">
+                    <div className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-xl z-10 p-2 min-w-[160px]">
                       <button
                         onClick={() => imageFileInputRef.current?.click()}
-                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700/50 rounded-lg transition-colors"
+                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors"
                       >
                         <Image className="h-4 w-4 text-blue-400" />
                         <span>Upload Image</span>
                       </button>
                       <button
                         onClick={() => generalFileInputRef.current?.click()}
-                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700/50 rounded-lg transition-colors"
+                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors"
                       >
                         <FileText className="h-4 w-4 text-green-400" />
                         <span>Upload File</span>
@@ -605,9 +605,9 @@ export function ChatInput({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-9 px-3 gap-2 bg-neutral-700/40 text-neutral-300 hover:text-white hover:bg-neutral-600/60 rounded-xl transition-all duration-200"
+                      className="h-9 px-3 gap-2 bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200"
                     >
-                      <Leaf className="h-4 w-4 text-emerald-400" />
+                      <Leaf className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">
                         {UIModels.find(m => m.id === selectedModelId)?.name || "Model"}
                       </span>
@@ -616,29 +616,29 @@ export function ChatInput({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="w-64 bg-neutral-800/95 backdrop-blur-lg border-neutral-700/50 text-neutral-200"
+                    className="w-64 bg-card/95 backdrop-blur-lg border-border text-foreground"
                   >
                     {UIModels.map((model) => (
                       <DropdownMenuItem
                         key={model.id}
                         onClick={() => setSelectedModelId(model.id)}
                         className={cn(
-                          "flex flex-col items-start gap-1 p-3 focus:bg-neutral-700/50 cursor-pointer",
-                          selectedModelId === model.id && "bg-emerald-500/10 focus:bg-emerald-500/15"
+                          "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
+                          selectedModelId === model.id && "bg-primary/10 focus:bg-primary/15"
                         )}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span className={cn(
                             "font-medium transition-colors",
-                            selectedModelId === model.id ? "text-emerald-400" : "text-neutral-200"
+                            selectedModelId === model.id ? "text-primary" : "text-foreground"
                           )}>
                             {model.name}
                           </span>
                           {selectedModelId === model.id && (
-                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            <Check className="h-3.5 w-3.5 text-primary" />
                           )}
                         </div>
-                        <span className="text-xs text-neutral-500 line-clamp-2 leading-relaxed">
+                        <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                           {model.description}
                         </span>
                       </DropdownMenuItem>
@@ -652,8 +652,8 @@ export function ChatInput({
                       size="sm"
                       variant="ghost"
                       className={cn(
-                        "text-neutral-400 hover:text-white hover:bg-neutral-600/50 rounded-xl transition-all duration-200 h-9 w-9",
-                        isRecording && "bg-red-500/20 text-red-400 animate-pulse ring-2 ring-red-500/30"
+                        "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 h-9 w-9",
+                        isRecording && "bg-destructive/20 text-destructive animate-pulse ring-2 ring-destructive/30"
                       )}
                       onClick={toggleRecording}
                     >
@@ -670,7 +670,7 @@ export function ChatInput({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-neutral-400 hover:text-white hover:bg-neutral-600/50 rounded-xl transition-all duration-200 h-9 w-9"
+                      className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 h-9 w-9"
                       disabled={isLoading}
                       onClick={onLiveVoiceChat}
                     >
@@ -690,7 +690,7 @@ export function ChatInput({
                         onClick={handleStopGenerating}
                         className={cn(
                           "rounded-xl transition-all duration-300 h-9 w-9 p-0 shadow-lg",
-                          "bg-red-600 hover:bg-red-700 text-white hover:shadow-xl hover:scale-105 animate-pulse-slow"
+                          "bg-destructive hover:bg-destructive/90 text-destructive-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
                         )}
                       >
                         <Square className="h-4 w-4" />
@@ -710,8 +710,8 @@ export function ChatInput({
                         className={cn(
                           "rounded-xl transition-all duration-300 h-9 w-9 p-0 shadow-lg",
                           canSubmit
-                            ? "bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white hover:shadow-xl hover:scale-105 animate-pulse-slow"
-                            : "bg-neutral-700/50 text-neutral-500 cursor-not-allowed"
+                            ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
+                            : "bg-muted/50 text-muted-foreground cursor-not-allowed"
                         )}
                       >
                         {isLoading ? (
@@ -739,16 +739,16 @@ export function ChatInput({
                   exit={{ opacity: 0, height: 0, marginTop: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-3 py-2 bg-neutral-900/50 border border-neutral-700/50 rounded-xl backdrop-blur-sm">
+                  <div className="flex items-center justify-between px-3 py-2 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
                     <div className="flex items-center space-x-3 w-full mr-2">
-                      <div className="w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse flex-shrink-0" />
+                      <div className="w-2.5 h-2.5 bg-destructive rounded-full animate-pulse flex-shrink-0" />
                       <div className="w-full h-8">
                         <VoiceVisualizer isListening={isRecording} audioData={audioData} />
                       </div>
                     </div>
                     <button
                       onClick={toggleRecording}
-                      className="text-neutral-400 hover:text-white transition-colors flex-shrink-0"
+                      className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                     >
                       <X className="h-5 w-5" />
                     </button>
