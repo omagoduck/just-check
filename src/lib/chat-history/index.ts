@@ -30,7 +30,6 @@ export {
   saveUserMessage,
   saveAssistantMessage,
   updateMessage,
-  getConversationMessages,
   getLastMessageFromDB,
-  storedMessagesToUIMessages,
+  getMessagesForConversation,
 } from './chat-db-service';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, UIMessage } from 'ai';
 import { useRef, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
@@ -22,33 +22,42 @@ export default function ChatPage({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Validate conversation existence and ownership
-  useEffect(() => {
-    const validateConversation = async () => {
-      try {
-        const response = await fetch(`/api/conversations/existance?id=${chatId}`);
-        const data = await response.json();
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
-        if (!data.valid) {
-          // Redirect to home page if conversation is invalid
+  // Validate conversation existence and ownership, and fetch history
+  useEffect(() => {
+    const loadConversation = async () => {
+      try {
+        // Fetch history (this also validates existence and ownership on the server)
+        const messagesResponse = await fetch(`/api/conversations/${chatId}/messages`);
+
+        if (!messagesResponse.ok) {
+          // If the server returns 404, 401, or 400, it's an invalid conversation for this user
           router.push('/');
           return;
         }
 
+        const messagesData = await messagesResponse.json();
+
+        if (messagesData.messages) {
+          setInitialMessages(messagesData.messages);
+        }
+
         setIsValid(true);
+        setIsValidating(false);
       } catch (error) {
-        console.error('Error validating conversation:', error);
-        // Redirect to home page on error
+        console.error('Error loading conversation:', error);
         router.push('/');
       } finally {
-        setIsValidating(false);
+        setIsHistoryLoading(false);
       }
     };
 
-    validateConversation();
+    loadConversation();
   }, [chatId, router]);
 
-  const { messages, sendMessage, status, addToolOutput, stop } = useChat({
+  const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
       api: '/api/chat',
@@ -84,6 +93,13 @@ export default function ChatPage({
       }
     },
   });
+
+  // Load initial messages into the chat
+  useEffect(() => {
+    if (!isHistoryLoading && initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, [isHistoryLoading, initialMessages, setMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

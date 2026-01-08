@@ -204,31 +204,6 @@ export async function updateMessage(
 // ============================================================================
 
 /**
- * Retrieves all messages for a conversation in chronological order.
- * 
- * @param conversationId - The conversation ID
- * @returns Array of stored messages
- */
-export async function getConversationMessages(
-  conversationId: string
-): Promise<StoredMessage[]> {
-  const supabase = getSupabaseAdminClient();
-
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .eq('conversation_id', conversationId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to retrieve messages: ${error.message}`);
-  }
-
-  return (data || []) as StoredMessage[];
-}
-
-/**
  * Retrieves the last message in a conversation.
  * 
  * @param conversationId - The conversation ID
@@ -260,18 +235,25 @@ export async function getLastMessageFromDB(
 }
 
 /**
- * Converts stored messages back to UIMessage format.
+ * Retrieves all messages for a conversation without ordering.
  * 
- * @param storedMessages - Array of stored messages
- * @returns Array of UIMessage objects
+ * @param conversationId - The conversation ID
+ * @returns Array of messages (unordered)
  */
-export function storedMessagesToUIMessages(
-  storedMessages: StoredMessage[]
-): UIMessage[] {
-  return storedMessages.map(msg => ({
-    id: msg.id,
-    role: msg.sender_type === 'user' ? 'user' : 'assistant',
-    parts: msg.content as UIMessage['parts'],
-    metadata: msg.metadata as UIMessage['metadata'],
-  }));
+export async function getMessagesForConversation(
+  conversationId: string
+): Promise<StoredMessage[]> {
+  const supabase = getSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to retrieve messages: ${error.message}`);
+  }
+
+  return data as StoredMessage[];
 }
