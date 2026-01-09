@@ -172,6 +172,7 @@ export const DropdownTrigger = forwardRef<HTMLElement, DropdownTriggerProps>(
     };
     
     const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+        e.stopPropagation(); // Prevent event from bubbling to parent elements
         (onClick as React.MouseEventHandler<HTMLElement>)?.(e);
         // e.detail is 0 for keyboard activation, non-zero for mouse click
         wasOpenedByClickRef.current = e.detail !== 0;
