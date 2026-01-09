@@ -78,3 +78,22 @@ CREATE TRIGGER update_messages_updated_at
     BEFORE UPDATE ON public.messages
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- 7. CREATE TRIGGER TO UPDATE CONVERSATION TIMESTAMP WHEN MESSAGES CHANGE
+-- Function to update the parent conversation's updated_at when a message is inserted, updated, or deleted
+CREATE OR REPLACE FUNCTION update_conversation_on_message_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE public.conversations
+    SET updated_at = NOW()
+    WHERE id = COALESCE(NEW.conversation_id, OLD.conversation_id);
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger that calls the function after message insert, update, or delete
+DROP TRIGGER IF EXISTS update_conversation_timestamp ON public.messages;
+CREATE TRIGGER update_conversation_timestamp
+    AFTER INSERT OR UPDATE OR DELETE ON public.messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_conversation_on_message_change();
