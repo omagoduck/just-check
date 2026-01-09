@@ -23,7 +23,7 @@ import {
   FileText,
   X,
   Square,
-  Leaf,
+  Stone,
   ChevronDown,
   Check
 } from "lucide-react";
@@ -607,7 +607,7 @@ export function ChatInput({
                       variant="ghost"
                       className="h-9 px-3 gap-2 bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200"
                     >
-                      <Leaf className="h-4 w-4 text-primary" />
+                      <Stone className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">
                         {UIModels.find(m => m.id === selectedModelId)?.name || "Model"}
                       </span>

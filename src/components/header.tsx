@@ -43,7 +43,7 @@ export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderP
               priority // Add priority if it's LCP (Largest Contentful Paint)
             />
             {/* Brand name can be slightly smaller on mobile, or full size based on your preference */}
-            <div className="text-xl transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
+            <div className="text-xl text-foreground/90 transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
           </Link>
         </div>
       </div>
