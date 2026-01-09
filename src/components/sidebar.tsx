@@ -8,7 +8,6 @@ import {
   Sparkles,
   MoreHorizontal,
   PencilLine,
-  Share2,
   Trash2,
   HelpCircle,
   Settings,
@@ -302,7 +301,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           pointerEvents: isCollapsed ? 'none' : 'auto'
         }}
       >
-        <div className="px-4 space-y-6 pb-4">
+        <div className="p-4 space-y-6">
           {/* Chat History */}
           <div className="space-y-1">
             <h3
@@ -364,12 +363,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                         >
                           Rename
                         </DropdownItem>
-                        <DropdownItem
-                          icon={<Share2 size={16} />}
-                          className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
-                        >
-                          Share
-                        </DropdownItem>
+                        {/* TODO || IDEA: Add share button to share a chat  */}
                         <DropdownItem
                           icon={<Trash2 size={16} />}
                           className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"

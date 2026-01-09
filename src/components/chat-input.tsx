@@ -739,7 +739,7 @@ export function ChatInput({
                   exit={{ opacity: 0, height: 0, marginTop: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex items-center justify-between px-3 py-2 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
+                  <div className="flex items-center justify-between px-3 py-1 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
                     <div className="flex items-center space-x-3 w-full mr-2">
                       <div className="w-2.5 h-2.5 bg-destructive rounded-full animate-pulse flex-shrink-0" />
                       <div className="w-full h-8">

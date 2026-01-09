@@ -26,7 +26,7 @@ export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderP
           {/* Mobile Menu Toggle Button: Visible only on screens smaller than 'md' */}
           <button
             onClick={onMobileMenuToggle}
-            className="md:hidden p-1 text-white hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+            className="md:hidden p-1 text-foreground hover:text-foreground/80"
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}

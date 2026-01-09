@@ -43,46 +43,6 @@ export default function PrivacySettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Privacy Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Privacy Controls</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="search-history">Save search history</Label>
-                <p className="text-sm text-gray-500">Keep a history of your searches for quick access</p>
-              </div>
-              <Checkbox id="search-history" defaultChecked className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="location">Use precise location</Label>
-                <p className="text-sm text-gray-500">Allow the app to access your precise location for better results</p>
-              </div>
-              <Checkbox id="location" className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="camera">Camera access</Label>
-                <p className="text-sm text-gray-500">Allow the app to access your camera</p>
-              </div>
-              <Checkbox id="camera" className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="microphone">Microphone access</Label>
-                <p className="text-sm text-gray-500">Allow the app to access your microphone</p>
-              </div>
-              <Checkbox id="microphone" className="mt-1" />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Data Sharing */}
         <Card>
           <CardHeader>
