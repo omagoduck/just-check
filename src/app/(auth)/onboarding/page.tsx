@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth, useUser } from '@clerk/nextjs'
+import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,8 +37,6 @@ export default function OnboardingPage() {
   })
   
   const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitMessage, setSubmitMessage] = useState('')
 
   // Pre-fill form with Clerk data if available
   useEffect(() => {
@@ -66,6 +65,31 @@ export default function OnboardingPage() {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
   }
+
+  const completeOnboarding = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (!response.ok) throw new Error('Failed to complete onboarding')
+      return response.json()
+    },
+    onSuccess: async (data) => {
+      // Token refresh logic
+      if (data.requiresAuthTokenRefresh) {
+        for (let i = 0; i < 3; i++) {
+          try {
+            await getToken({ skipCache: true })
+            break
+          } catch { await new Promise(r => setTimeout(r, Math.pow(2, i) * 500)) }
+        }
+      }
+      // Redirect
+      setTimeout(() => router.push(searchParams.get('returnUrl') || '/'), data.tokenRefreshDelay || 2500)
+    }
+  })
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -99,73 +123,10 @@ export default function OnboardingPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!validateForm()) {
-      return
-    }
-
-    setIsSubmitting(true)
-    setSubmitMessage('')
-
-    try {
-      const response = await fetch('/api/onboarding/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setSubmitMessage('Profile completed successfully! Redirecting...')
-        
-        // Enhanced token refresh with retry logic
-        if (data.requiresAuthTokenRefresh) {
-          console.log('🔄 Forcing token refresh with retry logic...')
-          let retryCount = 0
-          const maxRetries = 3
-          
-          while (retryCount < maxRetries) {
-            try {
-              await getToken({ skipCache: true })
-              console.log(`✅ Token refresh attempt ${retryCount + 1} successful`)
-              break
-            } catch (tokenError) {
-              retryCount++
-              console.warn(`⚠️ Token refresh attempt ${retryCount} failed:`, tokenError)
-              if (retryCount < maxRetries) {
-                // Wait before retry (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 500))
-              }
-            }
-          }
-        }
-        
-        // Get return URL or default to dashboard
-        const returnUrl = searchParams.get('returnUrl') || '/'
-        
-        // Use API-recommended delay or fallback to 2.5 seconds
-        const redirectDelay = data.tokenRefreshDelay || 2500
-        
-        // Add delay to ensure token refresh completes before redirect
-        setTimeout(() => {
-          router.push(returnUrl)
-        }, redirectDelay)
-      } else {
-        setSubmitMessage(data.error || 'Failed to complete onboarding. Please try again.')
-        if (data.details) {
-          console.error('Validation errors:', data.details)
-        }
-      }
-    } catch (error) {
-      console.error('Onboarding error:', error)
-      setSubmitMessage('An error occurred. Please check your connection and try again.')
-    } finally {
-      setIsSubmitting(false)
+    if (validateForm()) {
+      completeOnboarding.mutate(formData)
     }
   }
 
@@ -215,7 +176,7 @@ export default function OnboardingPage() {
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className={errors.fullName ? 'border-red-500' : ''}
-                disabled={isSubmitting}
+                disabled={completeOnboarding.isPending}
               />
               {errors.fullName && (
                 <div className="flex items-center text-sm text-red-600">
@@ -237,7 +198,7 @@ export default function OnboardingPage() {
                 value={formData.nickname}
                 onChange={(e) => handleInputChange('nickname', e.target.value)}
                 className={errors.nickname ? 'border-red-500' : ''}
-                disabled={isSubmitting}
+                disabled={completeOnboarding.isPending}
               />
               {errors.nickname && (
                 <div className="flex items-center text-sm text-red-600">
@@ -262,7 +223,7 @@ export default function OnboardingPage() {
                 value={formData.dateOfBirth}
                 onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                 className={errors.dateOfBirth ? 'border-red-500' : ''}
-                disabled={isSubmitting}
+                disabled={completeOnboarding.isPending}
               />
               {errors.dateOfBirth && (
                 <div className="flex items-center text-sm text-red-600">
@@ -285,7 +246,7 @@ export default function OnboardingPage() {
                 value={formData.avatarUrl}
                 onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
                 className={errors.avatarUrl ? 'border-red-500' : ''}
-                disabled={isSubmitting}
+                disabled={completeOnboarding.isPending}
               />
               {errors.avatarUrl && (
                 <div className="flex items-center text-sm text-red-600">
@@ -298,14 +259,10 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Success/Error Message */}
-            {submitMessage && (
-              <div className={`text-sm text-center p-3 rounded-md ${
-                submitMessage.includes('success') 
-                  ? 'text-green-700 bg-green-50 border border-green-200' 
-                  : 'text-red-700 bg-red-50 border border-red-200'
-              }`}>
-                {submitMessage}
+            {/* Error Message */}
+            {completeOnboarding.error && (
+              <div className="text-sm text-center p-3 rounded-md text-red-700 bg-red-50 border border-red-200">
+                {completeOnboarding.error.message}
               </div>
             )}
           </CardContent>
@@ -313,10 +270,10 @@ export default function OnboardingPage() {
           <CardFooter>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={completeOnboarding.isPending}
               className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {completeOnboarding.isPending ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Saving Profile...
