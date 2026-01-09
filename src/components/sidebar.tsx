@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useConversations, useDeleteConversation } from '@/hooks/use-conversations';
 import {
   SquarePen,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   LogOut,
   PanelLeftOpen,
   PanelLeftClose,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,62 +48,27 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
-  // Chat history state
-  const [chatHistory, setChatHistory] = useState<StoredConversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-  const [showLoadMoreSkeletons, setShowLoadMoreSkeletons] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
+  // Chat history state - managed by TanStack Query
+  const { data, fetchNextPage, hasNextPage, isPending, isFetchingNextPage } = useConversations();
+  const deleteConversation = useDeleteConversation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const fetchConversations = async (cursorValue: string | null, isAppend = false) => {
-    try {
-      const url = cursorValue
-        ? `/api/conversations/list?limit=10&cursor=${encodeURIComponent(cursorValue)}`
-        : '/api/conversations/list?limit=10';
+  // Flatten infinite query data for display
+  const chatHistory = useMemo(() => {
+    if (!data) return [];
+    return data.pages.flatMap((page) => page.conversations);
+  }, [data]);
 
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
-      }
-
-      const data = await response.json();
-
-      if (isAppend) {
-        setChatHistory(prev => [...prev, ...data.conversations]);
-      } else {
-        setChatHistory(data.conversations);
-      }
-
-      setHasMore(data.hasMore);
-      setCursor(data.nextCursor);
-      setShowLoadMoreSkeletons(false);
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      setShowLoadMoreSkeletons(false);
-    }
-  };
-
-  // Initial data load
-  useEffect(() => {
-    setIsLoading(true);
-    fetchConversations(null).finally(() => {
-      setIsLoading(false);
-    });
-  }, []);
-
-  // Infinite scroll logic
+  // Infinite scroll logic using Intersection Observer
   useEffect(() => {
     const handleScroll = () => {
       const container = scrollContainerRef.current;
-      if (container) {
+      if (container && hasNextPage && !isFetchingNextPage) {
         const { scrollTop, scrollHeight, clientHeight } = container;
-        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 10;
+        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50;
 
-        if (isAtBottom && hasMore && !showLoadMoreSkeletons) {
-          setShowLoadMoreSkeletons(true);
-          fetchConversations(cursor, true);
+        if (isAtBottom) {
+          fetchNextPage();
         }
       }
     };
@@ -116,7 +83,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
         currentRef.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [hasMore, showLoadMoreSkeletons, cursor]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -315,7 +282,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
             >
               Chat History
             </h3>
-            {isLoading ? (
+            {isPending ? (
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-8 rounded-md" />
@@ -367,6 +334,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                         <DropdownItem
                           icon={<Trash2 size={16} />}
                           className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
+                          onSelect={() => deleteConversation.mutate(conversation.id)}
                         >
                           Delete
                         </DropdownItem>
@@ -374,14 +342,14 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                     </Dropdown>
                   </div>
                 ))}
-                {showLoadMoreSkeletons && (
+                {isFetchingNextPage && (
                   <div className="space-y-2 pt-2">
                     {[...Array(3)].map((_, i) => (
                       <Skeleton key={i} className="h-8 rounded-md" />
                     ))}
                   </div>
                 )}
-                {!hasMore && (
+                {!hasNextPage && !isPending && chatHistory.length > 0 && (
                   <p className="text-muted-foreground text-xs text-center pt-2">End of history</p>
                 )}
               </div>

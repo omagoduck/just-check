@@ -1,13 +1,14 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, UIMessage } from 'ai';
-import { useRef, useEffect, useState } from 'react';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
 import { executeClientTool } from '@/lib/tools/client-executors';
 import { motion } from 'framer-motion';
+import { useMessages } from '@/hooks/use-messages';
 
 export default function ChatPage({
   children,
@@ -17,54 +18,23 @@ export default function ChatPage({
   const params = useParams();
   const router = useRouter();
   const chatId = params['chat-id'] as string;
-  const [isValidating, setIsValidating] = useState(true);
-  const [isValid, setIsValid] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  // Fetch conversation history using TanStack Query
+  const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
 
-  // Validate conversation existence and ownership, and fetch history
+  // Redirect on error (404, 401, etc.)
   useEffect(() => {
-    const loadConversation = async () => {
-      try {
-        // Fetch history (this also validates existence and ownership on the server)
-        const messagesResponse = await fetch(`/api/conversations/${chatId}/messages`);
-
-        if (!messagesResponse.ok) {
-          // If the server returns 404, 401, or 400, it's an invalid conversation for this user
-          router.push('/');
-          return;
-        }
-
-        const messagesData = await messagesResponse.json();
-
-        if (messagesData.messages) {
-          setInitialMessages(messagesData.messages);
-        }
-
-        setIsValid(true);
-        setIsValidating(false);
-      } catch (error) {
-        console.error('Error loading conversation:', error);
-        router.push('/');
-      } finally {
-        setIsHistoryLoading(false);
-      }
-    };
-
-    loadConversation();
-  }, [chatId, router]);
+    if (isError) {
+      router.push('/');
+    }
+  }, [isError, router]);
 
   const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
       api: '/api/chat',
-      // We don't need the body right now because we can use the id parameter provided by the useChat hook.
-      // body: {
-      //   conversationId: chatId,
-      // },
     }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Handle client-side tools that should be automatically executed
@@ -94,12 +64,12 @@ export default function ChatPage({
     },
   });
 
-  // Load initial messages into the chat
+  // Load initial messages into the chat when data is available
   useEffect(() => {
-    if (!isHistoryLoading && initialMessages.length > 0) {
-      setMessages(initialMessages);
+    if (messagesData?.messages && messagesData.messages.length > 0) {
+      setMessages(messagesData.messages);
     }
-  }, [isHistoryLoading, initialMessages, setMessages]);
+  }, [messagesData, setMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -120,7 +90,7 @@ export default function ChatPage({
   const isGenerating = status === 'streaming'; // When AI is generating response
 
   // Show loading state while validating
-  if (isValidating) {
+  if (isLoadingHistory) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background">
         <div className="text-center">
@@ -132,7 +102,7 @@ export default function ChatPage({
   }
 
   // Don't render chat if not valid (will be redirected)
-  if (!isValid) {
+  if (isError) {
     return null;
   }
 

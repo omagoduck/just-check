@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from '@clerk/themes'
+import { QueryProvider } from "@/providers/query-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +38,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ClerkProvider appearance={{ baseTheme: shadcn }}>
-            {children}
+            <QueryProvider>
+              {children}
+            </QueryProvider>
           </ClerkProvider>
         </ThemeProvider>
       </body>
