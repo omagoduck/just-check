@@ -172,8 +172,9 @@ export const DropdownTrigger = forwardRef<HTMLElement, DropdownTriggerProps>(
     };
     
     const handleClick = (e: React.MouseEvent<HTMLElement>) => {
-        e.stopPropagation(); // Prevent event from bubbling to parent elements
-        (onClick as React.MouseEventHandler<HTMLElement>)?.(e);
+      e.preventDefault();
+      e.stopPropagation();
+      (onClick as React.MouseEventHandler<HTMLElement>)?.(e);
         // e.detail is 0 for keyboard activation, non-zero for mouse click
         wasOpenedByClickRef.current = e.detail !== 0;
         setOpen(!open);
@@ -231,17 +232,14 @@ export const DropdownSurface = forwardRef<HTMLDivElement, DropdownSurfaceProps>(
 
       if (!open || !surfaceNode || !triggerNode) return;
 
-      // Initially hide the element to prevent flickering in the wrong position
       surfaceNode.style.opacity = '0';
 
       const updatePosition = () => {
-        // Now that this runs in the next animation frame (or on scroll/resize),
-        // getBoundingClientRect will be accurate.
         const triggerRect = triggerNode.getBoundingClientRect();
         const surfaceRect = surfaceNode.getBoundingClientRect();
         const vpHeight = window.innerHeight;
         const vpWidth = window.innerWidth;
-        
+
         let newStyle: CSSProperties = { position: 'fixed' };
 
         // Vertical position
@@ -261,29 +259,25 @@ export const DropdownSurface = forwardRef<HTMLDivElement, DropdownSurfaceProps>(
 
         // Horizontal collision
         if (leftPos + surfaceRect.width > vpWidth - collisionPadding) {
-            newStyle.left = 'auto'; // Let right positioning take over
+            newStyle.left = 'auto';
             newStyle.right = `${collisionPadding}px`;
         } else if (leftPos < collisionPadding) {
             newStyle.left = `${collisionPadding}px`;
         } else {
             newStyle.left = `${leftPos}px`;
         }
-        
+
         Object.assign(surfaceNode.style, newStyle);
-        // Fade it in at the correct position
         surfaceNode.style.opacity = '1';
         surfaceNode.style.transform = 'scale(1)';
       };
 
-      // --- FIX: Defer the initial positioning to the next animation frame ---
-      // This gives the browser time to calculate the element's dimensions.
       const frameId = requestAnimationFrame(updatePosition);
-      
+
       window.addEventListener('resize', updatePosition);
       window.addEventListener('scroll', updatePosition, true);
 
       return () => {
-        // --- FIX: Clean up the animation frame request ---
         cancelAnimationFrame(frameId);
         window.removeEventListener('resize', updatePosition);
         window.removeEventListener('scroll', updatePosition, true);
@@ -382,7 +376,6 @@ export const DropdownSurface = forwardRef<HTMLDivElement, DropdownSurfaceProps>(
         aria-labelledby={triggerId}
         aria-orientation="vertical"
         data-state={open ? "open" : "closed"}
-        // --- FIX: Updated styles slightly to rely on opacity for the "show" animation
         className={cn(
           "fixed z-50 min-w-40 overflow-hidden rounded-xl border bg-popover/95 shadow-2xl backdrop-blur-lg text-popover-foreground",
           "transition-opacity duration-150 transform-gpu", // using transform-gpu for better perf
@@ -418,6 +411,8 @@ export const DropdownItem = forwardRef<HTMLButtonElement, DropdownItemProps>(
     const { setOpen } = useDropdown();
 
     const handleSelect = (e: React.MouseEvent<HTMLButtonElement> | React.KeyboardEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
       onSelect?.(e);
       props.onClick?.(e as React.MouseEvent<HTMLButtonElement>);
       if (closeOnSelect) setOpen(false);
