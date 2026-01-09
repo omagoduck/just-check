@@ -10,7 +10,7 @@ import {
   type ModelData,
   type TotalUsage,
   type StepUsage,
-} from '@/lib/chat-history';
+} from '@/lib/conversation-history';
 import { resolveModelRoute, getLanguageModel } from '@/lib/models';
 
 export async function POST(req: Request) {

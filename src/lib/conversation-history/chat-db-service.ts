@@ -1,7 +1,7 @@
 /**
- * Chat Database Service
- * 
- * Contains all database operations for chat history.
+ * Conversation Message Database Service
+ *
+ * Contains database operations for storing and retrieving messages within a conversation.
  * This service handles direct Supabase interactions for messages.
  */
 
@@ -48,7 +48,7 @@ function roleToSenderRole(role: UIMessage['role']): SenderRole {
 
 /**
  * Saves a single message to the database.
- * 
+ *
  * @param input - The message data to save
  * @returns The saved message
  */
@@ -78,7 +78,7 @@ export async function saveMessage(input: CreateMessageInput): Promise<StoredMess
 /**
  * Saves a conversation turn (user message + assistant response) to the database.
  * This is the main function to use when storing a complete turn.
- * 
+ *
  * @param params - Parameters for saving the turn
  * @returns The saved user and assistant messages
  */
@@ -123,7 +123,7 @@ export async function saveConversationTurn(params: {
 /**
  * Saves only a user message to the database.
  * Use this when you need to save a user message before the assistant responds.
- * 
+ *
  * @param params - Parameters for saving the user message
  * @returns The saved user message
  */
@@ -149,7 +149,7 @@ export async function saveUserMessage(params: {
 /**
  * Saves only an assistant message to the database.
  * Use this when you need to save an assistant response after it's complete.
- * 
+ *
  * @param params - Parameters for saving the assistant message
  * @returns The saved assistant message
  */
@@ -174,7 +174,7 @@ export async function saveAssistantMessage(params: {
 
 /**
  * Updates an existing message in the database.
- * 
+ *
  * @param id - The ID of the message to update
  * @param updates - The updates to apply
  * @returns The updated message
@@ -205,7 +205,7 @@ export async function updateMessage(
 
 /**
  * Retrieves the last message in a conversation.
- * 
+ *
  * @param conversationId - The conversation ID
  * @returns The last message or null if conversation is empty
  */
@@ -236,7 +236,7 @@ export async function getLastMessageFromDB(
 
 /**
  * Retrieves all messages for a conversation without ordering.
- * 
+ *
  * @param conversationId - The conversation ID
  * @returns Array of messages (unordered)
  */

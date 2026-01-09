@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getMessagesForConversation, StoredMessage } from '@/lib/chat-history';
+import { getMessagesForConversation, StoredMessage } from '@/lib/conversation-history';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 
 /**
