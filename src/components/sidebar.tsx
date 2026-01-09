@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   SquarePen,
@@ -27,6 +27,7 @@ import {
   DropdownTrigger
 } from '@/components/experimental-components/Experimental_DropDown';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import type { StoredConversation } from '@/lib/chat-history';
 
 interface SidebarV2Props {
   isMobileMenuOpen: boolean;
@@ -35,26 +36,60 @@ interface SidebarV2Props {
 
 const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Extract the current conversation ID from the URL
+  const activeConversationId = useMemo(() => {
+    const match = pathname.match(/^\/chats\/([a-f0-9-]{36})$/i);
+    return match ? match[1] : null;
+  }, [pathname]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   // Chat history state
-  const [chatHistory, setChatHistory] = useState<string[]>([]);
+  const [chatHistory, setChatHistory] = useState<StoredConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [showLoadMoreSkeletons, setShowLoadMoreSkeletons] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const fetchConversations = async (cursorValue: string | null, isAppend = false) => {
+    try {
+      const url = cursorValue
+        ? `/api/conversations/list?limit=10&cursor=${encodeURIComponent(cursorValue)}`
+        : '/api/conversations/list?limit=10';
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+
+      if (isAppend) {
+        setChatHistory(prev => [...prev, ...data.conversations]);
+      } else {
+        setChatHistory(data.conversations);
+      }
+
+      setHasMore(data.hasMore);
+      setCursor(data.nextCursor);
+      setShowLoadMoreSkeletons(false);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      setShowLoadMoreSkeletons(false);
+    }
+  };
 
   // Initial data load
   useEffect(() => {
     setIsLoading(true);
-    setTimeout(() => {
-      const initialChats = Array.from({ length: 10 }, (_, i) => `Chat History Item ${i + 1}`);
-      setChatHistory(initialChats);
+    fetchConversations(null).finally(() => {
       setIsLoading(false);
-      setHasMore(true);
-    }, 1500);
+    });
   }, []);
 
   // Infinite scroll logic
@@ -67,12 +102,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
 
         if (isAtBottom && hasMore && !showLoadMoreSkeletons) {
           setShowLoadMoreSkeletons(true);
-          setTimeout(() => {
-            const newChats = Array.from({ length: 5 }, (_, i) => `Newly Loaded Chat ${i + 1}`);
-            setChatHistory(prev => [...prev, ...newChats]);
-            setShowLoadMoreSkeletons(false);
-            setHasMore(false);
-          }, 1500);
+          fetchConversations(cursor, true);
         }
       }
     };
@@ -87,7 +117,7 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
         currentRef.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [hasMore, showLoadMoreSkeletons]);
+  }, [hasMore, showLoadMoreSkeletons, cursor]);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -296,19 +326,27 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
               <p className="text-muted-foreground text-sm py-2 text-center">No chat history</p>
             ) : (
               <div className="space-y-1">
-                {chatHistory.map((chatTitle, index) => (
+                {chatHistory.map((conversation) => (
                   <div
-                    key={index}
-                    className="group flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-sidebar-accent cursor-pointer transition-colors duration-200"
+                    key={conversation.id}
+                    className={cn(
+                      "group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
+                      conversation.id === activeConversationId
+                        ? "bg-sidebar-accent text-sidebar-foreground"
+                        : "hover:bg-sidebar-accent"
+                    )}
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        console.log('Chat title clicked:', chatTitle);
+                        router.push(`/chats/${conversation.id}`);
                       }
                     }}
+                    onClick={() => router.push(`/chats/${conversation.id}`)}
                   >
-                    <span className="truncate text-sidebar-foreground transition-colors duration-200">{chatTitle}</span>
+                    <span className="truncate text-sidebar-foreground transition-colors duration-200">
+                      {conversation.title || 'Untitled Conversation'}
+                    </span>
                     <Dropdown align="left">
                       <DropdownTrigger asChild>
                         <button

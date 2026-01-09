@@ -15,6 +15,8 @@ export type {
   StoredMessage,
   CreateMessageInput,
   StoredConversation,
+  ListConversationsParams,
+  ListConversationsResult,
   AssistantResponseMetadata,
   ModelData,
   TotalUsage,
@@ -33,3 +35,6 @@ export {
   getLastMessageFromDB,
   getMessagesForConversation,
 } from './chat-db-service';
+
+// Export conversation service functions
+export { listConversations } from './conversations';
