@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useConversations, useDeleteConversation } from '@/hooks/use-conversations';
+import { useConversations, useDeleteConversation, useRenameConversation } from '@/hooks/use-conversations';
 import {
   SquarePen,
   Sparkles,
@@ -28,14 +28,23 @@ import {
   DropdownTrigger
 } from '@/components/experimental-components/Experimental_DropDown';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import type { StoredConversation } from '@/lib/chat-history';
 
-interface SidebarV2Props {
+interface ChatSidebarProps {
   isMobileMenuOpen: boolean;
   onMobileMenuToggle: () => void;
 }
 
-const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -48,9 +57,19 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [conversationToRename, setConversationToRename] = useState<StoredConversation | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+
   // Chat history state - managed by TanStack Query
   const { data, fetchNextPage, hasNextPage, isPending, isFetchingNextPage } = useConversations();
   const deleteConversation = useDeleteConversation();
+  const renameConversation = useRenameConversation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Flatten infinite query data for display
@@ -327,6 +346,12 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                         <DropdownItem
                           icon={<PencilLine size={16} />}
                           className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+                          onSelect={() => {
+                            setConversationToRename(conversation);
+                            // Keep input empty if conversation has no title in DB
+                            setNewTitle(conversation.title || '');
+                            setRenameDialogOpen(true);
+                          }}
                         >
                           Rename
                         </DropdownItem>
@@ -334,7 +359,10 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
                         <DropdownItem
                           icon={<Trash2 size={16} />}
                           className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
-                          onSelect={() => deleteConversation.mutate(conversation.id)}
+                          onSelect={() => {
+                            setConversationToDelete(conversation.id);
+                            setDeleteDialogOpen(true);
+                          }}
                         >
                           Delete
                         </DropdownItem>
@@ -514,8 +542,105 @@ const SidebarV2: React.FC<SidebarV2Props> = ({ isMobileMenuOpen, onMobileMenuTog
           </Dropdown>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setConversationToDelete(null);
+      }}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Chat, Sure?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete this conversation and all its messages.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end gap-3">
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (conversationToDelete) {
+                  deleteConversation.mutate(conversationToDelete);
+                }
+                setDeleteDialogOpen(false);
+                setConversationToDelete(null);
+              }}
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={(open) => {
+        setRenameDialogOpen(open);
+        if (!open) {
+          setConversationToRename(null);
+          setNewTitle('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Rename Chat</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this conversation.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Enter conversation title"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newTitle.trim()) {
+                if (conversationToRename) {
+                  renameConversation.mutate({
+                    conversationId: conversationToRename.id,
+                    newTitle: newTitle.trim(),
+                  });
+                }
+                setRenameDialogOpen(false);
+                setConversationToRename(null);
+                setNewTitle('');
+              }
+            }}
+          />
+          <DialogFooter className="sm:justify-end gap-3">
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={() => setRenameDialogOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!newTitle.trim()}
+              onClick={() => {
+                if (conversationToRename && newTitle.trim()) {
+                  renameConversation.mutate({
+                    conversationId: conversationToRename.id,
+                    newTitle: newTitle.trim(),
+                  });
+                }
+                setRenameDialogOpen(false);
+                setConversationToRename(null);
+                setNewTitle('');
+              }}
+            >
+              Submit
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default SidebarV2;
+export default ChatSidebar;

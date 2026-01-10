@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import Sidebar from "@/components/sidebar";
+import ChatSidebar from "@/components/sidebar";
 import Header from '@/components/header';
 
 export default function RootLayout({
@@ -32,9 +32,9 @@ export default function RootLayout({
           )}
         >
 
-          {/* <DemoSidebar /> */}
+          {/* <ChatSidebar /> */}
           
-          <Sidebar
+          <ChatSidebar
             isMobileMenuOpen={isMobileMenuOpen}
             onMobileMenuToggle={toggleMobileMenu}
           />

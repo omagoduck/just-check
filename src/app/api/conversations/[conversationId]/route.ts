@@ -2,6 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ conversationId: string }> }
+) {
+  try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { conversationId } = await params;
+    const body = await req.json();
+    const { title } = body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return NextResponse.json({ error: 'Invalid title' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdminClient();
+
+    // Update conversation title
+    const { error } = await supabase
+      .from('conversations')
+      .update({ title: title.trim() })
+      .eq('id', conversationId)
+      .eq('clerk_user_id', clerkUserId);
+
+    if (error) {
+      throw new Error(`Failed to rename conversation: ${error.message}`);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error renaming conversation:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }

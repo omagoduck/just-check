@@ -118,5 +118,69 @@ export function useDeleteConversation() {
         router.push('/');
       }
     },
+  })
+}
+
+// ============================================================================
+// RENAME
+// ============================================================================
+
+interface RenameConversationParams {
+  conversationId: string;
+  newTitle: string;
+}
+
+async function renameConversation({ conversationId, newTitle }: RenameConversationParams): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: newTitle }),
+  });
+  if (!response.ok) throw new Error('Failed to rename conversation');
+}
+
+export function useRenameConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: renameConversation,
+    onMutate: async ({ conversationId, newTitle }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+
+      // Optimistically update: rename in cache
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
+        ['conversations'],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              conversations: page.conversations.map((c) =>
+                c.id === conversationId ? { ...c, title: newTitle } : c
+              ),
+            })),
+          };
+        }
+      );
+
+      // Return context with previous data for rollback
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['conversations'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Refetch to ensure server state
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
   });
 }
+
