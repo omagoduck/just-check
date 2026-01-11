@@ -1,27 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UIMessage } from 'ai';
 import { Response } from '@/components/response';
 import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { renderToolPart } from '@/lib/tools/renderers';
+import { useMessageFeedback, useMessageFeedbackMutation } from '@/hooks/use-message-feedback';
+import { cn } from '@/lib/utils';
 
 interface AIMessageProps {
   message: UIMessage;
   isStreaming?: boolean;
 }
 
+type FeedbackType = 'like' | 'dislike';
+
+const PRESETS: Record<FeedbackType, { id: string; label: string }[]> = {
+  like: [
+    { id: 'accurate', label: 'Accurate' },
+    { id: 'helpful', label: 'Helpful' },
+    { id: 'well-explained', label: 'Well explained' },
+    { id: 'creative', label: 'Creative' },
+  ],
+  dislike: [
+    { id: 'incorrect', label: 'Incorrect' },
+    { id: 'unhelpful', label: 'Unhelpful' },
+    { id: 'confusing', label: 'Confusing' },
+    { id: 'inappropriate', label: 'Inappropriate' },
+  ],
+};
+
 export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [popoverType, setPopoverType] = useState<'like' | 'dislike' | null>(null);
+  const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
+  const [comment, setComment] = useState('');
+
+  // Fetch current feedback state for this message
+  const { data: feedbackData } = useMessageFeedback(message.id);
+
+  // Mutation for creating/updating/deleting feedback
+  const submitFeedback = useMessageFeedbackMutation(message.id);
+
+  const currentFeedback = feedbackData?.feedback || null;
+
+  // Sync state with existing feedback when popover opens or feedbackType changes
+  useEffect(() => {
+    if (popoverType && currentFeedback?.type === popoverType) {
+      setSelectedPresets(currentFeedback.presets || []);
+      setComment(currentFeedback.comment || '');
+    }
+  }, [popoverType, currentFeedback]);
 
   const handleCopy = async () => {
     const textContent = message.parts
       .filter(part => part.type === 'text')
       .map(part => part.text)
       .join('\n\n');
-    
+
     try {
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
@@ -30,6 +71,48 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
       console.error('Failed to copy text: ', err);
     }
   };
+
+  const handleLikeClick = (e: React.MouseEvent) => {
+    if (currentFeedback?.type === 'like') {
+      e.stopPropagation();
+      submitFeedback.mutate(null);
+      setPopoverType(null);
+    } else {
+      submitFeedback.mutate({ type: 'like' });
+      setPopoverType('like');
+    }
+  };
+
+  const handleDislikeClick = (e: React.MouseEvent) => {
+    if (currentFeedback?.type === 'dislike') {
+      e.stopPropagation();
+      submitFeedback.mutate(null);
+      setPopoverType(null);
+    } else {
+      submitFeedback.mutate({ type: 'dislike' });
+      setPopoverType('dislike');
+    }
+  };
+
+  const togglePreset = (presetId: string) => {
+    setSelectedPresets((prev) =>
+      prev.includes(presetId) ? prev.filter((id) => id !== presetId) : [...prev, presetId]
+    );
+  };
+
+  const handlePopoverSubmit = () => {
+    if (!popoverType) return;
+    submitFeedback.mutate({
+      type: popoverType,
+      presets: selectedPresets,
+      comment,
+    });
+    setPopoverType(null);
+  };
+
+  const isLikeActive = currentFeedback?.type === 'like';
+  const isDislikeActive = currentFeedback?.type === 'dislike';
+  const presets = popoverType ? PRESETS[popoverType] : [];
   return (
     <div className="w-full mb-4 group">
       <div className="space-y-2">
@@ -41,7 +124,7 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
                   <Response>{part.text}</Response>
                 </div>
               );
-             
+
             case 'reasoning': {
               const itemId = `reasoning-${index}`;
               // Determine if this reasoning part is the last part in the message and still streaming
@@ -71,7 +154,7 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
                 </div>
               );
             }
-             
+
             default:
               // Try to render using the tool renderer registry
               const toolRender = renderToolPart(part, isStreaming);
@@ -82,31 +165,151 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
           }
         })}
       </div>
-      
+
       {/* Action buttons below the message */}
       <div className="flex gap-1 mt-2">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground">
-              <ThumbsUp className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Like</p>
-          </TooltipContent>
+          <Popover open={popoverType === 'like'} onOpenChange={(open) => {
+            if (open && currentFeedback?.type === 'like') return;
+            setPopoverType(open ? 'like' : null);
+          }}>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  onClick={handleLikeClick}
+                  className={cn(
+                    'opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md',
+                    'hover:bg-muted/80 text-foreground',
+                    isLikeActive && 'text-primary',
+                    popoverType === 'like' && 'opacity-100'
+                  )}
+                >
+                  <ThumbsUp className={cn('h-4 w-4', isLikeActive && 'fill-current')} />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{isLikeActive ? 'Remove like' : 'Like'}</p>
+            </TooltipContent>
+            <PopoverContent className="w-80" align="start" side="top">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-sm">What did you like?</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select any that apply (optional)
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => togglePreset(preset.id)}
+                      className={cn(
+                        'px-3 py-1.5 text-xs rounded-full border transition-colors',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        selectedPresets.includes(preset.id)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border'
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <Textarea
+                    placeholder="Add a comment (optional)..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="min-h-20 resize-none text-sm"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setPopoverType(null)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handlePopoverSubmit}>
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </Tooltip>
-        
+
         <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground">
-              <ThumbsDown className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Dislike</p>
-          </TooltipContent>
+          <Popover open={popoverType === 'dislike'} onOpenChange={(open) => {
+            if (open && currentFeedback?.type === 'dislike') return;
+            setPopoverType(open ? 'dislike' : null);
+          }}>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  onClick={handleDislikeClick}
+                  className={cn(
+                    'opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md',
+                    'hover:bg-muted/80 text-foreground',
+                    isDislikeActive && 'text-destructive',
+                    popoverType === 'dislike' && 'opacity-100'
+                  )}
+                >
+                  <ThumbsDown className={cn('h-4 w-4', isDislikeActive && 'fill-current')} />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{isDislikeActive ? 'Remove dislike' : 'Dislike'}</p>
+            </TooltipContent>
+            <PopoverContent className="w-80" align="start" side="top">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-sm">What can we improve?</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select any that apply (optional)
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => togglePreset(preset.id)}
+                      className={cn(
+                        'px-3 py-1.5 text-xs rounded-full border transition-colors',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        selectedPresets.includes(preset.id)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border'
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <Textarea
+                    placeholder="Add a comment (optional)..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="min-h-20 resize-none text-sm"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setPopoverType(null)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handlePopoverSubmit}>
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </Tooltip>
-        
+
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -124,7 +327,7 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
             <p>Copy</p>
           </TooltipContent>
         </Tooltip>
-        
+
         <Tooltip>
           <TooltipTrigger asChild>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground">
