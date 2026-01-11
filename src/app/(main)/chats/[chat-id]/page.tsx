@@ -9,17 +9,16 @@ import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer
 import { executeClientTool } from '@/lib/tools/client-executors';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
+import { useConversationStarterStore } from '@/stores/message-store';
 
-export default function ChatPage({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
   const chatId = params['chat-id'] as string;
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationStarter = useConversationStarterStore((state) => state.conversationStarter);
+  const clearConversationStarter = useConversationStarterStore((state) => state.clearConversationStarter);
 
   // Fetch conversation history using TanStack Query
   const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
@@ -70,6 +69,14 @@ export default function ChatPage({
       setMessages(messagesData.messages);
     }
   }, [messagesData, setMessages]);
+
+  // Handle pending message from main page
+  useEffect(() => {
+    if (conversationStarter && !isLoadingHistory && messagesData) {
+      sendMessage({ text: conversationStarter.message }, { body: { modelId: conversationStarter.modelId } });
+      clearConversationStarter();
+    }
+  }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

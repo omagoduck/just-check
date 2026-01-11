@@ -13,10 +13,21 @@ export async function POST() {
     const supabase = getSupabaseAdminClient();
     const conversationId = uuidv4();
 
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', clerkUserId)
+      .single();
+
+    if (profileError || !profileData) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
     const { data, error } = await supabase
       .from('conversations')
       .insert({
         id: conversationId,
+        user_id: profileData.id,
         clerk_user_id: clerkUserId,
         title: null,
       })
