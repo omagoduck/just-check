@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
@@ -12,6 +12,8 @@ export async function POST() {
 
     const supabase = getSupabaseAdminClient();
     const conversationId = uuidv4();
+    const body = await req.json();
+    const { title } = body;
 
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -23,13 +25,18 @@ export async function POST() {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
+    // Limit title to 256 characters if provided
+    const conversationTitle = title && typeof title === 'string' && title.trim().length > 0
+      ? title.trim().slice(0, 256)
+      : null;
+
     const { data, error } = await supabase
       .from('conversations')
       .insert({
         id: conversationId,
         user_id: profileData.id,
         clerk_user_id: clerkUserId,
-        title: null,
+        title: conversationTitle,
       })
       .select()
       .single();

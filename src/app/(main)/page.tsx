@@ -18,7 +18,9 @@ export default function Main() {
 
     setConversationStarter({ message: message.trim(), modelId });
 
-    createConversation.mutate(undefined, {
+    // Use first 256 characters of the message as the conversation title
+    const title = message.trim().slice(0, 256);
+    createConversation.mutate({ title }, {
       onSuccess: () => {
         setIsLoading(false);
       },

@@ -34,11 +34,15 @@ interface CreateConversationResponse {
   id: string;
 }
 
-async function createConversation(): Promise<CreateConversationResponse> {
+interface CreateConversationParams {
+  title?: string;
+}
+
+async function createConversation(params?: CreateConversationParams): Promise<CreateConversationResponse> {
   const response = await fetch('/api/conversations/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ title: params?.title }),
   });
   if (!response.ok) throw new Error('Failed to create conversation');
   return response.json();
@@ -49,7 +53,7 @@ export function useCreateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createConversation,
+    mutationFn: (params?: CreateConversationParams) => createConversation(params),
     onSuccess: (data) => {
       // Invalidate conversations list to include new conversation
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
