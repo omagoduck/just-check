@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AICustomizationSettingsPage() {
   return (
@@ -12,90 +12,80 @@ export default function AICustomizationSettingsPage() {
       <h1 className="text-2xl font-bold mb-6">AI Customization</h1>
 
       <div className="space-y-6">
-        {/* AI Personality */}
         <Card>
           <CardHeader>
-            <CardTitle>AI Personality</CardTitle>
+            <CardTitle>Your AI's Personality</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="ai-name">AI Name</Label>
-              <Input id="ai-name" defaultValue="Lumy Assistant" />
+              <Label htmlFor="ai-nickname">AI Nickname</Label>
+              <Input id="ai-nickname" placeholder="What you want to call the AI" />
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="ai-tone">AI Tone</Label>
+                <Select defaultValue="default">
+                  <SelectTrigger id="ai-tone" className="w-full">
+                    <SelectValue placeholder="Select AI tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="friendly">Friendly</SelectItem>
+                    <SelectItem value="warmer">Warmer</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="gen-z">Gen Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="response-length">Response Length</Label>
+                <Select defaultValue="default">
+                  <SelectTrigger id="response-length" className="w-full">
+                    <SelectValue placeholder="Select response length" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="concise">Concise</SelectItem>
+                    <SelectItem value="detail">Detailed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ai-personality">Personality Description</Label>
+              <Label htmlFor="custom-instructions">Custom Instructions</Label>
               <Textarea
-                id="ai-personality"
-                defaultValue="Friendly, helpful, and professional AI assistant"
-                className="min-h-[80px]"
+                id="custom-instructions"
+                placeholder="Add any specific instructions or preferences for how the AI should behave..."
+                className="min-h-[120px]"
               />
             </div>
-
-            <div className="space-y-2 pt-4">
-              <Label htmlFor="response-style">Response Style</Label>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox id="concise" />
-                  <Label htmlFor="concise">Concise</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="balanced" defaultChecked />
-                  <Label htmlFor="balanced">Balanced</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="detailed" />
-                  <Label htmlFor="detailed">Detailed</Label>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
-        {/* AI Behavior */}
         <Card>
           <CardHeader>
-            <CardTitle>AI Behavior</CardTitle>
+            <CardTitle>About You</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="use-emojis">Use emojis in responses</Label>
-                <p className="text-sm text-gray-500">Make responses more expressive with emojis</p>
-              </div>
-              <Checkbox id="use-emojis" defaultChecked className="mt-1" />
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="user-nickname">Your Nickname</Label>
+              <Input id="user-nickname" placeholder="What AI will call you" />
             </div>
 
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="formal-tone">Use formal tone</Label>
-                <p className="text-sm text-gray-500">Make responses more professional and formal</p>
-              </div>
-              <Checkbox id="formal-tone" className="mt-1" />
+            <div className="space-y-2">
+              <Label htmlFor="user-profession">Your Profession</Label>
+              <Input id="user-profession" placeholder="e.g., Software Engineer, Doctor, Student" />
             </div>
 
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="code-examples">Include code examples</Label>
-                <p className="text-sm text-gray-500">Provide code examples when relevant</p>
-              </div>
-              <Checkbox id="code-examples" defaultChecked className="mt-1" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Content Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Content Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="preferred-topics">Preferred Topics</Label>
               <Textarea
                 id="preferred-topics"
                 placeholder="List topics you're most interested in (e.g., technology, science, business)"
-                className="min-h-[80px]"
+                className="min-h-20"
               />
             </div>
 
@@ -104,40 +94,17 @@ export default function AICustomizationSettingsPage() {
               <Textarea
                 id="avoid-topics"
                 placeholder="List topics you prefer to avoid"
-                className="min-h-[80px]"
+                className="min-h-20"
               />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Advanced Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Advanced Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="enable-plugins">Enable third-party plugins</Label>
-                <p className="text-sm text-gray-500">Allow AI to use external plugins and integrations</p>
-              </div>
-              <Checkbox id="enable-plugins" className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="web-search">Enable web search</Label>
-                <p className="text-sm text-gray-500">Allow AI to search the web for up-to-date information</p>
-              </div>
-              <Checkbox id="web-search" defaultChecked className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="memory">Enable conversation memory</Label>
-                <p className="text-sm text-gray-500">Remember previous conversations for context</p>
-              </div>
-              <Checkbox id="memory" defaultChecked className="mt-1" />
+            <div className="space-y-2">
+              <Label htmlFor="more-about-you">More About You</Label>
+              <Textarea
+                id="more-about-you"
+                placeholder="Tell us more about yourself, your interests, hobbies, or anything else you'd like to share..."
+                className="min-h-[120px]"
+              />
             </div>
           </CardContent>
         </Card>

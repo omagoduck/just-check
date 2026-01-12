@@ -11,38 +11,6 @@ export default function PrivacySettingsPage() {
       <h1 className="text-2xl font-bold mb-6">Privacy Settings</h1>
 
       <div className="space-y-6">
-        {/* Data Collection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Collection</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="analytics">Collect usage analytics</Label>
-                <p className="text-sm text-gray-500">Help us improve the app by collecting anonymous usage data</p>
-              </div>
-              <Checkbox id="analytics" defaultChecked className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="crash-reports">Send crash reports</Label>
-                <p className="text-sm text-gray-500">Automatically send crash reports to help us fix bugs</p>
-              </div>
-              <Checkbox id="crash-reports" defaultChecked className="mt-1" />
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
-                <Label htmlFor="personalization">Personalize experience</Label>
-                <p className="text-sm text-gray-500">Use your data to personalize recommendations and content</p>
-              </div>
-              <Checkbox id="personalization" className="mt-1" />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Data Sharing */}
         <Card>
           <CardHeader>
@@ -74,7 +42,7 @@ export default function PrivacySettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="data-request">Request your data</Label>
+              <Label htmlFor="data-request">Request your Lumy data</Label>
               <Textarea
                 id="data-request"
                 placeholder="Describe what data you would like to request or any privacy concerns you have..."
