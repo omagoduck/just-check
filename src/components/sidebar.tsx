@@ -79,27 +79,33 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
   }, [data]);
 
   // Infinite scroll logic using Intersection Observer
-  useEffect(() => {
-    const handleScroll = () => {
-      const container = scrollContainerRef.current;
-      if (container && hasNextPage && !isFetchingNextPage) {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-        if (isAtBottom) {
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
           fetchNextPage();
         }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '100px',
+        threshold: 0.1,
       }
-    };
+    );
 
-    const currentRef = scrollContainerRef.current;
+    const currentRef = loadMoreRef.current;
     if (currentRef) {
-      currentRef.addEventListener('scroll', handleScroll);
+      observer.observe(currentRef);
     }
 
     return () => {
       if (currentRef) {
-        currentRef.removeEventListener('scroll', handleScroll);
+        observer.unobserve(currentRef);
       }
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
@@ -370,6 +376,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
                     </Dropdown>
                   </div>
                 ))}
+
+                {/* Sentinel element for infinite scroll */}
+                {hasNextPage && (
+                  <div ref={loadMoreRef} className="h-0 w-full" />
+                )}
+
                 {isFetchingNextPage && (
                   <div className="space-y-2 pt-2">
                     {[...Array(3)].map((_, i) => (

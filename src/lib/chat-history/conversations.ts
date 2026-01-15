@@ -42,7 +42,7 @@ export async function listConversations(
     try {
       const cursorData = JSON.parse(cursor) as PaginationCursor;
       query = query.or(
-        `updated_at.lt.${cursorData.updated_at},updated_at.eq.${cursorData.updated_at}.and(id.lt.${cursorData.id})`
+        `updated_at.lt."${cursorData.updated_at}",and(updated_at.eq."${cursorData.updated_at}",id.lt.${cursorData.id})`
       );
     } catch (error) {
       console.error('Invalid cursor format:', error);
@@ -57,11 +57,11 @@ export async function listConversations(
   }
 
   const allConversations = (data || []) as StoredConversation[];
-  
+
   // Check if we fetched more than the limit to determine hasMore
   const hasMore = allConversations.length > limit;
   const conversations = hasMore ? allConversations.slice(0, limit) : allConversations;
-  
+
   // Generate next cursor from the last item if there are more
   let nextCursor: string | null = null;
   if (hasMore && conversations.length > 0) {
