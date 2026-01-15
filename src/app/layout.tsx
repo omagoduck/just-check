@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from '@clerk/themes'
 import { QueryProvider } from "@/providers/query-provider"
+import { SettingsLoader } from "@/components/settings-loader"
+import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +41,10 @@ export default function RootLayout({
         >
           <ClerkProvider appearance={{ baseTheme: shadcn }}>
             <QueryProvider>
-              {children}
+              <SettingsLoader> {/* This will load the settings at launching the app, which is extremely important */}
+                {children}
+                <Toaster position="top-right" />
+              </SettingsLoader>
             </QueryProvider>
           </ClerkProvider>
         </ThemeProvider>

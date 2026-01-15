@@ -1,15 +1,52 @@
 "use client";
 
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSettingsValue, useUpdateSettings } from "@/hooks/use-settings";
 
 export default function AICustomizationSettingsPage() {
+  const settings = useSettingsValue();
+  const { mutate: updateSettings, isPending: isSaving } = useUpdateSettings();
+  
+  const [pendingField, setPendingField] = useState<{ field: string, value: string } | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const handleChange = useCallback((field: string, value: string) => {
+    setPendingField({ field, value });
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      timeoutRef.current = setTimeout(() => {
+        updateSettings({
+          aiCustomizationSettings: { ...settings.aiCustomizationSettings, [field]: value }
+        });
+        setPendingField(null);
+      }, 500);
+  }, [settings, updateSettings]);
+
+  const getValue = (field: string) => {
+    if (pendingField?.field === field) {
+      return pendingField.value;
+    }
+    return settings.aiCustomizationSettings[field as keyof typeof settings.aiCustomizationSettings] || '';
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">AI Customization</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">AI Customization</h1>
+        {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
+      </div>
 
       <div className="space-y-6">
         <Card>
@@ -19,13 +56,21 @@ export default function AICustomizationSettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="ai-nickname">AI Nickname</Label>
-              <Input id="ai-nickname" placeholder="What you want to call the AI" />
+              <Input 
+                id="ai-nickname" 
+                placeholder="What you want to call the AI"
+                value={getValue('aiNickname')}
+                onChange={(e) => handleChange('aiNickname', e.target.value)}
+              />
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
               <div className="space-y-2 flex-1">
                 <Label htmlFor="ai-tone">AI Tone</Label>
-                <Select defaultValue="default">
+                <Select 
+                  value={getValue('aiTone')} 
+                  onValueChange={(value) => handleChange('aiTone', value)}
+                >
                   <SelectTrigger id="ai-tone" className="w-full">
                     <SelectValue placeholder="Select AI tone" />
                   </SelectTrigger>
@@ -34,14 +79,17 @@ export default function AICustomizationSettingsPage() {
                     <SelectItem value="friendly">Friendly</SelectItem>
                     <SelectItem value="warmer">Warmer</SelectItem>
                     <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="gen-z">Gen Z</SelectItem>
+                    <SelectItem value="gen-z">Gen-Z</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2 flex-1">
                 <Label htmlFor="response-length">Response Length</Label>
-                <Select defaultValue="default">
+                <Select 
+                  value={getValue('responseLength')}
+                  onValueChange={(value) => handleChange('responseLength', value)}
+                >
                   <SelectTrigger id="response-length" className="w-full">
                     <SelectValue placeholder="Select response length" />
                   </SelectTrigger>
@@ -56,10 +104,12 @@ export default function AICustomizationSettingsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="custom-instructions">Custom Instructions</Label>
-              <Textarea
+              <Textarea 
                 id="custom-instructions"
                 placeholder="Add any specific instructions or preferences for how the AI should behave..."
                 className="min-h-[120px]"
+                value={getValue('customInstructions')}
+                onChange={(e) => handleChange('customInstructions', e.target.value)}
               />
             </div>
           </CardContent>
@@ -72,38 +122,54 @@ export default function AICustomizationSettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="user-nickname">Your Nickname</Label>
-              <Input id="user-nickname" placeholder="What AI will call you" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="user-profession">Your Profession</Label>
-              <Input id="user-profession" placeholder="e.g., Software Engineer, Doctor, Student" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="preferred-topics">Preferred Topics</Label>
-              <Textarea
-                id="preferred-topics"
-                placeholder="List topics you're most interested in (e.g., technology, science, business)"
-                className="min-h-20"
+              <Input 
+                id="user-nickname" 
+                placeholder="What AI will call you"
+                value={getValue('userNickname')}
+                onChange={(e) => handleChange('userNickname', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avoid-topics">Avoid Topics</Label>
-              <Textarea
+              <Label htmlFor="user-profession">Your Profession</Label>
+              <Input 
+                id="user-profession" 
+                placeholder="e.g., Software Engineer, Doctor, Student"
+                value={getValue('userProfession')}
+                onChange={(e) => handleChange('userProfession', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preferred-topics">Preferred Topics</Label>
+              <Textarea 
+                id="preferred-topics"
+                placeholder="List topics you're most interested in (e.g., technology, science, business)"
+                className="min-h-20"
+                value={getValue('preferredTopics')}
+                onChange={(e) => handleChange('preferredTopics', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avoid-topics">Topics to Avoid</Label>
+              <Textarea 
                 id="avoid-topics"
                 placeholder="List topics you prefer to avoid"
                 className="min-h-20"
+                value={getValue('avoidTopics')}
+                onChange={(e) => handleChange('avoidTopics', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="more-about-you">More About You</Label>
-              <Textarea
+              <Textarea 
                 id="more-about-you"
                 placeholder="Tell us more about yourself, your interests, hobbies, or anything else you'd like to share..."
                 className="min-h-[120px]"
+                value={getValue('moreAboutYou')}
+                onChange={(e) => handleChange('moreAboutYou', e.target.value)}
               />
             </div>
           </CardContent>
