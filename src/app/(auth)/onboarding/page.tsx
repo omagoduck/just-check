@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth, useUser } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { AlertCircle, User, Calendar, Globe } from 'lucide-react'
+import { AlertCircle, User, Calendar, Globe, Loader2 } from 'lucide-react'
 import { validateAge } from '@/lib/age-validation'
 
 interface FormData {
@@ -23,19 +23,19 @@ interface FormErrors {
   [key: string]: string
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isLoaded, isSignedIn, getToken } = useAuth()
   const { user } = useUser()
-  
+
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     nickname: '',
     dateOfBirth: '',
     avatarUrl: '',
   })
-  
+
   const [errors, setErrors] = useState<FormErrors>({})
 
   // Pre-fill form with Clerk data if available
@@ -59,7 +59,7 @@ export default function OnboardingPage() {
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
@@ -286,5 +286,19 @@ export default function OnboardingPage() {
         </form>
       </Card>
     </div>
+  )
+}
+
+// The current edit to this file and respective git commit is to avoid a build error.
+// TODO: Investigate and learn what was causing the build error in this file even if it was a client file.
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   )
 }
