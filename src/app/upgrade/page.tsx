@@ -114,7 +114,7 @@ export default function UpgradePage() {
             >
               <ArrowLeft size={24} />
             </Button>
-            
+
             {/* Lumy logo and name linking to homepage */}
             <Link href="/" className="flex items-center gap-2 hover:bg-emerald-50/20 bg-transparent px-3 py-1.5 rounded-lg select-none">
               <Image
@@ -131,88 +131,58 @@ export default function UpgradePage() {
         </div>
       </header>
       <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Choose Your Perfect Plan
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400">
-          Unlock the full potential of our AI chatbot with a plan that fits your needs.
-        </p>
-      </div>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Choose Your Perfect Plan
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Unlock the full potential of our AI chatbot with a plan that fits your needs.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {pricingPlans.map((plan, index) => (
-          <Card
-            key={plan.name}
-            className={`relative flex flex-col justify-between ${
-              plan.highlight
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {pricingPlans.map((plan, index) => (
+            <Card
+              key={plan.name}
+              className={`relative flex flex-col justify-between ${plan.highlight
                 ? "border-purple-500 ring-2 ring-purple-500 scale-105"
                 : ""
-            }`}
-          >
-            {plan.badge && (
-              <div className="absolute -top-3 right-0 -mr-3 rounded-full bg-purple-500 px-3 py-1 text-xs font-semibold uppercase text-white shadow-md">
-                {plan.badge}
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold mb-2">
-                {plan.name}
-              </CardTitle>
-              <CardDescription>{plan.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="text-3xl font-bold mb-4">
-                {plan.price.split("/")[0]}
-                <span className="text-lg font-normal text-gray-500 dark:text-gray-400">/{plan.price.split("/")[1]}</span>
-              </div>
-              <ul className="space-y-2">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center text-gray-700 dark:text-gray-300">
-                    <Check className="text-green-500 mr-2 size-5" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" variant={plan.highlight ? "default" : "outline"}>
-                {plan.buttonText}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+                }`}
+            >
+              {plan.badge && (
+                <div className="absolute -top-3 right-0 -mr-3 rounded-full bg-purple-500 px-3 py-1 text-xs font-semibold uppercase text-white shadow-md">
+                  {plan.badge}
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle className="text-2xl font-semibold mb-2">
+                  {plan.name}
+                </CardTitle>
+                <CardDescription>{plan.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <div className="text-3xl font-bold mb-4">
+                  {plan.price.split("/")[0]}
+                  <span className="text-lg font-normal text-gray-500 dark:text-gray-400">/{plan.price.split("/")[1]}</span>
+                </div>
+                <ul className="space-y-2">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center text-gray-700 dark:text-gray-300">
+                      <Check className="text-green-500 mr-2 size-5" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" variant={plan.highlight ? "default" : "outline"}>
+                  {plan.buttonText}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       </div>
-
-      <div className="mt-16 text-center">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-          Looking for Team Solutions?
-        </h2>
-        <Card className="max-w-2xl mx-auto p-8 flex flex-col md:flex-row items-center justify-between">
-          <div className="text-left md:w-2/3 mb-6 md:mb-0">
-            <CardTitle className="text-2xl font-semibold mb-2">
-              {teamPricing.name}
-            </CardTitle>
-            <CardDescription className="mb-4">
-              {teamPricing.description}
-            </CardDescription>
-            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-              {teamPricing.features.map((feature) => (
-                <li key={feature} className="flex items-center">
-                  <Check className="text-green-500 mr-2 size-5" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="md:w-1/3 flex justify-center">
-            <Button size="lg" className="w-full md:w-auto">
-              {teamPricing.buttonText}
-            </Button>
-          </div>
-        </Card>
-      </div>
-    </div>
     </>
   );
 }
