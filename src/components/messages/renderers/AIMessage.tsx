@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { UIMessage } from 'ai';
 import { Response } from '@/components/response';
 import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical } from 'lucide-react';
@@ -35,7 +36,7 @@ const PRESETS: Record<FeedbackType, { id: string; label: string }[]> = {
   ],
 };
 
-export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
+export const AIMessage = memo(function AIMessage({ message, isStreaming = false }: AIMessageProps) {
   const [copied, setCopied] = useState(false);
   const [popoverType, setPopoverType] = useState<'like' | 'dislike' | null>(null);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
@@ -341,4 +342,4 @@ export function AIMessage({ message, isStreaming = false }: AIMessageProps) {
       </div>
     </div>
   );
-}
+});

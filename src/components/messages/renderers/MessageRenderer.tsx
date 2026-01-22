@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from "react";
 import { UIMessage } from 'ai';
 import { UserMessage } from './UserMessage';
 import { AIMessage } from './AIMessage';
@@ -9,7 +10,7 @@ interface MessageRendererProps {
   isStreaming?: boolean;
 }
 
-export function MessageRenderer({ message, isStreaming = false }: MessageRendererProps) {
+export const MessageRenderer = memo(function MessageRenderer({ message, isStreaming = false }: MessageRendererProps) {
   switch (message.role) {
     case 'user':
       return <UserMessage message={message} />;
@@ -18,4 +19,4 @@ export function MessageRenderer({ message, isStreaming = false }: MessageRendere
     default:
       return null;
   }
-}
+});

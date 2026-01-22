@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useState } from 'react';
 import { UIMessage } from 'ai';
 import { Copy, Check, Pencil } from 'lucide-react';
@@ -9,7 +10,7 @@ interface UserMessageProps {
   message: UIMessage;
 }
 
-export function UserMessage({ message }: UserMessageProps) {
+export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -17,7 +18,7 @@ export function UserMessage({ message }: UserMessageProps) {
       .filter(part => part.type === 'text')
       .map(part => part.text)
       .join('');
-    
+
     try {
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
@@ -46,7 +47,7 @@ export function UserMessage({ message }: UserMessageProps) {
             }
           })}
         </div>
-        
+
         {/* Action buttons below the message */}
         <div className="flex justify-end gap-1 mt-2">
           <Tooltip>
@@ -66,7 +67,7 @@ export function UserMessage({ message }: UserMessageProps) {
               <p>Copy message</p>
             </TooltipContent>
           </Tooltip>
-          
+
           {/* TODO: Add edit message functionality */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -82,4 +83,4 @@ export function UserMessage({ message }: UserMessageProps) {
       </div>
     </div>
   );
-}
+});

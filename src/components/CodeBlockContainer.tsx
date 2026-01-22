@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import React, { useState } from "react";
 import { Copy, ClipboardCheck } from "lucide-react";
 import hljs from 'highlight.js';
@@ -29,7 +30,7 @@ interface CodeSnippetProps {
   language?: string;
 }
 
-const CodeBlockContainer: React.FC<CodeSnippetProps> = ({ code, language }) => {
+const CodeBlockContainer: React.FC<CodeSnippetProps> = memo(({ code, language }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -85,6 +86,6 @@ const CodeBlockContainer: React.FC<CodeSnippetProps> = ({ code, language }) => {
       </div>
     </div>
   );
-};
+});
 
 export default CodeBlockContainer;

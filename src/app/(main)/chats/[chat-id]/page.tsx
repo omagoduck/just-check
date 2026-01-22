@@ -32,6 +32,7 @@ export default function ChatPage() {
 
   const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
+    experimental_throttle: 100,
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -114,9 +115,8 @@ export default function ChatPage() {
       >
         <div className="space-y-6 min-h-full max-w-3xl mx-auto">
           {messages.map((message) => {
-            const isStreaming = status === 'streaming';
             return (
-              <MessageRenderer key={message.id} message={message} isStreaming={isStreaming} />
+              <MessageRenderer key={message.id} message={message} isStreaming={isGenerating} />
             );
           })}
           <div ref={messagesEndRef} />
