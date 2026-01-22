@@ -55,7 +55,7 @@ export default function RootLayout({
           onMobileMenuToggle={toggleMobileMenu}
           isMobileMenuOpen={isMobileMenuOpen}
         />
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-hidden relative">
           {children}
         </div>
       </div>
