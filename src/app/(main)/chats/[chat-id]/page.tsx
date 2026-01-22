@@ -78,14 +78,6 @@ export default function ChatPage() {
     }
   }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const handleSendMessage = (text: string, attachments?: File[], modelId?: string) => {
     sendMessage({ text }, {
       body: { modelId }
@@ -114,51 +106,49 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-full w-full bg-background">
-      <div className="flex-1 flex flex-col">
-        {/* Messages container - takes all available space and scrolls */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4"
-        >
-          <div className="space-y-6 min-h-full max-w-3xl mx-auto">
-            {messages.map((message) => {
-              const isStreaming = status === 'streaming';
-              return (
-                <MessageRenderer key={message.id} message={message} isStreaming={isStreaming} />
-              );
-            })}
-            <div ref={messagesEndRef} />
-          </div>
+    <div className="flex flex-col h-full w-full bg-background">
+      {/* Messages container - takes all available space and scrolls */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4"
+      >
+        <div className="space-y-6 min-h-full max-w-3xl mx-auto">
+          {messages.map((message) => {
+            const isStreaming = status === 'streaming';
+            return (
+              <MessageRenderer key={message.id} message={message} isStreaming={isStreaming} />
+            );
+          })}
+          <div ref={messagesEndRef} />
         </div>
+      </div>
 
 
-        <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
-          <div className="w-full max-w-3xl mx-auto flex flex-col">
+      <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
+        <div className="w-full max-w-3xl mx-auto flex flex-col">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 flex flex-col"
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 flex flex-col"
+              layoutId="chat-input-container"
+              className="flex-1"
             >
-              <motion.div
-                layoutId="chat-input-container"
-                className="flex-1"
-              >
-                <ChatInput
-                  onSubmit={handleSendMessage}
-                  isLoading={isLoading}
-                  isAiGenerating={isGenerating}
-                  onStopGenerating={stop}
-                  placeholder="Type your message..."
-                />
-              </motion.div>
-              <p className="text-center text-[12px] text-gray-500 mt-1">
-                AI can make mistakes, consider checking important information.
-              </p>
+              <ChatInput
+                onSubmit={handleSendMessage}
+                isLoading={isLoading}
+                isAiGenerating={isGenerating}
+                onStopGenerating={stop}
+                placeholder="Type your message..."
+              />
             </motion.div>
-          </div>
+            <p className="text-center text-[12px] text-gray-500 mt-1">
+              AI can make mistakes, consider checking important information.
+            </p>
+          </motion.div>
         </div>
       </div>
     </div>
