@@ -59,25 +59,24 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-dvh flex">
       {/* Desktop Sidebar - Hidden on mobile */}
       <aside className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card p-4">
         <div className="text-2xl font-semibold h-16">Settings</div>
-        
+
         <nav className="space-y-2">
           {settingsSections.map((section) => {
             const Icon = section.icon;
             const isActive = pathname === section.href;
-            
+
             return (
               <Link
                 key={section.key}
                 href={section.href}
-                className={`block w-full text-left transition-colors rounded-lg ${
-                  isActive
+                className={`block w-full text-left transition-colors rounded-lg ${isActive
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-accent hover:text-accent-foreground"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3 px-3 py-2">
                   <Icon className="w-4 h-4 shrink-0" />
@@ -108,7 +107,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                 {APP_BRAND_SHORT_NAME}
               </div>
             </Link>
-            
+
             {/* Go Back button at the right end */}
             <div className="flex items-center">
               <Button
@@ -129,15 +128,14 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
               {settingsSections.map((section) => {
                 const Icon = section.icon;
                 const isActive = pathname === section.href;
-                
+
                 return (
                   <Link
                     href={section.href}
-                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 touch-manipulation ${
-                      isActive
+                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 touch-manipulation ${isActive
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span className="whitespace-nowrap">{section.label}</span>

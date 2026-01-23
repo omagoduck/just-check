@@ -201,7 +201,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
     <div
       ref={sidebarRef}
       className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-border shadow-lg z-30",
+        "flex flex-col h-dvh bg-sidebar border-r border-border shadow-lg z-30",
         // Mobile styles
         "fixed inset-y-0",
         isMobileMenuOpen ? "left-0" : "left-[-272px] md:left-0",
