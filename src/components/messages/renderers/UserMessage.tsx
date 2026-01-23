@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { UIMessage } from 'ai';
 import { Copy, Check, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsTouchDevice } from '@/hooks/use-touch-device';
+import { cn } from '@/lib/utils';
 
 interface UserMessageProps {
   message: UIMessage;
@@ -12,6 +14,7 @@ interface UserMessageProps {
 
 export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
+  const isTouchDevice = useIsTouchDevice();
 
   const handleCopy = async () => {
     const textContent = message.parts
@@ -49,12 +52,15 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
         </div>
 
         {/* Action buttons below the message */}
-        <div className="flex justify-end gap-1 mt-2">
+        <div className={cn('flex justify-end gap-1 mt-2', isTouchDevice && 'opacity-100')}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={handleCopy}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground"
+                className={cn(
+                  'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                  isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                )}
               >
                 {copied ? (
                   <Check className="h-4 w-4 text-green-500" />
@@ -71,7 +77,10 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
           {/* TODO: Add edit message functionality */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground">
+              <button className={cn(
+                'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}>
                 <Pencil className="h-4 w-4" />
               </button>
             </TooltipTrigger>

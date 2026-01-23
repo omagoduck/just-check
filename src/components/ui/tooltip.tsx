@@ -4,6 +4,8 @@ import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
+import { useIsTouchDevice } from "@/hooks/use-touch-device"
+
 
 function TooltipProvider({
   delayDuration = 0,
@@ -21,9 +23,15 @@ function TooltipProvider({
 function Tooltip({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  const isTouchDevice = useIsTouchDevice()
+
   return (
     <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        {...props}
+        open={isTouchDevice ? false : props.open} // Disable tooltip on touch devices TODO: Find a better solution like show tooltipvor equivalent on long press
+      />
     </TooltipProvider>
   )
 }
@@ -31,6 +39,7 @@ function Tooltip({
 function TooltipTrigger({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
@@ -52,7 +61,7 @@ function TooltipContent({
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px]" />
+        <TooltipPrimitive.Arrow className="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

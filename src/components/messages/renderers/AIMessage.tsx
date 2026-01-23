@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { renderToolPart } from '@/lib/tools/renderers';
 import { useMessageFeedback, useMessageFeedbackMutation } from '@/hooks/use-message-feedback';
+import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
 
 interface AIMessageProps {
@@ -41,6 +42,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
   const [popoverType, setPopoverType] = useState<'like' | 'dislike' | null>(null);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [comment, setComment] = useState('');
+  const isTouchDevice = useIsTouchDevice();
 
   // Fetch current feedback state for this message
   const { data: feedbackData } = useMessageFeedback(message.id);
@@ -168,13 +170,16 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
       </div>
 
       {/* Action buttons below the message */}
-      <div className="flex gap-1 mt-2">
+      <div className={cn('flex gap-1 mt-2', isTouchDevice && 'opacity-100')}>
 
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={handleCopy}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground"
+              className={cn(
+                'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}
             >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -198,8 +203,8 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                 <button
                   onClick={handleLikeClick}
                   className={cn(
-                    'opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md',
-                    'hover:bg-muted/80 text-foreground',
+                    'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                    isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                     isLikeActive && 'text-primary',
                     popoverType === 'like' && 'opacity-100'
                   )}
@@ -269,8 +274,8 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                 <button
                   onClick={handleDislikeClick}
                   className={cn(
-                    'opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md',
-                    'hover:bg-muted/80 text-foreground',
+                    'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                    isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                     isDislikeActive && 'text-destructive',
                     popoverType === 'dislike' && 'opacity-100'
                   )}
@@ -332,7 +337,10 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground">
+            <button className={cn(
+              'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+              isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            )}>
               <MoreVertical className="h-4 w-4" />
             </button>
           </TooltipTrigger>
