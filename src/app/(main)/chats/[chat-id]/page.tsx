@@ -10,6 +10,7 @@ import { executeClientTool } from '@/lib/tools/client-executors';
 import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import { useConversationStarterStore } from '@/stores/message-store';
+import { ChatHistorySkeleton } from '@/components/messages/renderers/ChatHistorySkeleton';
 
 export default function ChatPage() {
   const params = useParams();
@@ -89,18 +90,6 @@ export default function ChatPage() {
   const isLoading = status === 'submitted'; // When message is submitted
   const isGenerating = status === 'streaming'; // When AI is generating response
 
-  // Show loading state while validating
-  if (isLoadingHistory) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading conversation...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Don't render chat if not valid (will be redirected)
   if (isError) {
     return null;
@@ -114,11 +103,17 @@ export default function ChatPage() {
         className="flex-1 overflow-y-auto p-4"
       >
         <div className="space-y-6 min-h-full max-w-3xl mx-auto">
-          {messages.map((message) => {
-            return (
-              <MessageRenderer key={message.id} message={message} isStreaming={isGenerating} />
-            );
-          })}
+          {isLoadingHistory ? (
+            <ChatHistorySkeleton />
+          ) : (
+            <>
+              {messages.map((message) => {
+                return (
+                  <MessageRenderer key={message.id} message={message} isStreaming={isGenerating} />
+                );
+              })}
+            </>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </div>
