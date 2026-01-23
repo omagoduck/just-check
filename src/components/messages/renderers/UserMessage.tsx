@@ -37,7 +37,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
               case 'text':
                 return (
                   <div key={index} className="prose prose-sm max-w-none prose-invert">
-                    <div className="whitespace-pre-wrap leading-relaxed wrap-break-word">
+                    <div className="whitespace-pre-wrap leading-relaxed wrap-anywhere">
                       {part.text}
                     </div>
                   </div>
