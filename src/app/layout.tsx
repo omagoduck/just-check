@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from '@clerk/themes'
 import { QueryProvider } from "@/providers/query-provider"
 import { SettingsLoader } from "@/components/settings-loader"
+import type { Viewport } from 'next';
 import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
@@ -21,6 +22,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lumy with AI SDK",
   description: "Chat with Lumy, built using the AI SDK",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  interactiveWidget: 'resizes-content', // This tells the browser to resize the viewport area when the keyboard opens
 };
 
 export default function RootLayout({
