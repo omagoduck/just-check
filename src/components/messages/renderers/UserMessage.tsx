@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import { useState } from 'react';
 import { UIMessage } from 'ai';
-import { Copy, Check, Pencil } from 'lucide-react';
+import { Copy, Check, Pencil, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ interface UserMessageProps {
 
 export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const isTouchDevice = useIsTouchDevice();
 
   const handleCopy = async () => {
@@ -25,9 +26,13 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
     try {
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
+      setCopyFailed(false);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+      setCopyFailed(true);
+      setCopied(false);
+      setTimeout(() => setCopyFailed(false), 2000);
     }
   };
 
@@ -64,6 +69,8 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
               >
                 {copied ? (
                   <Check className="h-4 w-4 text-green-500" />
+                ) : copyFailed ? (
+                  <X className="h-4 w-4 text-red-500" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}

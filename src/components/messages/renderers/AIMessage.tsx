@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { memo } from 'react';
 import { UIMessage } from 'ai';
 import { Response } from '@/components/response';
-import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical } from 'lucide-react';
+import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,6 +39,7 @@ const PRESETS: Record<FeedbackType, { id: string; label: string }[]> = {
 
 export const AIMessage = memo(function AIMessage({ message, isStreaming = false }: AIMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [popoverType, setPopoverType] = useState<'like' | 'dislike' | null>(null);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [comment, setComment] = useState('');
@@ -69,9 +70,13 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
     try {
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
+      setCopyFailed(false);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+      setCopyFailed(true);
+      setCopied(false);
+      setTimeout(() => setCopyFailed(false), 2000);
     }
   };
 
@@ -183,6 +188,8 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
+              ) : copyFailed ? (
+                <X className="h-4 w-4 text-red-500" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
