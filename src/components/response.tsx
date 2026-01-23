@@ -362,6 +362,23 @@ const components: Options['components'] = {
       />
     );
   },
+  // Footnotes section
+  section: ({ node, children, className, ...props }) => {
+    if ((props as any)['data-footnotes']) {
+      return (
+        <section
+          className={cn('my-4 text-sm text-muted-foreground', className)}
+          {...props}
+        >
+          {/* <div className="flex items-center space-x-2 mb-4 font-semibold text-foreground uppercase tracking-wider text-[10px]">
+            <span>Footnotes</span>
+          </div> */}
+          {children}
+        </section>
+      );
+    }
+    return <section className={className} {...props}>{children}</section>;
+  },
 };
 
 export const Response = memo(
