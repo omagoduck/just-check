@@ -169,6 +169,25 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
 
       {/* Action buttons below the message */}
       <div className="flex gap-1 mt-2">
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleCopy}
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Copy</p>
+          </TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <Popover open={popoverType === 'like'} onOpenChange={(open) => {
             if (open && currentFeedback?.type === 'like') return;
@@ -309,24 +328,6 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
               </div>
             </PopoverContent>
           </Popover>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={handleCopy}
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Copy</p>
-          </TooltipContent>
         </Tooltip>
 
         <Tooltip>
