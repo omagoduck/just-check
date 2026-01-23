@@ -144,7 +144,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-2">
-                        <div className="ml-1.5 border-l-2 border-blue-200 pl-4">
+                        <div className="ml-1.5 border-l-2 border-border pl-4">
                           <Response className="text-sm text-muted-foreground leading-relaxed">
                             {part.text}
                           </Response>
