@@ -50,12 +50,12 @@ export default function RootLayout({
       )}
 
       {/* Main Interface */}
-      <div className="flex-grow bg-background flex flex-col h-screen overflow-x-hidden">
+      <div className="flex-grow flex flex-col h-screen overflow-hidden relative">
         <Header
           onMobileMenuToggle={toggleMobileMenu}
           isMobileMenuOpen={isMobileMenuOpen}
         />
-        <div className="flex-grow overflow-hidden relative">
+        <div className="flex-grow overflow-y-auto">
           {children}
         </div>
       </div>
