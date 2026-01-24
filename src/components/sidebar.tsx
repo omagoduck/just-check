@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useConversations, useDeleteConversation, useRenameConversation } from '@/hooks/use-conversations';
 import {
   SquarePen,
@@ -47,6 +48,7 @@ interface ChatSidebarProps {
 const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const isTouchDevice = useIsTouchDevice();
 
   // Extract the current conversation ID from the URL
   const activeConversationId = useMemo(() => {
@@ -179,7 +181,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
     >
       <Icon
         size={20}
-        className="flex-shrink-0"
+        className="shrink-0"
       />
       <span
         className={cn(
@@ -214,7 +216,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
       }}
     >
       {/* Top Section */}
-      <div className="flex items-center border-b border-border h-16 flex-shrink-0"
+      <div className="flex items-center border-b border-border h-16 shrink-0"
         style={{
           paddingLeft: isCollapsed ? '0' : '16px',
           paddingRight: isCollapsed ? '0' : '16px',
@@ -237,7 +239,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
         </h1>
         <button
           onClick={toggleCollapse}
-          className="text-muted-foreground p-1.5 rounded-md hover:bg-accent hover:text-sidebar-foreground transition-colors duration-200 hidden md:flex items-center justify-center flex-shrink-0"
+          className="text-muted-foreground p-1.5 rounded-md hover:bg-accent hover:text-sidebar-foreground transition-colors duration-200 hidden md:flex items-center justify-center shrink-0"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
@@ -245,7 +247,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
       </div>
 
       {/* New Chat Button */}
-      <div className="py-3 flex-shrink-0"
+      <div className="py-3 shrink-0"
         style={{
           paddingLeft: isCollapsed ? '12px' : '16px',
           paddingRight: isCollapsed ? '12px' : '16px',
@@ -266,7 +268,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
           }}
           onClick={() => router.push('/')}
         >
-          <SquarePen size={20} className="flex-shrink-0" />
+          <SquarePen size={20} className="shrink-0" />
           <span
             className={cn(
               "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
@@ -286,7 +288,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
       {/* Main Content */}
       <div
         ref={scrollContainerRef}
-        className="flex-grow overflow-y-auto"
+        className="grow overflow-y-auto"
         style={{
           opacity: isCollapsed ? 0 : 1,
           transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -341,7 +343,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
                     <Dropdown align="left">
                       <DropdownTrigger asChild>
                         <button
-                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200"
+                          className={cn(
+                            isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                            'p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200'
+                          )}
                           tabIndex={0}
                           aria-label="Chat options"
                         >
@@ -434,7 +439,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
       </div>
 
       {/* Bottom Section */}
-      <div className="mt-auto pt-4 border-t border-border pb-4 flex-shrink-0"
+      <div className="mt-auto pt-4 border-t border-border pb-4 shrink-0"
         style={{
           paddingLeft: isCollapsed ? '12px' : '16px',
           paddingRight: isCollapsed ? '12px' : '16px',
@@ -445,7 +450,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
         <button
           className={cn(
             "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-            "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
+            "bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
             "text-white font-medium shadow-sm hover:shadow-md"
           )}
           style={{
@@ -456,7 +461,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
           }}
           onClick={() => router.push('/upgrade')}
         >
-          <Sparkles size={20} className="flex-shrink-0" />
+          <Sparkles size={20} className="shrink-0" />
           <span
             className={cn(
               "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
@@ -494,7 +499,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
                 }}
                 aria-label={isCollapsed ? "Account menu" : undefined}
               >
-                <Avatar className="h-8 w-8 flex-shrink-0">
+                <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src="/lumy_gradient_logo.svg" alt="User Avatar" />
                   <AvatarFallback className="bg-secondary">
                     <User className="text-secondary-foreground" size={18} />
@@ -533,7 +538,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
               <DropdownItem
                 icon={<Settings size={24} />}
                 className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
-                onSelect={() => router.push('/settings')}
+                onSelect={() => router.push('/settings/general')}
               >
                 Settings
               </DropdownItem>
