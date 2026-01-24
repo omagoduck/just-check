@@ -14,6 +14,7 @@ import { renderToolPart } from '@/lib/tools/renderers';
 import { useMessageFeedback, useMessageFeedbackMutation } from '@/hooks/use-message-feedback';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/utils/clipboard';
 
 interface AIMessageProps {
   message: UIMessage;
@@ -68,7 +69,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
       .join('\n\n');
 
     try {
-      await navigator.clipboard.writeText(textContent);
+      await copyToClipboard(textContent);
       setCopied(true);
       setCopyFailed(false);
       setTimeout(() => setCopied(false), 2000);

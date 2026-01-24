@@ -7,6 +7,7 @@ import { Copy, Check, Pencil, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
+import { copyToClipboard } from '@/lib/utils/clipboard';
 
 interface UserMessageProps {
   message: UIMessage;
@@ -24,7 +25,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
       .join('');
 
     try {
-      await navigator.clipboard.writeText(textContent);
+      await copyToClipboard(textContent);
       setCopied(true);
       setCopyFailed(false);
       setTimeout(() => setCopied(false), 2000);
