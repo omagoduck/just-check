@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function UsagePage() {
   return (
-    <div className="space-y-6">
+    <div className="p-6 max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Usage</h1>
