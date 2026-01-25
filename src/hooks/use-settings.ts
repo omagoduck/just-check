@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
+import { useAuth } from '@clerk/nextjs';
+import { useOnboardedAuth } from './use-onboarded-auth';
 
 async function fetchSettings(): Promise<UserSettings> {
   const response = await fetch('/api/settings', {
@@ -31,9 +33,12 @@ async function updateSettingsAPI(settings: Partial<UserSettings>): Promise<UserS
 }
 
 export function useSettings() {
+  const { isSignedInAndOnboarded } = useOnboardedAuth();
+
   return useQuery({
     queryKey: ['settings'],
     queryFn: fetchSettings,
+    enabled: isSignedInAndOnboarded, // Only fetch settings if user is signed in and onboarded
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
