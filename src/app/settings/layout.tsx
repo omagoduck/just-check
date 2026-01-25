@@ -61,7 +61,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
     <div className="min-h-dvh flex">
       {/* Desktop Sidebar - Hidden on mobile */}
-      <aside className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card p-4">
+      <aside className="hidden md:block fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-sidebar p-4">
         <div className="text-2xl font-semibold h-16">Settings</div>
 
         <nav className="space-y-2">
