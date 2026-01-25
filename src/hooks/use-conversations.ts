@@ -9,8 +9,8 @@ import type { StoredConversation, ListConversationsResult } from '@/lib/chat-his
 
 async function fetchConversations({ pageParam }: { pageParam: string | null }): Promise<ListConversationsResult> {
   const url = pageParam
-    ? `/api/conversations/list?limit=10&cursor=${encodeURIComponent(pageParam)}`
-    : '/api/conversations/list?limit=10';
+    ? `/api/conversations/list?limit=20&cursor=${encodeURIComponent(pageParam)}`
+    : '/api/conversations/list?limit=20';
 
   const response = await fetch(url);
   if (!response.ok) throw new Error('Failed to fetch conversations');

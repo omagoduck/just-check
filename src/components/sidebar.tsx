@@ -96,7 +96,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
       {
         root: scrollContainerRef.current,
         rootMargin: '100px',
-        threshold: 0.1,
+        threshold: 0,
       }
     );
 
@@ -382,13 +382,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
                   </div>
                 ))}
 
-                {/* Sentinel element for infinite scroll */}
                 {hasNextPage && (
-                  <div ref={loadMoreRef} className="h-0 w-full" />
-                )}
-
-                {isFetchingNextPage && (
-                  <div className="space-y-2 pt-2">
+                  <div ref={loadMoreRef} className="space-y-2 pt-2">
                     {[...Array(3)].map((_, i) => (
                       <Skeleton key={i} className="h-8 rounded-md" />
                     ))}
