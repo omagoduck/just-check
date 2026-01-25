@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
-  '/',
+  // '/', // Right now we will not allow the user to access the root page as it is another vital page. TODO: Add feature so that user can use our chatbot even while signed out.
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/webhooks(.*)',
