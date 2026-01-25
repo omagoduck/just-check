@@ -101,7 +101,7 @@ export default function UpgradePage() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex-shrink-0 bg-background/80 backdrop-blur-md h-header-height text-white px-1 sm:px-2 flex items-center border-b border-gray-800">
+      <header className="sticky top-0 z-50 shrink-0 bg-background/80 backdrop-blur-md h-header-height text-foreground px-1 sm:px-2 flex items-center border-b border-border">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-2">
             {/* Back button for navigation */}
@@ -109,14 +109,14 @@ export default function UpgradePage() {
               variant="ghost"
               size="icon"
               onClick={() => router.back()} // Use router.back() for navigation
-              className="p-2 hover:bg-emerald-50/20! bg-transparent rounded-lg select-none"
+              className="p-2 hover:bg-accent hover:text-accent-foreground bg-transparent rounded-lg select-none transition-colors"
               aria-label="Go back"
             >
               <ArrowLeft size={24} />
             </Button>
 
             {/* Lumy logo and name linking to homepage */}
-            <Link href="/" className="flex items-center gap-2 hover:bg-emerald-50/20 bg-transparent px-3 py-1.5 rounded-lg select-none">
+            <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors">
               <Image
                 src={APP_BRAND_LOGO_URL}
                 alt={`${APP_BRAND_SHORT_NAME} Logo`}
@@ -125,17 +125,17 @@ export default function UpgradePage() {
                 className="h-8 w-8"
                 priority
               />
-              <div className="text-xl transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
+              <div className="text-xl text-foreground/90 hover:text-accent-foreground transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
             </Link>
           </div>
         </div>
       </header>
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
             Choose Your Perfect Plan
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-lg text-muted-foreground">
             Unlock the full potential of our AI chatbot with a plan that fits your needs.
           </p>
         </div>
@@ -145,12 +145,12 @@ export default function UpgradePage() {
             <Card
               key={plan.name}
               className={`relative flex flex-col justify-between ${plan.highlight
-                ? "border-purple-500 ring-2 ring-purple-500 scale-105"
+                ? "border-primary ring-2 ring-primary scale-105"
                 : ""
                 }`}
             >
               {plan.badge && (
-                <div className="absolute -top-3 right-0 -mr-3 rounded-full bg-purple-500 px-3 py-1 text-xs font-semibold uppercase text-white shadow-md">
+                <div className="absolute -top-3 right-0 -mr-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground shadow-md">
                   {plan.badge}
                 </div>
               )}
@@ -160,15 +160,15 @@ export default function UpgradePage() {
                 </CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
-              <CardContent className="flex-grow">
+              <CardContent className="grow">
                 <div className="text-3xl font-bold mb-4">
                   {plan.price.split("/")[0]}
-                  <span className="text-lg font-normal text-gray-500 dark:text-gray-400">/{plan.price.split("/")[1]}</span>
+                  <span className="text-lg font-normal text-muted-foreground">/{plan.price.split("/")[1]}</span>
                 </div>
                 <ul className="space-y-2">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center text-gray-700 dark:text-gray-300">
-                      <Check className="text-green-500 mr-2 size-5" />
+                    <li key={feature} className="flex items-center text-foreground">
+                      <Check className="text-chart-1 mr-2 size-5" />
                       {feature}
                     </li>
                   ))}

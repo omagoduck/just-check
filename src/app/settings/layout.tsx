@@ -91,10 +91,10 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
       {/* Main Content Container */}
       <div className="flex-1 flex flex-col md:ml-64">
         {/* Header - Fixed, non-scrollable */}
-        <header className="fixed top-0 right-0 left-0 md:left-64 z-30 border-b border-border bg-background/80 backdrop-blur-md flex flex-col shrink-0">
+        <header className="fixed top-0 right-0 left-0 md:left-64 z-30 border-b border-border text-foreground bg-background/80 backdrop-blur-md flex flex-col shrink-0">
           {/* Logo and brand row */}
           <div className="h-16 flex items-center justify-between px-4 py-2 shrink-0">
-            <Link href="/" className="flex items-center gap-2 hover:bg-emerald-50/20 bg-transparent px-3 py-1.5 rounded-lg select-none">
+            <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors">
               <Image
                 src={APP_BRAND_LOGO_URL}
                 alt={`${APP_BRAND_SHORT_NAME} Logo`}

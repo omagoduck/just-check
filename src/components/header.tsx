@@ -14,7 +14,7 @@ interface HeaderProps {
 
 export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderProps) {
   return (
-    <header className="flex-shrink-0 bg-background h-header-height text-white px-1 sm:px-2 flex items-center">
+    <header className="shrink-0 bg-background h-header-height text-foreground px-1 sm:px-2 flex items-center">
       {/* 
         The main div uses flex, justify-between, and items-center.
         On mobile, the menu toggle will be part of the left group.
@@ -33,7 +33,7 @@ export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderP
           </button>
 
           {/* Brand Logo and Name */}
-          <Link href="/" className="flex items-center gap-2 hover:bg-emerald-50/20 bg-transparent px-3 py-1.5 rounded-lg select-none"> {/* Keeps logo and name together */}
+          <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors"> {/* Keeps logo and name together */}
             <Image 
               src={APP_BRAND_LOGO_URL} 
               alt={`${APP_BRAND_SHORT_NAME} Logo`} 
