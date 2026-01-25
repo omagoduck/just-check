@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
     // Parse request body
     const body = await req.json()
-    const { fullName, nickname, dateOfBirth, avatarUrl } = body
+    const { fullName, nickname, dateOfBirth } = body
 
     // Validate input
     const errors: string[] = []
@@ -67,9 +67,6 @@ export async function POST(req: Request) {
       if (!ageValidation.isValid) {
         errors.push(ageValidation.error || 'Invalid date of birth')
       }
-    }
-    if (avatarUrl && !avatarUrl.startsWith('http')) {
-      errors.push('Avatar URL must be a valid URL')
     }
 
     if (errors.length > 0) {
@@ -111,7 +108,7 @@ export async function POST(req: Request) {
             full_name: fullName.trim(),
             nickname: nickname.trim(),
             date_of_birth: dateOfBirth,
-            avatar_url: avatarUrl || null,
+            avatar_url: currentUserData.imageUrl || null,
             updated_at: new Date().toISOString(),
           })
           .eq('clerk_user_id', userId)
@@ -133,7 +130,7 @@ export async function POST(req: Request) {
           full_name: fullName.trim(),
           nickname: nickname.trim(),
           date_of_birth: dateOfBirth,
-          avatar_url: avatarUrl || null,
+          avatar_url: currentUserData.imageUrl || null,
         })
         
         const result = await supabase
@@ -144,7 +141,7 @@ export async function POST(req: Request) {
             full_name: fullName.trim(),
             nickname: nickname.trim(),
             date_of_birth: dateOfBirth,
-            avatar_url: avatarUrl || null,
+            avatar_url: currentUserData.imageUrl || null,
           })
           .select()
         
@@ -195,7 +192,7 @@ export async function POST(req: Request) {
           fullName: fullName.trim(),
           nickname: nickname.trim(),
           dateOfBirth,
-          avatarUrl: avatarUrl || null,
+          avatarUrl: currentUserData.imageUrl || null,
         }
       })
 

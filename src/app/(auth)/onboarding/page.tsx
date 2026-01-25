@@ -16,8 +16,9 @@ interface FormData {
   fullName: string
   nickname: string
   dateOfBirth: string
-  avatarUrl: string
 }
+
+// TODO: Add avatar update option later with proper infrastructure and system
 
 interface FormErrors {
   [key: string]: string
@@ -33,7 +34,6 @@ function OnboardingContent() {
     fullName: '',
     nickname: '',
     dateOfBirth: '',
-    avatarUrl: '',
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
@@ -45,7 +45,6 @@ function OnboardingContent() {
       setFormData(prev => ({
         ...prev,
         fullName: fullName || '',
-        avatarUrl: user.imageUrl || '',
       }))
     }
   }, [user])
@@ -115,9 +114,7 @@ function OnboardingContent() {
       }
     }
 
-    if (formData.avatarUrl && !formData.avatarUrl.startsWith('http')) {
-      newErrors.avatarUrl = 'Avatar URL must be a valid URL'
-    }
+
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -133,8 +130,8 @@ function OnboardingContent() {
   // Show loading while auth is loading
   if (!isLoaded) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-dvh flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -145,12 +142,12 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-dvh bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={formData.avatarUrl || user?.imageUrl} />
+              <AvatarImage src={user?.imageUrl} />
               <AvatarFallback>
                 <User className="h-8 w-8" />
               </AvatarFallback>
@@ -175,11 +172,11 @@ function OnboardingContent() {
                 placeholder="Enter your full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className={errors.fullName ? 'border-red-500' : ''}
+                className={errors.fullName ? 'border-destructive' : ''}
                 disabled={completeOnboarding.isPending}
               />
               {errors.fullName && (
-                <div className="flex items-center text-sm text-red-600">
+                <div className="flex items-center text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.fullName}
                 </div>
@@ -197,16 +194,16 @@ function OnboardingContent() {
                 placeholder="What should we call you?"
                 value={formData.nickname}
                 onChange={(e) => handleInputChange('nickname', e.target.value)}
-                className={errors.nickname ? 'border-red-500' : ''}
+                className={errors.nickname ? 'border-destructive' : ''}
                 disabled={completeOnboarding.isPending}
               />
               {errors.nickname && (
-                <div className="flex items-center text-sm text-red-600">
+                <div className="flex items-center text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.nickname}
                 </div>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 This name will be used for short references.
               </p>
             </div>
@@ -222,46 +219,22 @@ function OnboardingContent() {
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                className={errors.dateOfBirth ? 'border-red-500' : ''}
+                className={errors.dateOfBirth ? 'border-destructive' : ''}
                 disabled={completeOnboarding.isPending}
               />
               {errors.dateOfBirth && (
-                <div className="flex items-center text-sm text-red-600">
+                <div className="flex items-center text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.dateOfBirth}
                 </div>
               )}
             </div>
 
-            {/* Avatar URL (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl" className="text-sm font-medium flex items-center">
-                <Globe className="h-4 w-4 mr-1" />
-                Avatar URL (Optional)
-              </Label>
-              <Input
-                id="avatarUrl"
-                type="url"
-                placeholder="https://example.com/avatar.jpg"
-                value={formData.avatarUrl}
-                onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
-                className={errors.avatarUrl ? 'border-red-500' : ''}
-                disabled={completeOnboarding.isPending}
-              />
-              {errors.avatarUrl && (
-                <div className="flex items-center text-sm text-red-600">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.avatarUrl}
-                </div>
-              )}
-              <p className="text-xs text-gray-500">
-                Link to your profile picture (if different from your auth provider)
-              </p>
-            </div>
+
 
             {/* Error Message */}
             {completeOnboarding.error && (
-              <div className="text-sm text-center p-3 rounded-md text-red-700 bg-red-50 border border-red-200">
+              <div className="text-sm text-center p-3 rounded-md text-destructive bg-destructive/10 border border-destructive/20">
                 {completeOnboarding.error.message}
               </div>
             )}
@@ -271,11 +244,11 @@ function OnboardingContent() {
             <Button
               type="submit"
               disabled={completeOnboarding.isPending}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 w-full bg-primary hover:bg-primary/90 disabled:opacity-50"
             >
               {completeOnboarding.isPending ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
                   Saving Profile...
                 </div>
               ) : (
@@ -294,8 +267,8 @@ function OnboardingContent() {
 export default function OnboardingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      <div className="min-h-dvh flex items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     }>
       <OnboardingContent />
