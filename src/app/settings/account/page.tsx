@@ -52,7 +52,7 @@ export default function AccountSettingsPage() {
             <div className="space-y-2">
               <h3 className="font-medium">Password Actions</h3>
               <p className="text-sm text-gray-500">Manage your account password and recovery options</p>
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Button variant="outline">Change Password</Button>
                 <Button variant="outline">Forgot Password</Button>
               </div>
