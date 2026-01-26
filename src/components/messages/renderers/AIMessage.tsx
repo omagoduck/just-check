@@ -130,7 +130,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             case 'text':
               return (
                 <div key={index} className="text-foreground prose prose-sm max-w-none">
-                  <Response>{part.text}</Response>
+                  <Response className='wrap-anywhere'>{part.text}</Response>
                 </div>
               );
 

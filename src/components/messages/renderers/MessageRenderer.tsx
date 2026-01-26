@@ -11,6 +11,12 @@ interface MessageRendererProps {
 }
 
 export const MessageRenderer = memo(function MessageRenderer({ message, isStreaming = false }: MessageRendererProps) {
+  // Don't render empty messages (unless it's the last one and streaming)
+  const hasContent = message.parts && message.parts.length > 0;
+  if (!hasContent && !isStreaming) {
+    return null;
+  }
+
   switch (message.role) {
     case 'user':
       return <UserMessage message={message} />;

@@ -202,6 +202,11 @@ export async function POST(req: Request) {
         // The assistant message is the last one in the completed messages
         const assistantMessage = completedMessages[completedMessages.length - 1];
 
+        // Don't save empty messages
+        if (!assistantMessage.parts || assistantMessage.parts.length === 0) {
+          return;
+        }
+
         if (isContinuation && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
           // If it's a continuation, update the existing assistant message
           // The assistantMessage.metadata SHOULD contain the metadata we returned above.
