@@ -426,7 +426,7 @@ export function ChatInput({
         {/* Main input container */}
         <div className={cn(
           "flex w-full items-end space-x-3 p-2 rounded-2xl transition-all duration-300 shadow-xl",
-          "bg-gradient-to-br from-card/90 via-secondary/90 to-card/90",
+          "bg-linear-to-br from-card/90 via-secondary/90 to-card/90",
           "border border-border/30 backdrop-blur-xl",
           isFocused && "ring-2 ring-primary/30 border-primary/30",
           isLoading && "opacity-90",
@@ -471,7 +471,7 @@ export function ChatInput({
                                   alt={file.name}
                                   className="w-20 h-20 object-cover"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                                 <div className="absolute bottom-1 left-1.5 right-1.5 text-xs">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -494,7 +494,7 @@ export function ChatInput({
                                         'text-muted-foreground'
                                   )} />
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
                                 <div className="absolute bottom-1 left-1.5 right-1.5 text-xs">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -541,8 +541,8 @@ export function ChatInput({
                 placeholder={placeholder}
                 className={cn(
                   "flex-1 resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none",
-                  "!bg-transparent text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
-                  "pr-4 pb-4 min-h-[32px] transition-all duration-200",
+                  "bg-transparent! text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
+                  "pr-4 pb-4 min-h-8 transition-all duration-200",
                   isOverLimit && "text-red-200"
                 )}
                 value={inputValue}
@@ -579,7 +579,7 @@ export function ChatInput({
                   </Button>
 
                   {showAttachments && (
-                    <div className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-xl z-10 p-2 min-w-[160px]">
+                    <div className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-xl z-10 p-2 min-w-40">
                       <button
                         onClick={() => imageFileInputRef.current?.click()}
                         className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors"
@@ -693,7 +693,7 @@ export function ChatInput({
                           "bg-destructive hover:bg-destructive/90 text-destructive-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
                         )}
                       >
-                        <Square className="h-4 w-4" />
+                        <Square className="h-4 w-4 fill-primary-foreground" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -710,12 +710,12 @@ export function ChatInput({
                         className={cn(
                           "rounded-xl transition-all duration-300 h-9 w-9 p-0 shadow-lg",
                           canSubmit
-                            ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
-                            : "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                            ? "bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
+                            : "bg-muted text-muted-foreground cursor-not-allowed"
                         )}
                       >
                         {isLoading ? (
-                          <div className="w-4 h-4 border-t-2 border-white rounded-full animate-spin"></div>
+                          <div className="w-4 h-4 border-t-2 border-primary-foreground rounded-full animate-spin"></div>
                         ) : (
                           <ArrowUp className="h-4 w-4" />
                         )}
@@ -741,14 +741,14 @@ export function ChatInput({
                 >
                   <div className="flex items-center justify-between px-3 py-1 bg-card/50 border border-border rounded-xl backdrop-blur-sm">
                     <div className="flex items-center space-x-3 w-full mr-2">
-                      <div className="w-2.5 h-2.5 bg-destructive rounded-full animate-pulse flex-shrink-0" />
+                      <div className="w-2.5 h-2.5 bg-destructive rounded-full animate-pulse shrink-0" />
                       <div className="w-full h-8">
                         <VoiceVisualizer isListening={isRecording} audioData={audioData} />
                       </div>
                     </div>
                     <button
                       onClick={toggleRecording}
-                      className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
                     >
                       <X className="h-5 w-5" />
                     </button>
