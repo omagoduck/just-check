@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useConversations, useDeleteConversation, useRenameConversation } from '@/hooks/use-conversations';
+import { useUser, useAuth } from '@clerk/nextjs';
 import {
   SquarePen,
   Sparkles,
@@ -49,6 +50,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
   const router = useRouter();
   const pathname = usePathname();
   const isTouchDevice = useIsTouchDevice();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useAuth();
 
   // Extract the current conversation ID from the URL
   const activeConversationId = useMemo(() => {
@@ -474,84 +477,105 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
 
         {/* Account Section */}
         <div className="relative mt-3">
-          <Dropdown
-            open={accountMenuOpen}
-            onOpenChange={setAccountMenuOpen}
-            align="center"
-            className="w-full"
-          >
-            <DropdownTrigger asChild>
-              <button
-                className={cn(
-                  "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-                  "text-sidebar-foreground hover:bg-accent"
-                )}
-                style={{
-                  width: isCollapsed ? '40px' : '100%',
-                  paddingLeft: isCollapsed ? '0' : '12px',
-                  paddingRight: isCollapsed ? '0' : '12px',
-                  justifyContent: isCollapsed ? 'center' : 'flex-start'
-                }}
-                aria-label={isCollapsed ? "Account menu" : undefined}
-              >
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarImage src="/lumy_gradient_logo.svg" alt="User Avatar" />
-                  <AvatarFallback className="bg-secondary">
-                    <User className="text-secondary-foreground" size={18} />
-                  </AvatarFallback>
-                </Avatar>
-                <span
+          {!isLoaded ? (
+            <div
+              className={cn(
+                "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+                "text-sidebar-foreground"
+              )}
+              style={{
+                width: isCollapsed ? '40px' : '100%',
+                paddingLeft: isCollapsed ? '0' : '12px',
+                paddingRight: isCollapsed ? '0' : '12px',
+                justifyContent: isCollapsed ? 'center' : 'flex-start'
+              }}
+            >
+              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+              {!isCollapsed && (
+                <Skeleton className="h-4 w-24 ml-3 shrink-0" />
+              )}
+            </div>
+          ) : (
+            <Dropdown
+              open={accountMenuOpen}
+              onOpenChange={setAccountMenuOpen}
+              align="center"
+              className="w-full"
+            >
+              <DropdownTrigger asChild>
+                <button
                   className={cn(
-                    "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-                    isCollapsed ? "opacity-0" : "opacity-100"
+                    "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+                    "text-sidebar-foreground hover:bg-accent"
                   )}
                   style={{
-                    marginLeft: isCollapsed ? '0px' : '12px',
-                    width: isCollapsed ? '0px' : 'auto',
-                    overflow: 'hidden'
+                    width: isCollapsed ? '40px' : '100%',
+                    paddingLeft: isCollapsed ? '0' : '12px',
+                    paddingRight: isCollapsed ? '0' : '12px',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start'
                   }}
+                  aria-label={isCollapsed ? "Account menu" : undefined}
                 >
-                  User Name
-                </span>
-                {!isCollapsed && (
-                  <ChevronDown
-                    size={16}
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarImage src={user?.imageUrl} alt="User Avatar" />
+                    <AvatarFallback className="bg-secondary">
+                      <User className="text-secondary-foreground" size={18} />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span
                     className={cn(
-                      "ml-auto transition-transform duration-300",
-                      accountMenuOpen && "rotate-180"
+                      "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+                      isCollapsed ? "opacity-0" : "opacity-100"
                     )}
-                  />
-                )}
-              </button>
-            </DropdownTrigger>
+                    style={{
+                      marginLeft: isCollapsed ? '0px' : '12px',
+                      width: isCollapsed ? '0px' : 'auto',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {user?.fullName || 'User Name'}
+                  </span>
+                  {!isCollapsed && (
+                    <ChevronDown
+                      size={16}
+                      className={cn(
+                        "ml-auto transition-transform duration-300",
+                        accountMenuOpen && "rotate-180"
+                      )}
+                    />
+                  )}
+                </button>
+              </DropdownTrigger>
 
-            <DropdownSurface
-              className="bg-popover border border-border text-popover-foreground shadow-lg w-76"
-              align="center"
-              sideOffset={8}
-            >
-              <DropdownItem
-                icon={<Settings size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
-                onSelect={() => router.push('/settings/general')}
+              <DropdownSurface
+                className="bg-popover border border-border text-popover-foreground shadow-lg w-76"
+                align="center"
+                sideOffset={8}
               >
-                Settings
-              </DropdownItem>
-              <DropdownItem
-                icon={<HelpCircle size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
-              >
-                Help & Support
-              </DropdownItem>
-              <div className="h-px bg-border w-full" />
-              <DropdownItem
-                icon={<LogOut size={24} />}
-                className="flex items-center gap-3 px-4 py-3 text-md text-destructive hover:bg-destructive/10! transition-colors duration-200 font-medium"
-              >
-                Sign out
-              </DropdownItem>
-            </DropdownSurface>
-          </Dropdown>
+                <DropdownItem
+                  icon={<Settings size={24} />}
+                  className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
+                  onSelect={() => router.push('/settings/general')}
+                >
+                  Settings
+                </DropdownItem>
+                <DropdownItem
+                  icon={<HelpCircle size={24} />}
+                  className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
+                >
+                  Help & Support
+                </DropdownItem>
+                <div className="h-px bg-border w-full" />
+                <DropdownItem
+                  icon={<LogOut size={24} />}
+                  className="flex items-center gap-3 px-4 py-3 text-md text-destructive hover:bg-destructive/10! transition-colors duration-200 font-medium"
+                  onSelect={() => signOut()}
+                >
+                  Sign out
+                </DropdownItem>
+              </DropdownSurface>
+            </Dropdown>
+          )}
         </div>
       </div>
 
