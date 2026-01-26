@@ -1,0 +1,126 @@
+/* =========================================================
+   Synth 45 – light
+   ========================================================= */
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+code.hljs {
+  padding: 3px 5px;
+}
+
+.hljs {
+  color: oklch(0.14 0.02 55.5);
+  /* background: oklch(1 0 0); */
+}
+
+.hljs::selection,
+.hljs ::selection {
+  background-color: oklch(0.86 0.02 55.5);
+  color: oklch(0.14 0.02 55.5);
+}
+
+/* --------- muted things --------- */
+.hljs-comment {
+  color: oklch(0.55 0.04 55.5);
+}
+
+.hljs-tag {
+  color: oklch(0.45 0.15 55.5);
+}
+
+/* --------- punctuation / operators --------- */
+.hljs-subst,
+.hljs-punctuation,
+.hljs-operator {
+  color: oklch(0.20 0.15 55.5);
+}
+
+.hljs-operator {
+  opacity: .7;
+}
+
+/* --------- variables, attributes --------- */
+.hljs-bullet,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-selector-tag,
+.hljs-name,
+.hljs-deletion {
+  color: oklch(0.65 0.22 45);
+}
+
+/* --------- numbers, constants --------- */
+.hljs-symbol,
+.hljs-number,
+.hljs-link,
+.hljs-attr,
+.hljs-variable.constant_,
+.hljs-literal {
+  color: oklch(0.58 0.30 25);
+}
+
+/* --------- classes / titles --------- */
+.hljs-title,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: oklch(0.75 0.20 55.5);
+}
+
+.hljs-strong {
+  font-weight: bold;
+  color: oklch(0.75 0.20 55.5);
+}
+
+/* --------- strings, inserted --------- */
+.hljs-code,
+.hljs-addition,
+.hljs-title.class_.inherited__,
+.hljs-string {
+  color: oklch(0.60 0.25 165);
+}
+
+/* --------- regex, built-ins --------- */
+.hljs-built_in,
+.hljs-doctag,
+.hljs-quote,
+.hljs-keyword.hljs-atrule,
+.hljs-regexp {
+  color: oklch(0.55 0.25 205);
+}
+
+/* --------- functions --------- */
+.hljs-function .hljs-title,
+.hljs-attribute,
+.ruby .hljs-property,
+.hljs-title.function_,
+.hljs-section {
+  color: oklch(0.65 0.22 45);
+}
+
+/* --------- keywords --------- */
+.hljs-type,
+.hljs-template-tag,
+.diff .hljs-meta,
+.hljs-keyword {
+  color: oklch(0.62 0.30 280);
+}
+
+.hljs-emphasis {
+  color: oklch(0.62 0.30 280);
+  font-style: italic;
+}
+
+/* --------- meta, pragma --------- */
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-meta .hljs-string {
+  color: oklch(0.52 0.20 35);
+}
+
+.hljs-meta .hljs-keyword,
+.hljs-meta-keyword {
+  font-weight: bold;
+}

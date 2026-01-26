@@ -4,7 +4,7 @@ import { memo } from "react";
 import React, { useState } from "react";
 import { Copy, ClipboardCheck } from "lucide-react";
 import hljs from 'highlight.js';
-import 'highlight.js/styles/atom-one-dark.css'; // You can choose a different theme
+// import 'highlight.js/styles/atom-one-dark.css'; // You can choose a different theme
 // import 'highlight.js/styles/github-dark.css'; // Example: Changed to GitHub Dark
 // import 'highlight.js/styles/github.css';
 // import 'highlight.js/styles/base16/gigavolt.css';
@@ -23,7 +23,10 @@ import 'highlight.js/styles/atom-one-dark.css'; // You can choose a different th
 
 // Ignored: an-old-hope, xcode, agate, xt256, sunburst
 
-// Prefer: cybertopia-dimmer, framer, 
+// Prefer: cybertopia-dimmer, framer,
+
+import './hjls-css-collection/framer-custom-1-light-dark.css';
+
 
 interface CodeSnippetProps {
   code: string;
@@ -58,20 +61,20 @@ const CodeBlockContainer: React.FC<CodeSnippetProps> = memo(({ code, language })
   }, [code, language]);
 
   return (
-    <div className="bg-[#1e1e1e] rounded-lg overflow-hidden my-3">
-      <div className="flex justify-between items-center px-4 py-2 bg-[#1e1e1e] text-gray-300 text-xs font-semibold border-b border-gray-700">
+    <div className="bg-card rounded-lg overflow-hidden my-3 border">
+      <div className="flex justify-between items-center px-4 py-2 text-muted-foreground text-xs font-semibold border-b border-border">
         <span>{language || "Code"}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs"
+          className="flex items-center bg-secondary text-secondary-foreground hover:bg-secondary/80 px-3 py-1 rounded-md text-xs"
         >
           {copied ? (
             <>
-              <ClipboardCheck className="mr-1 h-3 w-3" /> Copied!
+              <ClipboardCheck className="mr-1 h-3.5 w-3.5" /> Copied!
             </>
           ) : (
             <>
-              <Copy className="mr-1 h-3 w-3" /> Copy
+              <Copy className="mr-1 h-3.5 w-3.5" /> Copy
             </>
           )}
         </button>
@@ -89,3 +92,5 @@ const CodeBlockContainer: React.FC<CodeSnippetProps> = memo(({ code, language })
 });
 
 export default CodeBlockContainer;
+
+

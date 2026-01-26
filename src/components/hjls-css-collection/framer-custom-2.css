@@ -1,0 +1,159 @@
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+code.hljs {
+  padding: 3px 5px;
+}
+
+/* Modified theme to match your app's palette vibe */
+.hljs {
+  color: var(--foreground);
+  background: var(--card);
+}
+
+.hljs::selection,
+.hljs ::selection {
+  background-color: var(--secondary);
+  color: inherit;
+}
+
+/* Base03 - Comments, Invisibles */
+.hljs-comment {
+  color: oklch(0.62 0.04 45);
+  font-style: italic;
+}
+
+/* Base04 - Dark Foreground for less important syntax */
+.hljs-tag {
+  color: oklch(0.70 0.08 45);
+}
+
+/* Base05 - Default Foreground */
+.hljs-subst,
+.hljs-punctuation,
+.hljs-operator {
+  color: var(--foreground);
+}
+
+.hljs-operator {
+  opacity: 0.8;
+}
+
+/* Base08 - Variables, XML Tags, etc. */
+.hljs-bullet,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-selector-tag,
+.hljs-name,
+.hljs-deletion {
+  color: oklch(0.75 0.18 35); /* Warmer red-orange */
+}
+
+/* Base09 - Integers, Boolean, Constants */
+.hljs-symbol,
+.hljs-number,
+.hljs-link,
+.hljs-attr,
+.hljs-variable.constant_,
+.hljs-literal {
+  color: oklch(0.72 0.20 25); /* Destructive red tone */
+}
+
+/* Base0A - Classes, Markup Bold */
+.hljs-title,
+.hljs-class .hljs-title,
+.hljs-title.class_ {
+  color: oklch(0.80 0.18 75); /* Golden yellow */
+}
+
+.hljs-strong {
+  font-weight: bold;
+  color: oklch(0.80 0.18 75);
+}
+
+/* Base0B - Strings, Inherited Class */
+.hljs-code,
+.hljs-addition,
+.hljs-title.class_.inherited__,
+.hljs-string {
+  color: oklch(0.75 0.16 160); /* Soft teal for contrast */
+}
+
+/* Base0C - Support, Regex, Quotes */
+.hljs-built_in,
+.hljs-doctag,
+.hljs-quote,
+.hljs-keyword.hljs-atrule,
+.hljs-regexp {
+  color: oklch(0.70 0.12 200); /* Light blue */
+}
+
+/* Base0D - Functions, Methods, Headings */
+.hljs-function .hljs-title,
+.hljs-attribute,
+.ruby .hljs-property,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--primary); /* Using your primary color */
+}
+
+/* Base0E - Keywords, Storage, Selector */
+.hljs-type,
+.hljs-template-tag,
+.diff .hljs-meta,
+.hljs-keyword {
+  color: oklch(0.68 0.20 300); /* Purple accent */
+}
+
+.hljs-emphasis {
+  color: oklch(0.68 0.20 300);
+  font-style: italic;
+}
+
+/* Base0F - Deprecated, Meta */
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-meta .hljs-string {
+  color: oklch(0.65 0.15 45); /* Muted orange-brown */
+}
+
+.hljs-meta .hljs-keyword,
+.hljs-meta-keyword {
+  font-weight: bold;
+}
+
+/* Additional styling for better readability */
+.hljs-params {
+  color: oklch(0.75 0.10 45);
+}
+
+.hljs-property {
+  color: oklch(0.72 0.15 45);
+}
+
+/* Scrollbar styling for code blocks */
+pre code.hljs::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre code.hljs::-webkit-scrollbar-track {
+  background: var(--secondary);
+  border-radius: 4px;
+}
+
+pre code.hljs::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+/* Line highlighting (optional) */
+.hljs-line {
+  transition: background-color 0.2s;
+}
+
+.hljs-line:hover {
+  background-color: oklch(0.25 0.02 45);
+}

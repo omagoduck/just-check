@@ -1,0 +1,85 @@
+/* 
+   Theme: Hearth & Ember
+   Author: Perplexity AI
+   Description: A unique, warm, dark theme focusing on orange, gold, and earthy tones.
+   Optimized for long coding sessions with soft contrast.
+*/
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+  
+  /* Base Text: Warm Bone/Beige */
+  color: #e6ded3;
+}
+
+/* Comments: Ash Grey (Low contrast to fade into background) */
+.hljs-comment,
+.hljs-quote {
+  font-style: italic;
+  color: #786e68;
+}
+
+/* Keywords: Burning Orange (The primary highlight) */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-name {
+  color: #ff8f40; 
+  font-weight: bold;
+}
+
+/* Strings: Golden Amber */
+.hljs-string,
+.hljs-link,
+.hljs-symbol,
+.hljs-bullet {
+  color: #ffc861;
+}
+
+/* Numbers & Constants: Soft Red-Orange (Hot Coals) */
+.hljs-number,
+.hljs-regexp,
+.hljs-attr {
+  color: #fa6e5a;
+}
+
+/* Functions & Methods: Light Apricot/Peach */
+.hljs-title,
+.hljs-section,
+.hljs-function .hljs-title {
+  color: #ffb885;
+}
+
+/* Classes & Types: Terra Cotta / Rust */
+.hljs-type,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-params {
+  color: #d98e73;
+}
+
+/* Variables & Attributes: Muted Gold */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-attribute {
+  color: #e0af68;
+}
+
+/* HTML/XML Tags: Burnt Sienna */
+.hljs-tag {
+  color: #c97554;
+}
+
+/* Meta/Decorators: Darker Earth Tone */
+.hljs-meta {
+  color: #a89984;
+}
+
+/* Selection Highlight: Translucent Orange */
+.hljs::selection,
+.hljs span::selection {
+  background: rgba(255, 143, 64, 0.25);
+  color: inherit;
+}
