@@ -107,9 +107,14 @@ export default function ChatPage() {
             <ChatHistorySkeleton />
           ) : (
             <>
-              {messages.map((message) => {
+              {messages.map((message, index, array) => {
+                const isLastMessage = index === array.length - 1;
                 return (
-                  <MessageRenderer key={message.id} message={message} isStreaming={isGenerating} />
+                  <MessageRenderer
+                    key={message.id}
+                    message={message}
+                    isStreaming={isGenerating && isLastMessage}
+                  />
                 );
               })}
             </>
@@ -117,7 +122,6 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </div>
-
 
       <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
         <div className="w-full max-w-3xl mx-auto flex flex-col">

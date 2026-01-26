@@ -15,6 +15,7 @@ import { useMessageFeedback, useMessageFeedbackMutation } from '@/hooks/use-mess
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
 import { copyToClipboard } from '@/lib/utils/clipboard';
+import { AIMessageSkeleton } from './ChatHistorySkeleton';
 
 interface AIMessageProps {
   message: UIMessage;
@@ -122,6 +123,21 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
   const isLikeActive = currentFeedback?.type === 'like';
   const isDislikeActive = currentFeedback?.type === 'dislike';
   const presets = popoverType ? PRESETS[popoverType] : [];
+
+  const isEmpty = message.parts.length === 0;
+
+  if (isStreaming && isEmpty) {
+    return <AIMessageSkeleton />;
+  }
+
+  if (isEmpty) {
+    return (
+      <div className="w-full mb-4 group text-muted-foreground prose prose-sm italic">
+        <Response className='wrap-anywhere'>No response generated. Please try again.</Response>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mb-4 group">
       <div className="space-y-2">
