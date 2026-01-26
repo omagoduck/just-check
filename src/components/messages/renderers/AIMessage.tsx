@@ -226,11 +226,21 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             </TooltipContent>
             <PopoverContent className="w-80" align="start" side="top">
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm">What did you like?</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Select any that apply (optional)
-                  </p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm">What did you like?</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Select any that apply (optional)
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setPopoverType(null)}
+                    className="h-6 w-6"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {presets.map((preset) => (
@@ -259,10 +269,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                     rows={3}
                   />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setPopoverType(null)}>
-                    Cancel
-                  </Button>
+                <div className="flex justify-end">
                   <Button size="sm" onClick={handlePopoverSubmit}>
                     Submit
                   </Button>
@@ -297,11 +304,21 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             </TooltipContent>
             <PopoverContent className="w-80" align="start" side="top">
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm">What can we improve?</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Select any that apply (optional)
-                  </p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm">What can we improve?</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Select any that apply (optional)
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setPopoverType(null)}
+                    className="h-6 w-6"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {presets.map((preset) => (
@@ -330,10 +347,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                     rows={3}
                   />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setPopoverType(null)}>
-                    Cancel
-                  </Button>
+                <div className="flex justify-end">
                   <Button size="sm" onClick={handlePopoverSubmit}>
                     Submit
                   </Button>
