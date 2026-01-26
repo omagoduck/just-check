@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export default function AccountSettingsPage() {
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <>
       <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
       <div className="space-y-6">
@@ -88,6 +88,6 @@ export default function AccountSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }

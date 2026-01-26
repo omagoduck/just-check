@@ -148,7 +148,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 
         {/* Settings Content - Scrollable area with proper spacing */}
         <main className="flex-1 overflow-y-auto">
-          <div className={`max-w-4xl mx-auto ${isMobile ? "px-4 pt-32 pb-6" : "px-6 pt-20 pb-6"}`}>
+          <div className={`max-w-4xl mx-auto ${isMobile ? "px-4 pt-40 pb-20" : "px-6 pt-20 pb-6"}`}>
             {children}
           </div>
         </main>

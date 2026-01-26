@@ -9,7 +9,7 @@ export default function GeneralSettingsPage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <>
       <h1 className="text-2xl font-bold mb-6">General Settings</h1>
 
       <div className="space-y-6">
@@ -59,6 +59,6 @@ export default function GeneralSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
