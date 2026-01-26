@@ -457,7 +457,7 @@ export function ChatInput({
                         const isImage = file.type.startsWith('image/');
 
                         return (
-                            <motion.div
+                          <motion.div
                             key={id}
                             layout
                             initial={{ opacity: 0, scale: 0.8 }}
@@ -571,7 +571,7 @@ export function ChatInput({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200 h-9 px-3"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 px-3"
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -605,7 +605,7 @@ export function ChatInput({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-9 px-3 gap-2 bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200"
+                      className="h-9 px-3 gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200"
                     >
                       <Stone className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">
@@ -652,7 +652,7 @@ export function ChatInput({
                       size="sm"
                       variant="ghost"
                       className={cn(
-                        "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 h-9 w-9",
+                        "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 w-9",
                         isRecording && "bg-destructive/20 text-destructive animate-pulse ring-2 ring-destructive/30"
                       )}
                       onClick={toggleRecording}
@@ -670,7 +670,7 @@ export function ChatInput({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 h-9 w-9"
+                      className="text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 w-9"
                       disabled={isLoading}
                       onClick={onLiveVoiceChat}
                     >
@@ -690,10 +690,10 @@ export function ChatInput({
                         onClick={handleStopGenerating}
                         className={cn(
                           "rounded-xl transition-all duration-300 h-9 w-9 p-0 shadow-lg",
-                          "bg-destructive hover:bg-destructive/90 text-destructive-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
+                          "bg-muted hover:bg-muted/80 text-muted-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
                         )}
                       >
-                        <Square className="h-4 w-4 fill-primary-foreground" />
+                        <Square className="h-4 w-4 fill-muted-foreground" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
