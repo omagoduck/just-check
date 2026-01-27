@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lumy with AI SDK",
-  description: "Chat with Lumy, built using the AI SDK",
+  title: "Lumy Alpha",
+  description: "Chat with Lumy Alpha",
 };
 
 export const viewport: Viewport = {

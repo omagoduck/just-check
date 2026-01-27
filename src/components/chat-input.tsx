@@ -64,7 +64,7 @@ export function ChatInput({
   suggestions = [],
   onAttachmentUpload,
   onLiveVoiceChat,
-  initialModelId = "fast",
+  initialModelId = "thinker",
   maxInputCharacterLength,
   ...props
 }: ChatInputProps) {

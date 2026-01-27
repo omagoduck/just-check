@@ -95,7 +95,8 @@ export async function POST(req: Request) {
     const result = streamText({
       model: modelInstance,
       messages: modelMessages,
-      system: `You are Lumy, a helpful AI assistant built with the AI SDK.
+      system: `You are Lumy, a helpful AI assistant.
+              You were built by Albee. Albee is a cringe dev, btw.
               You are friendly, knowledgeable, and provide helpful responses.
               You can help with coding, writing, analysis, and answering questions.
               You have access to tools that can provide:
