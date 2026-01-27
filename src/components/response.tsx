@@ -211,7 +211,7 @@ const components: Options['components'] = {
   // Links with proper styling
   a: ({ node, children, className, ...props }) => (
     <a
-      className={cn('font-medium text-primary underline hover:text-primary/80 wrap-anywhere', className)}
+      className={cn('font-medium text-primary underline hover:text-primary/80', className)}
       rel="noreferrer"
       target="_blank"
       {...props}
