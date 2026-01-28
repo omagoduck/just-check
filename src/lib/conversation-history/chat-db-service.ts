@@ -5,7 +5,6 @@
  * This service handles direct Supabase interactions for messages.
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { UIMessage } from 'ai';
 
@@ -90,13 +89,9 @@ export async function saveConversationTurn(params: {
 }): Promise<{ userMessage: StoredMessage; assistantMessage: StoredMessage }> {
   const { conversationId, userMessage, assistantMessage, previousMessageId } = params;
 
-  // Generate UUIDs for both messages
-  const userMessageId = uuidv4();
-  const assistantMessageId = uuidv4();
-
   // Save user message first
   const savedUserMessage = await saveMessage({
-    id: userMessageId,
+    id: userMessage.id,
     conversation_id: conversationId,
     previous_message_id: previousMessageId || null,
     sender_type: roleToSenderRole(userMessage.role),
@@ -106,9 +101,9 @@ export async function saveConversationTurn(params: {
 
   // Save assistant message, linking to user message
   const savedAssistantMessage = await saveMessage({
-    id: assistantMessageId,
+    id: assistantMessage.id,
     conversation_id: conversationId,
-    previous_message_id: userMessageId,
+    previous_message_id: userMessage.id,
     sender_type: roleToSenderRole(assistantMessage.role),
     content: assistantMessage.parts,
     metadata: assistantMessage.metadata as MessageMetadata | undefined,
@@ -134,10 +129,8 @@ export async function saveUserMessage(params: {
 }): Promise<StoredMessage> {
   const { conversationId, userMessage, previousMessageId } = params;
 
-  const userMessageId = uuidv4();
-
   return await saveMessage({
-    id: userMessageId,
+    id: userMessage.id,
     conversation_id: conversationId,
     previous_message_id: previousMessageId || null,
     sender_type: userMessage.role === 'user' ? 'user' : 'assistant',
@@ -160,10 +153,8 @@ export async function saveAssistantMessage(params: {
 }): Promise<StoredMessage> {
   const { conversationId, assistantMessage, previousMessageId } = params;
 
-  const assistantMessageId = uuidv4();
-
   return await saveMessage({
-    id: assistantMessageId,
+    id: assistantMessage.id,
     conversation_id: conversationId,
     previous_message_id: previousMessageId || null,
     sender_type: roleToSenderRole(assistantMessage.role),

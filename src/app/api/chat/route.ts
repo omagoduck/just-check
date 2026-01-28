@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+import { streamText, convertToModelMessages, UIMessage, createIdGenerator } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
 import {
   saveUserMessage,
@@ -12,6 +12,7 @@ import {
   type StepUsage,
 } from '@/lib/conversation-history';
 import { resolveModelRoute, getLanguageModel } from '@/lib/models';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   try {
@@ -149,6 +150,7 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse({
+      generateMessageId: uuidv4, // Use custom ID generator for consistent UUIDs
       // 1. Define message metadata behavior
       messageMetadata: ({ part }) => {
         if (part.type === 'start') {

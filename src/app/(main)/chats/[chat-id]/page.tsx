@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, createIdGenerator } from 'ai';
 import { useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import { useConversationStarterStore } from '@/stores/message-store';
 import { ChatHistorySkeleton } from '@/components/messages/renderers/ChatHistorySkeleton';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function ChatPage() {
   const params = useParams();
@@ -34,6 +35,7 @@ export default function ChatPage() {
   const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
     experimental_throttle: 100,
+    generateId: uuidv4,
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
