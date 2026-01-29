@@ -15,16 +15,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { title } = body;
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
-
-    if (profileError || !profileData) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    }
-
     // Limit title to 256 characters if provided
     const conversationTitle = title && typeof title === 'string' && title.trim().length > 0
       ? title.trim().slice(0, 256)
@@ -34,7 +24,6 @@ export async function POST(req: NextRequest) {
       .from('conversations')
       .insert({
         id: conversationId,
-        user_id: profileData.id,
         clerk_user_id: clerkUserId,
         title: conversationTitle,
       })

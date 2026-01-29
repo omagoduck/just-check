@@ -7,7 +7,6 @@
  */
 export interface StoredConversation {
   id: string;
-  user_id: string;
   clerk_user_id: string;
   title?: string | null;
   metadata?: Record<string, unknown>;

@@ -8,14 +8,13 @@
 -- 1. CREATE CONVERSATIONS TABLE (Chat-level information)
 CREATE TABLE IF NOT EXISTS public.conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL, -- Links to profiles.id (we'll add FK later)
   clerk_user_id TEXT NOT NULL, -- Direct link to Clerk for easy reference
   title TEXT,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   deleted_at TIMESTAMP WITH TIME ZONE,
-  
+
   -- Constraints
   CONSTRAINT title_not_empty CHECK (title IS NULL OR LENGTH(TRIM(title)) >= 1)
 );
@@ -38,9 +37,8 @@ CREATE TABLE IF NOT EXISTS public.messages (
 
 -- 3. CREATE PERFORMANCE INDEXES (Essential ones only)
 -- Conversations indexing
-CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON public.conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_clerk_user_id ON public.conversations(clerk_user_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_active ON public.conversations(id, updated_at DESC) 
+CREATE INDEX IF NOT EXISTS idx_conversations_active ON public.conversations(id, updated_at DESC)
   WHERE deleted_at IS NULL;
 
 -- Messages indexing (optimized for common queries)
