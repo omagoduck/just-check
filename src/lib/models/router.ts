@@ -24,7 +24,7 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
             if (context?.hasImages) {
                 return { provider: 'google', id: 'gemini-2.0-flash' };
             }
-            return { provider: 'openrouter', id: 'z-ai/glm-4.5-air:free' };
+            return { provider: 'openrouter', id: 'arcee-ai/trinity-large-preview:free' };
 
         case 'thinker':
             // Logic for the basic 'Thinker' persona
@@ -32,15 +32,15 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
 
         case 'pro-thinker':
             // Logic for the advanced 'Pro Thinker' persona
-            return { provider: 'google', id: 'gemini-2.5-flash' };
+            return { provider: 'openrouter', id: 'z-ai/glm-4.5-air:free' };
 
         case 'lumy-sense-1':
             // Focused on creative writing and empathy
-            return { provider: 'openrouter', id: 'openai/gpt-oss-120b:free' };
+            return { provider: 'google', id: 'gemini-2.5-flash' };
 
         case 'lumy-itor-1':
             // Specialised technical/coding persona
-            return { provider: 'google', id: 'gemini-2.0-flash' };
+            return { provider: 'openrouter', id: 'openai/gpt-oss-120b:free' };
 
         default:
             // Fallback for any unknown or unspecified model IDs
