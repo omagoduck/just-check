@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     const currentStepData: StepData[] = [];
 
 
-    const modelMessages = convertToModelMessages(messages);
+    const modelMessages = await convertToModelMessages(messages);
 
     const result = streamText({
       model: modelInstance,
@@ -103,7 +103,6 @@ export async function POST(req: Request) {
               You have access to tools that can provide:
               - getTime: Current date and time
               - getWeather: Current weather and forecast for any location
-              - webSearch: Search the web for information using AI-powered search providers
               You can automatically detect user location for weather queries if they don't specify a location.
               Always be respectful and helpful in your responses.`,
       tools: {
@@ -117,6 +116,11 @@ export async function POST(req: Request) {
       // Track each step as it happens
       onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
         // Collect Step Data - use AI SDK v5 standard field names
+
+        // reasoningTokens and cachedInputTokens has been deprecated in AI SDK v6.
+        // Newly intorduced inputTokenDetails and outputTokenDetails
+        // TODO: P3. Update StepUsage to use inputTokenDetails and outputTokenDetails and eventually remove reasoningTokens and cachedInputTokens
+        // We need to be careful about the change as it is related to usage cost calculation and database migration.
         const stepUsage: StepUsage = {
           totalTokens: usage.totalTokens || 0,
           inputTokens: usage.inputTokens || 0,
