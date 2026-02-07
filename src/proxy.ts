@@ -1,3 +1,5 @@
+// Middleware for authentication and authorization
+// Renamed from middleware.ts to proxy.ts as Vercel recently changed the name of the file in Next.js 16.
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
@@ -18,7 +20,7 @@ const isOnboardingRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   console.log('🛡️ MIDDLEWARE - Processing request:', req.nextUrl.pathname)
-  
+
   // Allow public routes (no authentication required)
   if (isPublicRoute(req)) {
     console.log('🟢 PUBLIC ROUTE - Allowing access:', req.nextUrl.pathname)
@@ -28,14 +30,14 @@ export default clerkMiddleware(async (auth, req) => {
   // Protect route and get authentication data
   console.log('🔐 AUTHENTICATING - Protecting route:', req.nextUrl.pathname)
   const { userId, sessionClaims } = await auth.protect()
-  
+
   console.log('✅ AUTHENTICATED - User:', userId)
   console.log('📋 SESSION CLAIMS:', {
     has_session_claims: !!sessionClaims,
     has_public_metadata: !!sessionClaims?.publicMetadata,
     profile_complete: (sessionClaims?.publicMetadata as any)?.profileComplete
   })
-  
+
   // Allow onboarding routes without profile completion check
   if (isOnboardingRoute(req)) {
     console.log('🔄 ONBOARDING ROUTE - Allowing access without completion check')
@@ -67,7 +69,7 @@ export default clerkMiddleware(async (auth, req) => {
   onboardingUrl.searchParams.set('returnUrl', req.url)
   // Add reason for debugging
   onboardingUrl.searchParams.set('reason', 'incomplete_profile')
-  
+
   console.log('🔄 REDIRECTING TO:', onboardingUrl.toString())
   return NextResponse.redirect(onboardingUrl)
 })
