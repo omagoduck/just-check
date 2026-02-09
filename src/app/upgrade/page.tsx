@@ -8,11 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowLeft } from "lucide-react";
+import { Check, ArrowLeft, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
+import { useState } from "react";
 
 interface PricingPlan {
   name: string;
@@ -22,6 +24,7 @@ interface PricingPlan {
   buttonText: string;
   highlight?: boolean;
   badge?: string;
+  productId?: string;
 }
 
 const pricingPlans: PricingPlan[] = [
@@ -49,6 +52,7 @@ const pricingPlans: PricingPlan[] = [
       "Priority email support",
     ],
     buttonText: "Upgrade to Plus",
+    productId: "pdt_0NWpWdXK777ZVmVKjUc4J",
   },
   {
     name: "Pro",
@@ -65,6 +69,7 @@ const pricingPlans: PricingPlan[] = [
     buttonText: "Upgrade to Pro",
     highlight: true,
     badge: "Most Popular",
+    productId: "pdt_0NX2rc1Ua1xjdVKhj3oXW",
   },
   {
     name: "Max",
@@ -81,23 +86,54 @@ const pricingPlans: PricingPlan[] = [
   },
 ];
 
-const teamPricing: PricingPlan = {
-  name: "Team",
-  description: "Collaborate and scale your AI capabilities for your business.",
-  price: "Custom",
-  features: [
-    "Dedicated workspace",
-    "Centralized billing",
-    "Admin controls",
-    "Advanced analytics",
-    "Onboarding and training",
-    "SLA and enterprise support",
-  ],
-  buttonText: "Contact Sales",
-};
+// Checkout handler function
+async function handleCheckout(productId: string, userId: string) {
+  try {
+    // Step 1: Create or get DODO customer
+    const customerResponse = await fetch('/api/customers/create-or-get', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ clerkUserId: userId }),
+    });
+
+    if (!customerResponse.ok) {
+      const errorData = await customerResponse.json();
+      throw new Error(errorData.error || 'Failed to create customer');
+    }
+
+    const { dodoCustomerId } = await customerResponse.json();
+
+    // Step 2: Create checkout with customer ID
+    const checkoutResponse = await fetch(
+      `/api/checkout?productId=${productId}&customerId=${dodoCustomerId}`,
+      {
+        method: 'GET',
+      }
+    );
+
+    if (!checkoutResponse.ok) {
+      throw new Error('Failed to create checkout session');
+    }
+
+    const data = await checkoutResponse.json();
+
+    if (data.checkout_url) {
+      window.location.href = data.checkout_url;
+    } else {
+      throw new Error('No checkout URL returned');
+    }
+  } catch (error) {
+    console.error('Checkout error:', error);
+    alert('Failed to initiate checkout. Please try again.');
+  }
+}
 
 export default function UpgradePage() {
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
+  const { userId } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   return (
     <>
@@ -175,8 +211,28 @@ export default function UpgradePage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" variant={plan.highlight ? "default" : "outline"}>
-                  {plan.buttonText}
+                <Button
+                  className="w-full"
+                  variant={plan.highlight ? "default" : "outline"}
+                  onClick={() => {
+                    if (plan.productId && userId) {
+                      setLoadingPlan(plan.name);
+                      handleCheckout(plan.productId, userId);
+                    } else if (!userId) {
+                      alert('Please sign in to upgrade');
+                    }
+                    // Add other plan handlers here
+                  }}
+                  disabled={loadingPlan === plan.name}
+                >
+                  {loadingPlan === plan.name ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    plan.buttonText
+                  )}
                 </Button>
               </CardFooter>
             </Card>
