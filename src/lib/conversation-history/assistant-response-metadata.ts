@@ -18,7 +18,7 @@ export interface ModelData {
 }
 
 /**
- * Token usage breakdown for a step or total response
+ * Token usage breakdown for a step or total response (AI SDK v6)
  */
 export interface StepUsage {
   /** Total tokens for this step */
@@ -27,26 +27,46 @@ export interface StepUsage {
   inputTokens: number;
   /** Output/completion tokens */
   outputTokens: number;
-  /** Reasoning tokens (if supported by model) */
-  reasoningTokens: number;
-  /** Cached input tokens (if supported by model) */
-  cachedInputTokens: number;
+
+  // AI SDK v6 detailed breakdowns (optional)
+  inputTokenDetails?: {
+    /** Non-cached input tokens */
+    noCacheTokens?: number;
+    /** Cached tokens read */
+    cacheReadTokens?: number;
+    /** Cached tokens written */
+    cacheWriteTokens?: number;
+  };
+  outputTokenDetails?: {
+    /** Output text tokens */
+    textTokens?: number;
+    /** Reasoning tokens (moved from top-level in v5) */
+    reasoningTokens?: number;
+  };
 }
 
 /**
- * Complete token usage for the entire response
+ * Complete token usage for the entire response (AI SDK v6)
  */
 export interface TotalUsage {
+  // Primary aggregate totals (maps directly to AI SDK v6 top-level fields)
   /** Sum of all tokens used */
   totalUsedTokens: number;
   /** Total input/prompt tokens */
   totalInputTokens: number;
   /** Total output/completion tokens */
   totalOutputTokens: number;
-  /** Total reasoning tokens */
-  totalReasoningTokens: number;
-  /** Total cached input tokens */
-  totalCachedInputTokens: number;
+
+  // AI SDK v6 detailed breakdowns (optional)
+  inputTokenDetails?: {
+    noCacheTokens: number;
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+  };
+  outputTokenDetails?: {
+    textTokens: number;
+    reasoningTokens: number;
+  };
 }
 
 /**

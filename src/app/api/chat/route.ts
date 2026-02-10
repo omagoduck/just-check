@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, UIMessage, createIdGenerator } from 'ai';
+import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
 import {
   saveUserMessage,
@@ -82,8 +82,9 @@ export async function POST(req: Request) {
       totalUsedTokens: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
-      totalReasoningTokens: 0,
-      totalCachedInputTokens: 0,
+      // Detailed breakdowns (v6)
+      inputTokenDetails: undefined,
+      outputTokenDetails: undefined,
     };
 
     let previousStepData: StepData[] = [];
@@ -133,18 +134,26 @@ export async function POST(req: Request) {
 
       // Track each step as it happens
       onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
-        // Collect Step Data - use AI SDK v5 standard field names
-
-        // reasoningTokens and cachedInputTokens has been deprecated in AI SDK v6.
-        // Newly intorduced inputTokenDetails and outputTokenDetails
-        // TODO: P3. Update StepUsage to use inputTokenDetails and outputTokenDetails and eventually remove reasoningTokens and cachedInputTokens
-        // We need to be careful about the change as it is related to usage cost calculation and database migration.
+        // Collect Step Data - using AI SDK v6 structure
         const stepUsage: StepUsage = {
           totalTokens: usage.totalTokens || 0,
           inputTokens: usage.inputTokens || 0,
           outputTokens: usage.outputTokens || 0,
-          reasoningTokens: usage.reasoningTokens || 0,
-          cachedInputTokens: usage.cachedInputTokens || 0,
+          // Include detailed breakdowns if available (v6 feature)
+          // Always include all fields for consistent DB storage
+          inputTokenDetails: usage.inputTokenDetails
+            ? {
+              noCacheTokens: usage.inputTokenDetails.noCacheTokens,
+              cacheReadTokens: usage.inputTokenDetails.cacheReadTokens,
+              cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens,
+            }
+            : undefined,
+          outputTokenDetails: usage.outputTokenDetails
+            ? {
+              textTokens: usage.outputTokenDetails.textTokens,
+              reasoningTokens: usage.outputTokenDetails.reasoningTokens,
+            }
+            : undefined,
         };
 
         // Add to current steps
@@ -194,8 +203,33 @@ export async function POST(req: Request) {
             totalUsedTokens: accumulatedUsage.totalUsedTokens + (currentUsage?.totalTokens || 0),
             totalInputTokens: accumulatedUsage.totalInputTokens + (currentUsage?.inputTokens || 0),
             totalOutputTokens: accumulatedUsage.totalOutputTokens + (currentUsage?.outputTokens || 0),
-            totalReasoningTokens: accumulatedUsage.totalReasoningTokens + (currentUsage?.reasoningTokens || 0),
-            totalCachedInputTokens: accumulatedUsage.totalCachedInputTokens + (currentUsage?.cachedInputTokens || 0),
+            // AI SDK v6 detailed breakdowns - accumulate across steps
+            inputTokenDetails: (() => {
+              const current = currentUsage?.inputTokenDetails;
+              const accumulated = accumulatedUsage.inputTokenDetails;
+              if (!current && !accumulated) return undefined;
+              // Always include all fields for consistent DB storage
+              return {
+                noCacheTokens:
+                  (accumulated?.noCacheTokens || 0) + (current?.noCacheTokens || 0),
+                cacheReadTokens:
+                  (accumulated?.cacheReadTokens || 0) + (current?.cacheReadTokens || 0),
+                cacheWriteTokens:
+                  (accumulated?.cacheWriteTokens || 0) + (current?.cacheWriteTokens || 0),
+              };
+            })(),
+            outputTokenDetails: (() => {
+              const current = currentUsage?.outputTokenDetails;
+              const accumulated = accumulatedUsage.outputTokenDetails;
+              if (!current && !accumulated) return undefined;
+              // Always include all fields for consistent DB storage
+              return {
+                textTokens:
+                  (accumulated?.textTokens || 0) + (current?.textTokens || 0),
+                reasoningTokens:
+                  (accumulated?.reasoningTokens || 0) + (current?.reasoningTokens || 0),
+              };
+            })(),
           };
 
           const finalStepCount = accumulatedStepCount + currentStepData.length;

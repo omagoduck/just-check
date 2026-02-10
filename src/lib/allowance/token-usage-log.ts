@@ -37,13 +37,14 @@ export async function logMessageTokenUsage(params: TokenUsageLogParams): Promise
       pricingPerMillion: params.pricingUsed,
     };
 
-    // Build the token usage object (include only fields that are relevant)
+    // Build the token usage object (AI SDK v6 structure)
     const tokenUsageObj = {
       totalTokens: params.tokenUsage.totalUsedTokens,
       inputTokens: params.tokenUsage.totalInputTokens,
       outputTokens: params.tokenUsage.totalOutputTokens,
-      reasoningTokens: params.tokenUsage.totalReasoningTokens,
-      cachedInputTokens: params.tokenUsage.totalCachedInputTokens,
+      // v6 detailed breakdowns (optional, will be omitted if undefined)
+      inputTokenDetails: params.tokenUsage.inputTokenDetails,
+      outputTokenDetails: params.tokenUsage.outputTokenDetails,
     };
 
     // Build model info
