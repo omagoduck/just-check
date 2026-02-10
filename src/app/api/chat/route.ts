@@ -12,6 +12,7 @@ import {
   type StepUsage,
 } from '@/lib/conversation-history';
 import { resolveModelRoute, getLanguageModel } from '@/lib/models';
+import { logMessageTokenUsage } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@clerk/nextjs/server';
 import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCostCents } from '@/lib/allowance';
@@ -258,18 +259,35 @@ export async function POST(req: Request) {
 
           if (totalUsage && route) {
             const pricing = getModelPricing(route.provider, route.id);
+            let cost = 0;
+
             if (!pricing) {
               // If pricing not found, log error but do not block response.
               console.error(`Pricing not found for model ${route.provider}/${route.id}`);
             } else {
-              const cost = calculateCostCents(
+              cost = calculateCostCents(
                 totalUsage.totalInputTokens || 0,
                 totalUsage.totalOutputTokens || 0,
                 pricing
               );
+              // Deduct allowance if there's a cost
               if (cost > 0) {
                 await deductAllowance(clerkUserId, cost);
               }
+            }
+
+            // Always log token usage for analytics (best effort)
+            try {
+              await logMessageTokenUsage({
+                messageId: assistantMessage.id,
+                tokenUsage: totalUsage,
+                modelInfo: { provider, modelID, internalModelId },
+                totalCostCents: cost,
+                pricingUsed: pricing ?? { input: 0, output: 0 },
+              });
+            } catch (logErr) {
+              // Logging failures should not affect the user response
+              console.error('Failed to log token usage:', logErr);
             }
           }
         } catch (err) {
