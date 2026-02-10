@@ -13,9 +13,16 @@ import {
 } from '@/lib/conversation-history';
 import { resolveModelRoute, getLanguageModel } from '@/lib/models';
 import { v4 as uuidv4 } from 'uuid';
+import { auth } from '@clerk/nextjs/server';
+import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCostCents } from '@/lib/allowance';
 
 export async function POST(req: Request) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
     const { messages, id: conversationId, modelId } = await req.json();
 
     // Calculate Routing Context
@@ -35,6 +42,16 @@ export async function POST(req: Request) {
     const modelID = modelId;
     const internalModelId = route.id;
     const provider = route.provider;
+
+    // =========================================================================
+    // ALLOWANCE PRE-CHECK
+    // =========================================================================
+    // Verify that the user has available allowance before proceeding.
+    // This prevents wasteful streaming when balance is zero.
+    const remainingAllowance = await getRemainingAllowance(clerkUserId);
+    if (remainingAllowance <= 0) {
+      return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
+    }
 
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
@@ -221,15 +238,44 @@ export async function POST(req: Request) {
             content: assistantMessage.parts,
             metadata: assistantMessage.metadata as any,
           });
-          return;
+        } else {
+          // Save a new assistant message, linking to the previous message if it exists
+          await saveAssistantMessage({
+            conversationId,
+            assistantMessage,
+            previousMessageId: lastMessageFromDB?.id || null,
+          });
         }
 
-        // Save a new assistant message, linking to the previous message if it exists
-        await saveAssistantMessage({
-          conversationId,
-          assistantMessage,
-          previousMessageId: lastMessageFromDB?.id || null,
-        });
+        // =========================================================================
+        // ALLOWANCE DEDUCTION
+        // =========================================================================
+        // After the message has been saved (or updated), calculate cost and deduct.
+        try {
+          // The totalUsage is stored in the assistant message metadata (set in messageMetadata)
+          const meta = assistantMessage.metadata as any;
+          const totalUsage = meta?.totalUsage as TotalUsage | undefined;
+
+          if (totalUsage && route) {
+            const pricing = getModelPricing(route.provider, route.id);
+            if (!pricing) {
+              // If pricing not found, log error but do not block response.
+              console.error(`Pricing not found for model ${route.provider}/${route.id}`);
+            } else {
+              const cost = calculateCostCents(
+                totalUsage.totalInputTokens || 0,
+                totalUsage.totalOutputTokens || 0,
+                pricing
+              );
+              if (cost > 0) {
+                await deductAllowance(clerkUserId, cost);
+              }
+            }
+          }
+        } catch (err) {
+          // Deduction failures should not affect the client response.
+          console.error('Failed to deduct allowance:', err);
+        }
       },
     });
   } catch (error) {

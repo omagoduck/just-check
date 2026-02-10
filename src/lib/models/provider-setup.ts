@@ -7,7 +7,7 @@ import { LanguageModel } from 'ai';
  * Centeralized AI Provider Instances
  */
 
-// 1. OpenRouter Setup
+// OpenRouter Setup
 export const openrouter = createOpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY,
 });

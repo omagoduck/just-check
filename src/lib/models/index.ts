@@ -4,13 +4,6 @@ import { Model } from './types';
 
 export const allInternalModels: Model[] = [...GoogleModels, ...OpenrouterModels];
 
-/**
- * Helper to find an internal model by its ID
- */
-export function getInternalModelById(id: string): Model | undefined {
-    return allInternalModels.find(m => m.id === id);
-}
-
 export * from './types';
 export * from './internal_models/google';
 export * from './internal_models/openrouter';
