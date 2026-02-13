@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useSettingsValue, useUpdateSettings } from "@/hooks/use-settings";
 
@@ -29,27 +29,25 @@ export default function PrivacySettingsPage() {
             <CardTitle>Data Sharing</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
                 <Label htmlFor="share-anonymous">Share anonymous data with partners</Label>
-                <p className="text-sm text-gray-500">Help our partners improve their services with anonymous data</p>
+                <p className="text-sm text-muted-foreground">Help our partners improve their services with anonymous data</p>
               </div>
-              <Checkbox
+              <Switch
                 id="share-anonymous"
-                className="mt-1"
                 checked={settings.privacySettings.shareAnonymousData}
                 onCheckedChange={(checked) => handleCheckboxChange('shareAnonymousData', Boolean(checked))}
               />
             </div>
 
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
                 <Label htmlFor="share-diagnostics">Share diagnostic data</Label>
-                <p className="text-sm text-gray-500">Share technical data to help improve app performance</p>
+                <p className="text-sm text-muted-foreground">Share technical data to help improve app performance</p>
               </div>
-              <Checkbox
+              <Switch
                 id="share-diagnostics"
-                className="mt-1"
                 checked={settings.privacySettings.shareDiagnostics}
                 onCheckedChange={(checked) => handleCheckboxChange('shareDiagnostics', Boolean(checked))}
               />

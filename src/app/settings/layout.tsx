@@ -131,6 +131,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 
                 return (
                   <Link
+                    key={section.key}
                     href={section.href}
                     className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 touch-manipulation ${isActive
                         ? "bg-primary text-primary-foreground shadow-sm"

@@ -51,7 +51,7 @@ export default function AccountSettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <h3 className="font-medium">Password Actions</h3>
-              <p className="text-sm text-gray-500">Manage your account password and recovery options</p>
+              <p className="text-sm text-muted-foreground">Manage your account password and recovery options</p>
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Button variant="outline">Change Password</Button>
                 <Button variant="outline">Forgot Password</Button>
@@ -60,7 +60,8 @@ export default function AccountSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Account Actions */}
+        {/* TODO P6: Account Actions - needs proper infrastructure and architecture */}
+        {/* 
         <Card>
           <CardHeader>
             <CardTitle>Account Actions</CardTitle>
@@ -68,11 +69,12 @@ export default function AccountSettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <h3 className="font-medium">Export Data</h3>
-              <p className="text-sm text-gray-500">Download a copy of your account data</p>
+              <p className="text-sm text-muted-foreground">Download a copy of your account data</p>
               <Button variant="outline" className="mt-2">Export Data</Button>
             </div>
           </CardContent>
         </Card>
+        */}
 
         {/* Danger Zone */}
         <Card className="bg-destructive/10">
