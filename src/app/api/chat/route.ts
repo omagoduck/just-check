@@ -1,5 +1,5 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
-import { getTimeTool, getWeatherTool, webSearchTool } from '@/lib/tools';
+import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool } from '@/lib/tools';
 import {
   saveUserMessage,
   saveAssistantMessage,
@@ -129,7 +129,8 @@ export async function POST(req: Request) {
         getTime: getTimeTool, //Needs client time
         getWeather: getWeatherTool, //Needs client location also works with given location, no matter what it runs client side.
         // Server side tools
-        webSearch: webSearchTool
+        webSearch: webSearchTool,
+        viewWebsite: viewWebsiteTool
       },
 
       // Track each step as it happens

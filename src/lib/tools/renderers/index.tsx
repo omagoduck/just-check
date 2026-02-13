@@ -12,6 +12,7 @@ import type { UIMessage } from 'ai';
 import { GetTimeRenderer } from './GetTimeRenderer';
 import { GetWeatherRenderer } from './GetWeatherRenderer';
 import { WebSearchRenderer } from './WebSearchRenderer';
+import { ViewWebsiteRenderer } from './ViewWebsiteRenderer';
 
 /**
  * Type for a tool renderer component
@@ -30,6 +31,7 @@ export const toolRenderers: Record<string, ToolRenderer> = {
   'tool-getTime': GetTimeRenderer,
   'tool-getWeather': GetWeatherRenderer,
   'tool-webSearch': WebSearchRenderer,
+  'tool-viewWebsite': ViewWebsiteRenderer,
   // Add more tool renderers here as you create them
   // 'tool-getLocation': GetLocationRenderer,
 };
