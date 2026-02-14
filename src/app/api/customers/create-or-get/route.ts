@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdminClient } from "@/lib/supabase-client";
-import { createClerkClient } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server"
+import { getSupabaseAdminClient } from "@/lib/supabase-client"
+import { clerkClient } from "@/lib/clerk/clerk-client"
 
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
@@ -69,10 +69,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 4: Get user details from Clerk
+    // Step 4: Get user details from Clerk using centralized client
     let clerkUser;
     try {
-      const clerkClient = createClerkClient({ secretKey: CLERK_SECRET_KEY });
       clerkUser = await clerkClient.users.getUser(clerkUserId);
     } catch (clerkError) {
       console.error("Error fetching user from Clerk:", clerkError);

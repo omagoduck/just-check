@@ -97,6 +97,11 @@ function OnboardingContent() {
       newErrors.fullName = 'Full name is required'
     } else if (formData.fullName.trim().length < 2) {
       newErrors.fullName = 'Full name must be at least 2 characters'
+    } else {
+      const nameParts = formData.fullName.trim().split(/\s+/)
+      if (nameParts.length < 2) {
+        newErrors.fullName = 'Full name must contain at least 2 words (first name and last name)'
+      }
     }
 
     if (!formData.nickname.trim()) {
@@ -113,8 +118,6 @@ function OnboardingContent() {
         newErrors.dateOfBirth = ageValidation.error || 'Invalid date of birth'
       }
     }
-
-
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -169,7 +172,7 @@ function OnboardingContent() {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder="Enter your full name (e.g., John Doe)"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className={errors.fullName ? 'border-destructive' : ''}

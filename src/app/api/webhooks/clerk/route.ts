@@ -1,6 +1,6 @@
 import { verifyWebhook } from '@clerk/nextjs/webhooks'
 import { NextRequest } from 'next/server'
-import { createClerkClient } from '@clerk/nextjs/server'
+import { clerkClient } from '@/lib/clerk/clerk-client'
 import { getSupabaseAdminClient } from '@/lib/supabase-client'
 
 // TODO: This file was a important piece missing in this codebase for a longtime, though it didn't catch our eye, cause it never cause build error, and we are not in production yet.
@@ -92,12 +92,8 @@ export async function POST(req: NextRequest) {
         // This data will appear in JWT tokens and be available in middleware
         // Configure _session template in Clerk Dashboard to include:
         // { "publicMetadata": { "profileComplete": "{{user.public_metadata.profileComplete}}" } }
-        const clerk = createClerkClient({
-          secretKey: process.env.CLERK_SECRET_KEY!
-        })
-        
-        // Set initial completion status to false (user needs to complete onboarding)
-        await clerk.users.updateUser(clerkUserId, {
+        // Use centralized clerk client
+        await clerkClient.users.updateUser(clerkUserId, {
           publicMetadata: {
             profileComplete: false  // Will be set to true when onboarding is complete
           }
@@ -111,7 +107,36 @@ export async function POST(req: NextRequest) {
       if (eventType === 'user.updated') {
         console.log('🔄 Processing user.updated event for:', clerkUserId)
         
-        // Check current profile completion status in your database
+        // Use centralized clerk client
+
+        // First: Sync avatar_url from Clerk to Supabase
+        // This captures profile picture changes made through Clerk's built-in upload UI
+        if (image_url !== undefined) {
+          console.log('📸 Syncing avatar_url from Clerk to Supabase:', image_url)
+          
+          // Check if profile exists
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('clerk_user_id', clerkUserId)
+            .single()
+          
+          if (existingProfile) {
+            const { error: avatarUpdateError } = await supabase
+              .from('profiles')
+              .update({ avatar_url: image_url })
+              .eq('clerk_user_id', clerkUserId)
+
+            if (avatarUpdateError) {
+              console.error('🚨 ERROR: Failed to sync avatar_url:', avatarUpdateError)
+            } else {
+              console.log('✅ Avatar URL synced to Supabase successfully')
+            }
+          }
+        }
+
+        // Then: Update Clerk metadata for profile completion status
+        // This ensures session tokens have accurate completion status
         console.log('🔍 Checking profile completion status...')
         const { data: profile, error: fetchError } = await supabase
           .from('profiles')
@@ -136,23 +161,18 @@ export async function POST(req: NextRequest) {
           full_name: !!profile?.full_name,
           nickname: !!profile?.nickname,
           date_of_birth: !!profile?.date_of_birth,
-          isComplete  // true = all fields filled, false = still missing required data
+          isComplete
         })
 
         // Update Clerk publicMetadata to match database state
-        // This ensures session tokens have accurate completion status
         console.log('🔧 Updating Clerk metadata...')
-        const clerk = createClerkClient({
-          secretKey: process.env.CLERK_SECRET_KEY!
-        })
-        await clerk.users.updateUser(clerkUserId, {
+        await clerkClient.users.updateUser(clerkUserId, {
           publicMetadata: {
-            profileComplete: isComplete  // This appears in sessionClaims via _session template
+            profileComplete: isComplete
           }
         })
 
         console.log('✅ User metadata updated successfully:', { isComplete, clerkUserId })
-        console.log('User metadata updated:', { isComplete, clerkUserId })
       }
     }
 

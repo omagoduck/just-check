@@ -1,13 +1,14 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase-client'
-import { createClerkClient } from '@clerk/nextjs/server'
+import { clerkClient } from '@/lib/clerk/clerk-client'
 import { validateAge } from '@/lib/age-validation'
+import { splitFullName } from '@/lib/clerk/utils'
 
 export async function POST(req: Request) {
   try {
     console.log('🎯 ONBOARDING COMPLETION STARTED')
-    
+
     // Authenticate user and get current user details
     console.log('🔐 Authenticating user...')
     const { userId } = await auth()
@@ -18,13 +19,13 @@ export async function POST(req: Request) {
         { status: 401 }
       )
     }
-    
+
     console.log('✅ User authenticated:', userId)
-    
+
     // Get current user to access email
     console.log('📧 Fetching user email from Clerk...')
     const currentUserData = await currentUser()
-    
+
     if (!currentUserData) {
       console.log('🚨 ERROR: Could not fetch current user details')
       return NextResponse.json(
@@ -32,11 +33,11 @@ export async function POST(req: Request) {
         { status: 500 }
       )
     }
-    
+
     // Get primary email from Clerk user data
     const userEmail = currentUserData.emailAddresses?.[0]?.emailAddress ||
-                     currentUserData.primaryEmailAddress?.emailAddress
-    
+      currentUserData.primaryEmailAddress?.emailAddress
+
     if (!userEmail) {
       console.log('🚨 ERROR: No email found in Clerk user data')
       console.log('🔍 Available email data:', currentUserData.emailAddresses)
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
         { status: 400 }
       )
     }
-    
+
     console.log('✅ User email retrieved:', userEmail)
 
     // Parse request body
@@ -54,11 +55,22 @@ export async function POST(req: Request) {
 
     // Validate input
     const errors: string[] = []
-    if (!fullName || fullName.trim().length < 2) {
-      errors.push('Full name must be at least 2 characters')
+    if (!fullName || fullName.trim().length < 2 || fullName.trim().length > 100) {
+      errors.push('Full name must be between 2 and 100 characters')
     }
-    if (!nickname || nickname.trim().length < 2) {
-      errors.push('Nickname must be at least 2 characters')
+    // Validate full name has at least 2 words (for splitting into first/last)
+    const fullNameTrimmed = fullName.trim();
+    const nameParts = fullNameTrimmed.split(/\s+/);
+    if (nameParts.length < 2) {
+      errors.push('Full name must contain at least 2 words (first name and last name)')
+    }
+    if (!nickname || nickname.trim().length < 2 || nickname.trim().length > 50) {
+      errors.push('Nickname must be between 2 and 50 characters')
+    }
+    // Sanitize nickname to prevent XSS
+    const sanitizedNickname = nickname.trim().replace(/<[^>]*>/g, '');
+    if (sanitizedNickname.length !== nickname.trim().length) {
+      errors.push('Nickname contains invalid characters');
     }
     if (!dateOfBirth) {
       errors.push('Date of birth is required')
@@ -81,7 +93,7 @@ export async function POST(req: Request) {
 
     try {
       console.log('💾 Starting database operation for user:', userId)
-      
+
       // First, check if profile exists
       console.log('🔍 Checking if profile exists...')
       const { data: existingProfile, error: checkError } = await supabase
@@ -98,7 +110,7 @@ export async function POST(req: Request) {
 
       let updateError
       let updatedProfile
-      
+
       if (existingProfile) {
         // Update existing profile
         console.log('📝 Updating existing profile...')
@@ -106,17 +118,17 @@ export async function POST(req: Request) {
           .from('profiles')
           .update({
             full_name: fullName.trim(),
-            nickname: nickname.trim(),
+            nickname: sanitizedNickname,
             date_of_birth: dateOfBirth,
             avatar_url: currentUserData.imageUrl || null,
             updated_at: new Date().toISOString(),
           })
           .eq('clerk_user_id', userId)
           .select()
-        
+
         updateError = result.error
         updatedProfile = result.data
-        
+
         console.log('🔄 Profile update result:', {
           success: !updateError,
           updated_rows: updatedProfile?.length || 0
@@ -128,26 +140,26 @@ export async function POST(req: Request) {
           clerk_user_id: userId,
           email: userEmail,
           full_name: fullName.trim(),
-          nickname: nickname.trim(),
+          nickname: sanitizedNickname,
           date_of_birth: dateOfBirth,
           avatar_url: currentUserData.imageUrl || null,
         })
-        
+
         const result = await supabase
           .from('profiles')
           .insert({
             clerk_user_id: userId,
             email: userEmail, // Using real email from Clerk
             full_name: fullName.trim(),
-            nickname: nickname.trim(),
+            nickname: sanitizedNickname,
             date_of_birth: dateOfBirth,
             avatar_url: currentUserData.imageUrl || null,
           })
           .select()
-        
+
         updateError = result.error
         updatedProfile = result.data
-        
+
         console.log('✨ Profile creation result:', {
           success: !updateError,
           created_profile: updatedProfile
@@ -170,11 +182,7 @@ export async function POST(req: Request) {
 
       // Update Clerk metadata to mark profile as complete
       console.log('🔧 Updating Clerk metadata...')
-      const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY!
-      })
-
-      await clerk.users.updateUser(userId, {
+      await clerkClient.users.updateUser(userId, {
         publicMetadata: {
           profileComplete: true
         }
@@ -183,6 +191,20 @@ export async function POST(req: Request) {
       console.log('✅ Clerk metadata updated successfully for user:', userId)
       console.log('User metadata updated successfully for user:', userId)
 
+      // Sync full name to Clerk's firstName and lastName fields
+      console.log('🔧 Syncing full name to Clerk...')
+      const fullNameTrimmed = fullName.trim()
+      const splitName = splitFullName(fullNameTrimmed)
+      if (splitName) {
+        await clerkClient.users.updateUser(userId, {
+          firstName: splitName.firstName,
+          lastName: splitName.lastName
+        })
+        console.log('✅ Full name synced to Clerk:', splitName)
+      } else {
+        console.warn('⚠️ Full name validation passed but splitting failed, skipping Clerk name sync')
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Profile completed successfully',
@@ -190,7 +212,7 @@ export async function POST(req: Request) {
         tokenRefreshDelay: 1500, // Recommended delay before redirect
         data: {
           fullName: fullName.trim(),
-          nickname: nickname.trim(),
+          nickname: sanitizedNickname,
           dateOfBirth,
           avatarUrl: currentUserData.imageUrl || null,
         }
@@ -199,8 +221,8 @@ export async function POST(req: Request) {
     } catch (dbError) {
       console.error('Database operation failed:', dbError)
       return NextResponse.json(
-        { 
-          error: 'Failed to update profile', 
+        {
+          error: 'Failed to update profile',
           code: 'DATABASE_ERROR'
         },
         { status: 500 }
@@ -209,21 +231,21 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Onboarding completion error:', error)
-    
+
     // Return user-friendly error messages
     if (error instanceof Error) {
       return NextResponse.json(
-        { 
-          error: 'Failed to complete profile', 
+        {
+          error: 'Failed to complete profile',
           details: error.message,
           code: 'SERVER_ERROR'
         },
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'An unexpected error occurred',
         code: 'UNKNOWN_ERROR'
       },
@@ -258,7 +280,7 @@ export async function GET() {
   } catch (error) {
     console.error('Profile status check error:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to check profile status',
         code: 'SERVER_ERROR'
       },
