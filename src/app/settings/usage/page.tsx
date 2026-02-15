@@ -52,9 +52,6 @@ export default function UsagePage() {
       <>
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Usage</h1>
-          <p className="text-muted-foreground mt-1">
-            Track your usage progress for the current month
-          </p>
         </div>
 
         {/* Current Plan and Upgrade Cards Skeleton */}
@@ -138,9 +135,6 @@ export default function UsagePage() {
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Usage</h1>
-        <p className="text-muted-foreground mt-1">
-          Track your usage progress for the current month
-        </p>
       </div>
 
       {/* Current Plan and Upgrade Cards */}
