@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { memo } from 'react';
 import { UIMessage } from 'ai';
+import type { AssistantResponseMetadata } from '@/lib/conversation-history/assistant-response-metadata';
 import { Response } from '@/components/response';
-import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X } from 'lucide-react';
+import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X, Info } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -123,6 +124,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
   const isLikeActive = currentFeedback?.type === 'like';
   const isDislikeActive = currentFeedback?.type === 'dislike';
   const presets = popoverType ? PRESETS[popoverType] : [];
+  const [showMetadataPopover, setShowMetadataPopover] = useState(false);
 
   const isEmpty = message.parts.length === 0;
 
@@ -368,6 +370,61 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                     Submit
                   </Button>
                 </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </Tooltip>
+
+        <Tooltip>
+          <Popover open={showMetadataPopover} onOpenChange={setShowMetadataPopover}>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMetadataPopover(true);
+                  }}
+                  className={cn(
+                    'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                    isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  )}
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Message info</p>
+            </TooltipContent>
+            <PopoverContent className="w-72" align="start" side="top">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm">Message Details</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMetadataPopover(false)}
+                    className="h-6 w-6"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {(() => {
+                  const meta = message.metadata as AssistantResponseMetadata | undefined;
+                  if (!meta) return null;
+                  return (
+                    <div className="space-y-2 text-sm">
+                      {meta.model_data?.UIModelId && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Model</span>
+                          <span className="font-mono text-xs">{meta.model_data.UIModelId}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </PopoverContent>
           </Popover>
