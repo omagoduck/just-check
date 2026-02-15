@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
-    const { messages, id: conversationId, modelId } = await req.json();
+    const { messages, id: conversationId, UIModelId } = await req.json();
 
     // Calculate Routing Context
     const hasImages = messages.some((m: UIMessage) =>
@@ -36,11 +36,10 @@ export async function POST(req: Request) {
     );
 
     // Resolve the UI Model to a technical route using the context
-    const route = resolveModelRoute(modelId, { hasImages });
+    const route = resolveModelRoute(UIModelId, { hasImages });
     const modelInstance = getLanguageModel(route);
 
     // Get model info for metadata
-    const modelID = modelId;
     const internalModelId = route.id;
     const provider = route.provider;
 
@@ -188,7 +187,7 @@ export async function POST(req: Request) {
         if (part.type === 'start') {
           return {
             model_data: {
-              modelID,
+              UIModelId,
               internalModelId,
               provider,
             } as ModelData,
@@ -248,7 +247,7 @@ export async function POST(req: Request) {
             toolCallsCount: finalToolCallsCount,
             toolsCalled: Array.from(accumulatedToolsCalled),
             step_data: [...previousStepData, ...currentStepData],
-            model_data: { modelID, internalModelId, provider },
+            model_data: { UIModelId, internalModelId, provider },
           } as any;
         }
 
@@ -316,7 +315,7 @@ export async function POST(req: Request) {
               await logMessageTokenUsage({
                 messageId: assistantMessage.id,
                 tokenUsage: totalUsage,
-                modelInfo: { provider, modelID, internalModelId },
+                modelInfo: { provider, UIModelId, internalModelId },
                 totalCostCents: cost,
                 pricingUsed: pricing ?? { input: 0, output: 0 },
               });

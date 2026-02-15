@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSubmit'> {
-  onSubmit?: (message: string, attachments?: File[], modelId?: string) => void;
+  onSubmit?: (message: string, attachments?: File[], UIModelId?: string) => void;
   isLoading?: boolean;
   isAiGenerating?: boolean;
   onStopGenerating?: () => void;
@@ -46,7 +46,7 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   suggestions?: string[];
   onAttachmentUpload?: (files: File[]) => void;
   onLiveVoiceChat?: () => void;
-  initialModelId?: string;
+  initialUIModelId?: string;
   maxInputCharacterLength?: number;
 }
 interface AttachedFile {
@@ -64,12 +64,12 @@ export function ChatInput({
   suggestions = [],
   onAttachmentUpload,
   onLiveVoiceChat,
-  initialModelId = "fast",
+  initialUIModelId = "fast",
   maxInputCharacterLength,
   ...props
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState(initialModelId);
+  const [selectedUIModelId, setSelectedUIModelId] = useState(initialUIModelId);
   const [isRecording, setIsRecording] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
@@ -217,7 +217,7 @@ export function ChatInput({
   const handleSubmit = useCallback(() => {
     if (!inputValue.trim() || isLoading || isAiGenerating) return;
 
-    onSubmit?.(inputValue.trim(), attachedFiles.map(f => f.file), selectedModelId);
+    onSubmit?.(inputValue.trim(), attachedFiles.map(f => f.file), selectedUIModelId);
     setInputValue("");
 
     Object.values(filePreviewUrls).forEach(url => {
@@ -609,7 +609,7 @@ export function ChatInput({
                     >
                       <Stone className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">
-                        {UIModels.find(m => m.id === selectedModelId)?.name || "Model"}
+                        {UIModels.find(m => m.id === selectedUIModelId)?.name || "Model"}
                       </span>
                       <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
@@ -621,20 +621,20 @@ export function ChatInput({
                     {UIModels.map((model) => (
                       <DropdownMenuItem
                         key={model.id}
-                        onClick={() => setSelectedModelId(model.id)}
+                        onClick={() => setSelectedUIModelId(model.id)}
                         className={cn(
                           "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
-                          selectedModelId === model.id && "bg-primary/10 focus:bg-primary/15"
+                          selectedUIModelId === model.id && "bg-primary/10 focus:bg-primary/15"
                         )}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span className={cn(
                             "font-medium transition-colors",
-                            selectedModelId === model.id ? "text-primary" : "text-foreground"
+                            selectedUIModelId === model.id ? "text-primary" : "text-foreground"
                           )}>
                             {model.name}
                           </span>
-                          {selectedModelId === model.id && (
+                          {selectedUIModelId === model.id && (
                             <Check className="h-3.5 w-3.5 text-primary" />
                           )}
                         </div>

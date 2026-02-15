@@ -12,7 +12,7 @@ export interface TokenUsageLogParams {
   tokenUsage: TotalUsage;
   modelInfo: {
     provider: string;
-    modelID: string;
+    UIModelId: string;
     internalModelId: string;
   };
   totalCostCents: number;
@@ -50,7 +50,7 @@ export async function logMessageTokenUsage(params: TokenUsageLogParams): Promise
     // Build model info
     const modelInfoObj = {
       provider: params.modelInfo.provider,
-      modelID: params.modelInfo.modelID,
+      UIModelId: params.modelInfo.UIModelId,
       internalModelId: params.modelInfo.internalModelId,
     };
 

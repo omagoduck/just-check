@@ -9,8 +9,8 @@
  * Model information for the AI response
  */
 export interface ModelData {
-  /** The model ID used (e.g., 'gpt-4', 'claude-sonnet-4-5') */
-  modelID: string;
+  /** The UI-facing model ID (e.g., 'gpt-4', 'claude-sonnet-4-5') */
+  UIModelId: string;
   /** The actual technical model ID used from the provider */
   internalModelId: string;
   /** The provider name (e.g., 'openai', 'anthropic') */
@@ -113,7 +113,7 @@ export interface AssistantResponseMetadata {
  * Input for creating assistant response metadata
  */
 export interface CreateAssistantMetadataInput {
-  modelID: string;
+  UIModelId: string;
   internalModelId: string;
   provider: string;
   hasAttachments?: boolean;

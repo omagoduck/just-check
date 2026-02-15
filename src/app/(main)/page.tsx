@@ -11,12 +11,12 @@ export default function Main() {
   const setConversationStarter = useConversationStarterStore((state) => state.setConversationStarter);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (message: string, attachments?: File[], modelId?: string) => {
+  const handleSubmit = (message: string, attachments?: File[], UIModelId?: string) => {
     if (!message.trim()) return;
 
     setIsLoading(true);
 
-    setConversationStarter({ message: message.trim(), modelId });
+    setConversationStarter({ message: message.trim(), UIModelId });
 
     // Use first 256 characters of the message as the conversation title
     const title = message.trim().slice(0, 256);

@@ -6,7 +6,7 @@ import { create } from 'zustand';
 
 interface ConversationStarter {
   message: string;
-  modelId?: string;
+  UIModelId?: string;
 }
 
 interface ConversationStarterState {

@@ -77,14 +77,14 @@ export default function ChatPage() {
   // Handle pending message from main page
   useEffect(() => {
     if (conversationStarter && !isLoadingHistory && messagesData) {
-      sendMessage({ text: conversationStarter.message }, { body: { modelId: conversationStarter.modelId } });
+      sendMessage({ text: conversationStarter.message }, { body: { UIModelId: conversationStarter.UIModelId } });
       clearConversationStarter();
     }
   }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
 
-  const handleSendMessage = (text: string, attachments?: File[], modelId?: string) => {
+  const handleSendMessage = (text: string, attachments?: File[], UIModelId?: string) => {
     sendMessage({ text }, {
-      body: { modelId }
+      body: { UIModelId }
     });
   };
 
