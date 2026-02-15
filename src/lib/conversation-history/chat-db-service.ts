@@ -96,7 +96,7 @@ export async function saveConversationTurn(params: {
     previous_message_id: previousMessageId || null,
     sender_type: roleToSenderRole(userMessage.role),
     content: userMessage.parts,
-    metadata: userMessage.metadata as MessageMetadata | undefined,
+    metadata: userMessage.metadata,
   });
 
   // Save assistant message, linking to user message
@@ -106,7 +106,7 @@ export async function saveConversationTurn(params: {
     previous_message_id: userMessage.id,
     sender_type: roleToSenderRole(assistantMessage.role),
     content: assistantMessage.parts,
-    metadata: assistantMessage.metadata as MessageMetadata | undefined,
+    metadata: assistantMessage.metadata,
   });
 
   return {
@@ -135,7 +135,7 @@ export async function saveUserMessage(params: {
     previous_message_id: previousMessageId || null,
     sender_type: userMessage.role === 'user' ? 'user' : 'assistant',
     content: userMessage.parts,
-    metadata: userMessage.metadata as MessageMetadata | undefined,
+    metadata: userMessage.metadata,
   });
 }
 
@@ -149,9 +149,10 @@ export async function saveUserMessage(params: {
 export async function saveAssistantMessage(params: {
   conversationId: string;
   assistantMessage: UIMessage;
+  metadata?: MessageMetadata;
   previousMessageId?: string | null;
 }): Promise<StoredMessage> {
-  const { conversationId, assistantMessage, previousMessageId } = params;
+  const { conversationId, assistantMessage, metadata, previousMessageId } = params;
 
   return await saveMessage({
     id: assistantMessage.id,
@@ -159,7 +160,7 @@ export async function saveAssistantMessage(params: {
     previous_message_id: previousMessageId || null,
     sender_type: roleToSenderRole(assistantMessage.role),
     content: assistantMessage.parts,
-    metadata: assistantMessage.metadata as MessageMetadata | undefined,
+    metadata: metadata ?? assistantMessage.metadata,
   });
 }
 

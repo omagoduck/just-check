@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { memo } from 'react';
 import { UIMessage } from 'ai';
-import type { AssistantResponseMetadata } from '@/lib/conversation-history/assistant-response-metadata';
+import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
 import { Response } from '@/components/response';
+import { UIModels } from '@/lib/models';
 import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X, Info } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -412,14 +413,17 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                   </Button>
                 </div>
                 {(() => {
-                  const meta = message.metadata as AssistantResponseMetadata | undefined;
+                  const meta = message.metadata as ClientMessageMetadata | undefined;
                   if (!meta) return null;
+                  // Find the friendly model name from UIModelId
+                  const model = UIModels.find(m => m.id === meta.model_data?.UIModelId);
+                  const displayName = model?.name || meta.model_data?.UIModelId || 'Unknown';
                   return (
                     <div className="space-y-2 text-sm">
                       {meta.model_data?.UIModelId && (
                         <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Model</span>
-                          <span className="font-mono text-xs">{meta.model_data.UIModelId}</span>
+                          <span className="font-mono text-xs">{displayName}</span>
                         </div>
                       )}
                     </div>

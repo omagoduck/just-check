@@ -45,11 +45,9 @@ export type SenderRole = 'user' | 'assistant';
 
 /**
  * Message metadata stored in the database
+ * Using AI SDK's UIMessage metadata type directly for compatibility
  */
-export interface MessageMetadata {
-  /** Any metadata */
-  [key: string]: unknown;
-}
+export type MessageMetadata = UIMessage['metadata'];
 
 /**
  * A message as stored in the database
@@ -92,4 +90,16 @@ export interface CreateMessageInput {
   content: UIMessagePart[];
   /** Optional metadata */
   metadata?: MessageMetadata;
+}
+
+/**
+ * Metadata that should be sent to the client (public-facing)
+ * This is a subset of AssistantResponseMetadata containing only fields
+ * that are safe and necessary to expose to the frontend.
+ */
+export interface ClientMessageMetadata {
+  /** Model information (only UI-facing model ID) */
+  model_data?: {
+    UIModelId: string;
+  };
 }

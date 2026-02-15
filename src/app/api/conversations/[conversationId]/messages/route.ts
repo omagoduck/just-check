@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getMessagesForConversation, StoredMessage } from '@/lib/conversation-history';
+import { getMessagesForConversation, StoredMessage, type AssistantResponseMetadata } from '@/lib/conversation-history';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
 
 /**
  * Organizes messages into a linear sequence based on previous_message_id pointers.
@@ -36,6 +37,18 @@ function orderMessages(messages: StoredMessage[]): StoredMessage[] {
     }
 
     return orderedMessages;
+}
+
+/**
+ * Filters server-side metadata to only include client-safe fields.
+ * Converts AssistantResponseMetadata to ClientMessageMetadata.
+ */
+function filterClientMetadata(meta: AssistantResponseMetadata | undefined): ClientMessageMetadata {
+    if (!meta) return {};
+
+    return {
+        model_data: meta.model_data ? { UIModelId: meta.model_data.UIModelId } : undefined,
+    };
 }
 
 /**
@@ -82,11 +95,12 @@ export async function GET(
         const messages = orderMessages(rawMessages);
 
         // 4. Map StoredMessage to format suitable for useChat's initialMessages
+        // Filter metadata to only include client-safe fields
         const uiMessages = messages.map(msg => ({
             id: msg.id,
             role: msg.sender_type,
             parts: msg.content,
-            metadata: msg.metadata,
+            metadata: filterClientMetadata(msg.metadata as AssistantResponseMetadata | undefined),
             createdAt: msg.created_at ? new Date(msg.created_at) : undefined,
         }));
 

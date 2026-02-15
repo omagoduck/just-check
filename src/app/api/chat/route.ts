@@ -43,9 +43,6 @@ export async function POST(req: Request) {
     const internalModelId = route.id;
     const provider = route.provider;
 
-    // =========================================================================
-    // ALLOWANCE PRE-CHECK
-    // =========================================================================
     // Verify that the user has available allowance before proceeding.
     // This prevents wasteful streaming when balance is zero.
     const remainingAllowance = await getRemainingAllowance(clerkUserId);
@@ -71,6 +68,9 @@ export async function POST(req: Request) {
       lastMessageFromDB = await getLastMessageFromDB(conversationId);
     }
 
+    // The AI SDK provides aggregated total usage via onFinish's totalUsage callback, which gives all steps summed usage. It works well on a onetime single connection. Like with server side tool calls and resposnes. But this is not the same case in client side tool calls.
+    // In case of client side tool calls the stream completely end after a client side tool call. Cause the client can either send or not the tool result. That's why this safety mechanism. But this has some cons. The client side tool calls result comes as a new request.
+    // Beside as the stream completely end on a client side tool call, the sdk literally call backs the onFinish. Cause the stream completely ended, unlike a server sdie tool call. Now after getting the client side result back (if client give result back), a new stream starts, as a result the new streams onFinish doesn't account for privious ofFinish usages, rather a fresh count till the stream started.
     // Initialize Metadata Accumulators
     let accumulatedStepCount = 0;
     let accumulatedToolCallsCount = 0;
@@ -81,14 +81,13 @@ export async function POST(req: Request) {
       totalUsedTokens: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
-      // Detailed breakdowns (v6)
       inputTokenDetails: undefined,
       outputTokenDetails: undefined,
     };
 
     let previousStepData: StepData[] = [];
 
-    // If this is NOT a new turn (e.g. tool result continuation), try to restore previous state
+    // If this is NOT a new turn (e.g. client side tool result continuation, confirmation (confirmation not implemented yet)), try to restore previous state.
     if (!isNewUserTurn && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
       const prevMeta = lastMessageFromDB.metadata as any as AssistantResponseMetadata | null;
       if (prevMeta && prevMeta.totalUsage) {
@@ -108,6 +107,8 @@ export async function POST(req: Request) {
 
     const currentStepData: StepData[] = [];
 
+    // Capture final usage from streamText's onFinish callback
+    let streamOnFinishUsage: { totalTokens?: number; inputTokens?: number; outputTokens?: number; inputTokenDetails?: any; outputTokenDetails?: any } | undefined;
 
     const modelMessages = await convertToModelMessages(messages);
 
@@ -177,79 +178,29 @@ export async function POST(req: Request) {
       onFinish: ({ finishReason, totalUsage, steps }) => {
         console.log('Stream finished. Reason:', finishReason);
         console.log('Stream Usage:', totalUsage);
+        // Capture for later use in onFinish of toUIMessageStreamResponse
+        streamOnFinishUsage = totalUsage;
       }
     });
 
     return result.toUIMessageStreamResponse({
       generateMessageId: uuidv4, // Use custom ID generator for consistent UUIDs
-      // 1. Define message metadata behavior
+      // 1. Define message metadata behavior - ONLY client-safe fields
       messageMetadata: ({ part }) => {
+
+        // Right now it sends metadata directly to client at stream time.
         if (part.type === 'start') {
           return {
             model_data: {
               UIModelId,
-              internalModelId,
-              provider,
-            } as ModelData,
+            },
           };
         }
 
-        if (part.type === 'finish') {
-          // Calculate final aggregated totals
-          // note: part.totalUsage is for the CURRENT stream only.
-          const currentUsage = part.totalUsage;
-
-          const finalUsage: TotalUsage = {
-            totalUsedTokens: accumulatedUsage.totalUsedTokens + (currentUsage?.totalTokens || 0),
-            totalInputTokens: accumulatedUsage.totalInputTokens + (currentUsage?.inputTokens || 0),
-            totalOutputTokens: accumulatedUsage.totalOutputTokens + (currentUsage?.outputTokens || 0),
-            // AI SDK v6 detailed breakdowns - accumulate across steps
-            inputTokenDetails: (() => {
-              const current = currentUsage?.inputTokenDetails;
-              const accumulated = accumulatedUsage.inputTokenDetails;
-              if (!current && !accumulated) return undefined;
-              // Always include all fields for consistent DB storage
-              return {
-                noCacheTokens:
-                  (accumulated?.noCacheTokens || 0) + (current?.noCacheTokens || 0),
-                cacheReadTokens:
-                  (accumulated?.cacheReadTokens || 0) + (current?.cacheReadTokens || 0),
-                cacheWriteTokens:
-                  (accumulated?.cacheWriteTokens || 0) + (current?.cacheWriteTokens || 0),
-              };
-            })(),
-            outputTokenDetails: (() => {
-              const current = currentUsage?.outputTokenDetails;
-              const accumulated = accumulatedUsage.outputTokenDetails;
-              if (!current && !accumulated) return undefined;
-              // Always include all fields for consistent DB storage
-              return {
-                textTokens:
-                  (accumulated?.textTokens || 0) + (current?.textTokens || 0),
-                reasoningTokens:
-                  (accumulated?.reasoningTokens || 0) + (current?.reasoningTokens || 0),
-              };
-            })(),
-          };
-
-          const finalStepCount = accumulatedStepCount + currentStepData.length;
-
-          // toolCallsCount mapping
-          // We can sum up tool calls from current steps
-          const currentToolCallsCount = currentStepData.reduce((acc, step) => acc + step.toolCallsCount, 0);
-          const finalToolCallsCount = accumulatedToolCallsCount + currentToolCallsCount;
-
-          return {
-            hasAttachments: hasFiles,
-            finishReason: part.finishReason,
-            totalUsage: finalUsage,
-            stepCount: finalStepCount,
-            toolCallsCount: finalToolCallsCount,
-            toolsCalled: Array.from(accumulatedToolsCalled),
-            step_data: [...previousStepData, ...currentStepData],
-            model_data: { UIModelId, internalModelId, provider },
-          } as any;
-        }
+        // Not sending anything on finish - only server cares about finish metadata
+        // if (part.type === 'finish') {
+        //   return {};
+        // }
 
         return {};
       },
@@ -266,18 +217,66 @@ export async function POST(req: Request) {
           return;
         }
 
+        // =========================================================================
+        // BUILD SERVER-ONLY METADATA
+        // =========================================================================
+        // Use captured final usage from streamText's onFinish
+        const serverMetadata: AssistantResponseMetadata = {
+          // Client fields (will be merged from assistantMessage.metadata)
+          model_data: { UIModelId, internalModelId, provider },
+          hasAttachments: hasFiles,
+          finishReason: finishReason || 'stop',
+
+          // Server-only fields (accumulated during streaming)
+          totalUsage: {
+            totalUsedTokens: accumulatedUsage.totalUsedTokens + (streamOnFinishUsage?.totalTokens || 0),
+            totalInputTokens: accumulatedUsage.totalInputTokens + (streamOnFinishUsage?.inputTokens || 0),
+            totalOutputTokens: accumulatedUsage.totalOutputTokens + (streamOnFinishUsage?.outputTokens || 0),
+            inputTokenDetails: (() => {
+              const current = streamOnFinishUsage?.inputTokenDetails;
+              const accumulated = accumulatedUsage.inputTokenDetails;
+              if (!current && !accumulated) return undefined;
+              return {
+                noCacheTokens: (accumulated?.noCacheTokens || 0) + (current?.noCacheTokens || 0),
+                cacheReadTokens: (accumulated?.cacheReadTokens || 0) + (current?.cacheReadTokens || 0),
+                cacheWriteTokens: (accumulated?.cacheWriteTokens || 0) + (current?.cacheWriteTokens || 0),
+              };
+            })(),
+            outputTokenDetails: (() => {
+              const current = streamOnFinishUsage?.outputTokenDetails;
+              const accumulated = accumulatedUsage.outputTokenDetails;
+              if (!current && !accumulated) return undefined;
+              return {
+                textTokens: (accumulated?.textTokens || 0) + (current?.textTokens || 0),
+                reasoningTokens: (accumulated?.reasoningTokens || 0) + (current?.reasoningTokens || 0),
+              };
+            })(),
+          },
+          stepCount: accumulatedStepCount + currentStepData.length,
+          toolCallsCount: accumulatedToolCallsCount + currentStepData.reduce((acc, step) => acc + step.toolCallsCount, 0),
+          toolsCalled: Array.from(accumulatedToolsCalled),
+          step_data: [...previousStepData, ...currentStepData],
+        };
+
+        // Merge client metadata (from streaming) with server metadata. (defensive)
+        // Cause server metadata already has all the fields needed.
+        const clientMetadata: Record<string, unknown> = (assistantMessage.metadata as Record<string, unknown>) ?? {};
+        const fullMetadata: AssistantResponseMetadata = {
+          ...clientMetadata,
+          ...serverMetadata,
+        };
+
+        // Save with enriched metadata
         if (isContinuation && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
-          // If it's a continuation, update the existing assistant message
-          // The assistantMessage.metadata SHOULD contain the metadata we returned above.
           await updateMessage(lastMessageFromDB.id, {
             content: assistantMessage.parts,
-            metadata: assistantMessage.metadata as any,
+            metadata: fullMetadata,
           });
         } else {
-          // Save a new assistant message, linking to the previous message if it exists
           await saveAssistantMessage({
             conversationId,
             assistantMessage,
+            metadata: fullMetadata,
             previousMessageId: lastMessageFromDB?.id || null,
           });
         }
@@ -285,18 +284,15 @@ export async function POST(req: Request) {
         // =========================================================================
         // ALLOWANCE DEDUCTION
         // =========================================================================
-        // After the message has been saved (or updated), calculate cost and deduct.
+        // Use the server metadata for cost calculation
         try {
-          // The totalUsage is stored in the assistant message metadata (set in messageMetadata)
-          const meta = assistantMessage.metadata as any;
-          const totalUsage = meta?.totalUsage as TotalUsage | undefined;
+          const totalUsage = serverMetadata.totalUsage;
 
           if (totalUsage && route) {
             const pricing = getModelPricing(route.provider, route.id);
             let cost = 0;
 
             if (!pricing) {
-              // If pricing not found, log error but do not block response.
               console.error(`Pricing not found for model ${route.provider}/${route.id}`);
             } else {
               cost = calculateCostCents(
@@ -304,13 +300,12 @@ export async function POST(req: Request) {
                 totalUsage.totalOutputTokens || 0,
                 pricing
               );
-              // Deduct allowance if there's a cost
               if (cost > 0) {
                 await deductAllowance(clerkUserId, cost);
               }
             }
 
-            // Always log token usage for analytics (best effort)
+            // Log token usage for analytics
             try {
               await logMessageTokenUsage({
                 messageId: assistantMessage.id,
@@ -320,12 +315,10 @@ export async function POST(req: Request) {
                 pricingUsed: pricing ?? { input: 0, output: 0 },
               });
             } catch (logErr) {
-              // Logging failures should not affect the user response
               console.error('Failed to log token usage:', logErr);
             }
           }
         } catch (err) {
-          // Deduction failures should not affect the client response.
           console.error('Failed to deduct allowance:', err);
         }
       },

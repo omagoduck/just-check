@@ -89,6 +89,7 @@ export interface StepData {
 
 /**
  * Complete assistant response metadata stored in message.metadata
+ * Extends MessageMetadata with a full index signature to be assignable to the generic metadata type.
  */
 export interface AssistantResponseMetadata {
   /** Information about the model used */
@@ -107,6 +108,9 @@ export interface AssistantResponseMetadata {
   toolsCalled: string[];
   /** Array of step-by-step metadata */
   step_data: StepData[];
+
+  // Index signature to be compatible with MessageMetadata
+  [key: string]: unknown;
 }
 
 /**
