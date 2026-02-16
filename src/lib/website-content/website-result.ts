@@ -24,15 +24,7 @@ export interface WebsiteContentResult {
    */
   images?: string[];
 
-  /**
-   * Whether the extraction was successful
-   */
-  success: boolean;
 
-  /**
-   * Error message if extraction failed
-   */
-  error?: string;
 }
 
 /**

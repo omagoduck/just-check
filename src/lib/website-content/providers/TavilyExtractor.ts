@@ -21,22 +21,14 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
     // Validate URL
     if (!url || typeof url !== 'string') {
-      return {
-        url: url || '',
-        success: false,
-        error: 'URL is required and must be a valid string',
-      };
+      throw new Error('URL is required and must be a valid string');
     }
 
     try {
       // Validate URL format
       new URL(url);
     } catch {
-      return {
-        url,
-        success: false,
-        error: 'Invalid URL format',
-      };
+      throw new Error('Invalid URL format');
     }
 
     try {
@@ -77,11 +69,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       return this.parseTavilyResponse(url, data);
     } catch (error) {
       console.error('Tavily extract error:', error);
-      return {
-        url,
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred during extraction',
-      };
+      throw error instanceof Error ? error : new Error('Unknown error occurred during extraction');
     }
   }
 
@@ -92,7 +80,6 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
     const result: WebsiteContentResult = {
       url,
-      success: true,
       title: extracted.title || undefined,
       content: extracted.content || extracted.raw_content || undefined,
       images: [],

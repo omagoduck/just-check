@@ -14,13 +14,7 @@ export async function executeViewWebsite(
   try {
     // Validate input
     if (!input.urls || !Array.isArray(input.urls) || input.urls.length === 0) {
-      return {
-        results: [{
-          url: '',
-          success: false,
-          error: 'URLs array is required and must contain at least one URL',
-        }],
-      };
+      throw new Error('URLs array is required and must contain at least one URL');
     }
 
     // Validate each URL
@@ -28,13 +22,7 @@ export async function executeViewWebsite(
       try {
         new URL(url);
       } catch {
-        return {
-          results: [{
-            url,
-            success: false,
-            error: `Invalid URL format: ${url}`,
-          }],
-        };
+        throw new Error(`Invalid URL format: ${url}`);
       }
     }
 
@@ -45,42 +33,24 @@ export async function executeViewWebsite(
     // Extract content from all URLs
     const results = await Promise.all(
       input.urls.map(async (url) => {
-        try {
-          const result = await provider.extract({
-            url,
-            includeImages: true,
-            includeRawContent: true,
-          });
+        const result = await provider.extract({
+          url,
+          includeImages: true,
+          includeRawContent: true,
+        });
 
-          return {
-            url: result.url,
-            title: result.title,
-            content: result.content,
-            images: result.images,
-            success: result.success,
-            error: result.error,
-          };
-        } catch (error) {
-          return {
-            url,
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error occurred',
-          };
-        }
+        return {
+          url: result.url,
+          title: result.title,
+          content: result.content,
+          images: result.images,
+        };
       })
     );
 
     return { results };
   } catch (error) {
     console.error('View website error:', error);
-    
-    // Return error result
-    return {
-      results: [{
-        url: '',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-      }],
-    };
+    throw error instanceof Error ? error : new Error('Unknown error occurred');
   }
 }
