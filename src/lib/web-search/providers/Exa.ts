@@ -6,7 +6,7 @@ import { ISearchProvider } from '../ISearchProvider';
 import { SearchQuery } from '../search-query';
 import { SearchResult, SearchResultItem } from '../search-result';
 import { convertTimeRangeToStartDate, TimeRange } from '../time-range';
-import { getFaviconUrl } from '../favicon-utils';
+import { getFaviconUrlFromGoogle } from '../favicon-utils';
 
 export class ExaProvider implements ISearchProvider {
   private apiKey: string;
@@ -142,7 +142,7 @@ export class ExaProvider implements ISearchProvider {
         searchResult.favicon = item.favicon;
       } else if (item.url) {
         // Use standard favicon URL according to web standards
-        searchResult.favicon = getFaviconUrl(item.url);
+        searchResult.favicon = getFaviconUrlFromGoogle(item.url);
       }
 
       // Add page content if available and requested
