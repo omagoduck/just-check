@@ -16,6 +16,9 @@ import { logMessageTokenUsage } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@clerk/nextjs/server';
 import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCostCents } from '@/lib/allowance';
+import { buildSystemPrompt } from '@/lib/system-prompt';
+import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
+import { getSupabaseAdminClient } from '@/lib/supabase-client';
 
 export async function POST(req: Request) {
   try {
@@ -56,6 +59,29 @@ export async function POST(req: Request) {
 
     // Fetch the last message from DB to check for context or continuations
     let lastMessageFromDB = await getLastMessageFromDB(conversationId);
+
+    // Fetch user settings to build personalized system prompt
+    // TODO P6: Consider if we can unify or move away settings fetching.
+    let userAISettings: AICustomizationSettings = DEFAULT_AI_CUSTOMIZATION_SETTINGS;
+    try {
+      const supabase = getSupabaseAdminClient();
+      const { data: existingSettings, error } = await supabase
+        .from('user_settings')
+        .select('settings_data')
+        .eq('clerk_user_id', clerkUserId)
+        .single();
+
+      if (!error && existingSettings?.settings_data?.aiCustomizationSettings) {
+        userAISettings = {
+          ...DEFAULT_AI_CUSTOMIZATION_SETTINGS,
+          ...existingSettings.settings_data.aiCustomizationSettings,
+        };
+      }
+      // Silently ignore errors - will use defaults
+    } catch (error) {
+      console.error('Failed to fetch settings for system prompt:', error);
+      // Continue with default settings
+    }
 
     // Save only if it's a user message
     if (isNewUserTurn) {
@@ -112,18 +138,13 @@ export async function POST(req: Request) {
 
     const modelMessages = await convertToModelMessages(messages);
 
+    // Build personalized system prompt from user settings
+    const systemPrompt = buildSystemPrompt(userAISettings);
+
     const result = streamText({
       model: modelInstance,
       messages: modelMessages,
-      system: `You are Lumy, a helpful AI assistant.
-              You were built by Albee. Albee is a cringe dev, btw.
-              You are friendly, knowledgeable, and provide helpful responses.
-              You can help with coding, writing, analysis, and answering questions.
-              You have access to tools that can provide:
-              - getTime: Current date and time
-              - getWeather: Current weather and forecast for any location
-              You can automatically detect user location for weather queries if they don't specify a location.
-              Always be respectful and helpful in your responses.`,
+      system: systemPrompt,
       tools: {
         // Client side tools
         getTime: getTimeTool, //Needs client time
