@@ -1,11 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 interface UsageData {
-  plan: string;
-  planType: string;
   periodStart: string | null;
   periodEnd: string | null;
-  status: string;
   remainingPercentage: number;
 }
 

@@ -3,11 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useUsage } from "@/hooks/use-usage";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export default function UsagePage() {
-  const { data, isLoading, error } = useUsage();
+  const { data: usageData, isLoading: usageLoading, error: usageError } = useUsage();
+  const { data: subscriptionData, isLoading: subscriptionLoading, error: subscriptionError } = useSubscription();
 
   // Format date range with time
   const formatDate = (dateStr: string | null | undefined) => {
@@ -20,6 +23,24 @@ export default function UsagePage() {
       minute: '2-digit',
       hour12: true,
     });
+  };
+
+  // Determine badge variant based on subscription status
+  const getBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'default'; // green
+      case 'trialing':
+      case 'on_hold':
+      case 'incomplete':
+        return 'secondary'; // yellow/orange
+      case 'past_due':
+      case 'cancelled':
+      case 'unpaid':
+        return 'destructive'; // red
+      default:
+        return 'outline'; // gray for inactive/unknown
+    }
   };
 
   // Determine progress bar color
@@ -47,6 +68,9 @@ export default function UsagePage() {
     };
   };
 
+  const isLoading = usageLoading || subscriptionLoading;
+  const error = usageError || subscriptionError;
+
   if (isLoading) {
     return (
       <>
@@ -64,7 +88,10 @@ export default function UsagePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-6 w-24 mb-2" />
+              <div className="flex items-center gap-2 mb-2">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-5 w-16" />
+              </div>
               <Skeleton className="h-4 w-48" />
             </CardContent>
           </Card>
@@ -87,7 +114,7 @@ export default function UsagePage() {
           </Card>
         </div>
 
-        {/* Monthly Usage Card Skeleton */}
+        {/* Monthly Allowance Card Skeleton */}
         <Card>
           <CardHeader>
             <Skeleton className="h-5 w-32 mb-2" />
@@ -119,14 +146,14 @@ export default function UsagePage() {
         </div>
         <Card>
           <CardContent className="py-8">
-            <div className="text-center text-red-500">Failed to load usage data</div>
+            <div className="text-center text-red-500">Failed to load data</div>
           </CardContent>
         </Card>
       </>
     );
   }
 
-  const percentage = data?.remainingPercentage ?? 0;
+  const percentage = usageData?.remainingPercentage ?? 0;
   const scaleInfo = getScaleInfo(percentage);
   const barColor = getBarColor(percentage);
 
@@ -145,9 +172,19 @@ export default function UsagePage() {
             <CardTitle>Current Plan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-semibold">{data?.plan ?? 'Free'}</div>
+            {/* TODO P4: Add proper mapping for plan name instead of such bullshit logic */}
+            <div className="flex items-center gap-2">
+              <div className="text-lg font-semibold">
+                {subscriptionData?.planType ? subscriptionData.planType.charAt(0).toUpperCase() + subscriptionData.planType.slice(1) : 'Free'}
+              </div>
+              {subscriptionData?.status && (
+                <Badge variant={getBadgeVariant(subscriptionData.status)} className="capitalize">
+                  {subscriptionData.status}
+                </Badge>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground mt-1">
-              {formatDate(data?.periodStart)} - {formatDate(data?.periodEnd)}
+              {formatDate(subscriptionData?.currentPeriodStart)} - {formatDate(subscriptionData?.currentPeriodEnd)}
             </div>
           </CardContent>
         </Card>
@@ -182,12 +219,12 @@ export default function UsagePage() {
         </Card>
       </div>
 
-      {/* Monthly Usage Card */}
+      {/* Monthly Allowance Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Usage</CardTitle>
+          <CardTitle>Monthly Allowance</CardTitle>
           <CardDescription>
-            Track your remaining allowance for the current billing period
+            Track your remaining allowance for the current monthly period
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
