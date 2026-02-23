@@ -38,20 +38,19 @@ import { Webhook } from "standardwebhooks";
 // ==============================================================================
 
 /**
- * Checks if a Dodo event should be processed based on provider timestamp.
+ * Checks if a Dodo event's timestamp matches the stored subscription's provider_updated_at.
  * Dodo fires duplicate events with the same timestamp for the same action.
- * We track the last processed Dodo timestamp in subscription metadata.
  *
  * @param supabase - Supabase client
  * @param subscriptionId - Dodo subscription ID
  * @param dodoTimestamp - ISO 8601 timestamp from Dodo event
- * @returns Object with shouldProcess boolean and current stored timestamp
+ * @returns True if the timestamp matches the stored value (duplicate event)
  */
-async function shouldProcessDodoEvent(
+async function hasMatchingDodoWebhookTimestamp(
   supabase: SupabaseClient,
   subscriptionId: string,
   dodoTimestamp: string
-): Promise<{ shouldProcess: boolean; currentProviderTimestamp: string | null }> {
+): Promise<boolean> {
   const { data: subscription } = await supabase
     .from('user_subscriptions')
     .select('metadata')
@@ -59,13 +58,7 @@ async function shouldProcessDodoEvent(
     .single();
 
   const currentProviderTimestamp = subscription?.metadata?.provider_updated_at || null;
-
-  // If same timestamp exists, this is a duplicate from the same Dodo action
-  if (currentProviderTimestamp === dodoTimestamp) {
-    return { shouldProcess: false, currentProviderTimestamp };
-  }
-
-  return { shouldProcess: true, currentProviderTimestamp };
+  return currentProviderTimestamp === dodoTimestamp;
 }
 
 // =============================================================================
@@ -371,13 +364,13 @@ export async function POST(request: NextRequest) {
         }
 
         // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const { shouldProcess } = await shouldProcessDodoEvent(
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
           supabase,
           subscriptionId,
           dodoEventTimestamp
         );
 
-        if (!shouldProcess) {
+        if (isDuplicateWebhookTimestamp) {
           console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
@@ -424,13 +417,13 @@ export async function POST(request: NextRequest) {
         }
 
         // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const { shouldProcess } = await shouldProcessDodoEvent(
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
           supabase,
           subscriptionId,
           dodoEventTimestamp
         );
 
-        if (!shouldProcess) {
+        if (isDuplicateWebhookTimestamp) {
           console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
@@ -479,13 +472,13 @@ export async function POST(request: NextRequest) {
         }
 
         // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const { shouldProcess } = await shouldProcessDodoEvent(
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
           supabase,
           subscriptionId,
           dodoEventTimestamp
         );
 
-        if (!shouldProcess) {
+        if (isDuplicateWebhookTimestamp) {
           console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
@@ -532,13 +525,13 @@ export async function POST(request: NextRequest) {
         }
 
         // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const { shouldProcess } = await shouldProcessDodoEvent(
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
           supabase,
           subscriptionId,
           dodoEventTimestamp
         );
 
-        if (!shouldProcess) {
+        if (isDuplicateWebhookTimestamp) {
           console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
