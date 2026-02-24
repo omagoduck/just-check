@@ -74,19 +74,20 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 // PLAN ALLOWANCE MAPPING
 // =============================================================================
 
-// This object defines how many AI messages each subscription plan allows per month.
+// This object defines how many AI messages each subscription plan allows per 6-hour sliding window.
 // The key is the plan name (lowercase) and the value is the message allowance. The allowance is a number, neither token nor money. Just number.
+// Values are proportional to the former monthly allowances (divided by 120).
 //
 // Example:
-// - "free" plan: 0 messages (or very limited)
-// - "plus" plan: 400 messages per month
-// - "pro" plan: 1600 messages per month
-// - "max" plan: 8000 messages per month
+// - "free" plan: 0 messages
+// - "plus" plan: 3 messages per 6 hours
+// - "pro" plan: 13 messages per 6 hours
+// - "max" plan: 67 messages per 6 hours
 const PLAN_ALLOWANCES: Record<string, number> = {
   free: 0,
-  plus: 400,
-  pro: 1600,
-  max: 8000,
+  plus: 3,
+  pro: 13,
+  max: 67,
 };
 
 // Maps Dodo product IDs to internal plan types (monthly plans only)
@@ -175,7 +176,7 @@ async function upsertSubscriptionAndAllowance(
     alloted_allowance: allowance,
     remaining_allowance: allowance, // Full reset on plan change
     period_start: data.created_at,
-    period_end: data.next_billing_date,
+    period_end: data.created_at, // Same as start; window not active until first message
     last_reset_at: new Date().toISOString(),
   };
 

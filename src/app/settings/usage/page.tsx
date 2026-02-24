@@ -157,6 +157,17 @@ export default function UsagePage() {
   const scaleInfo = getScaleInfo(percentage);
   const barColor = getBarColor(percentage);
 
+  // Determine next reset message
+  const getNextResetMessage = () => {
+    if (!usageData?.periodEnd) return "No active session";
+    const periodEnd = new Date(usageData.periodEnd);
+    const now = new Date();
+    if (now > periodEnd) {
+      return "Start using to know the next reset time.";
+    }
+    return `Next reset: ${formatDate(usageData.periodEnd)}`;
+  };
+
   return (
     <>
       {/* Page Header */}
@@ -222,9 +233,9 @@ export default function UsagePage() {
       {/* Monthly Allowance Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Allowance</CardTitle>
+          <CardTitle>Periodic Allowance</CardTitle>
           <CardDescription>
-            Track your remaining allowance for the current monthly period
+            Track your remaining allowance for the current session
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -262,6 +273,11 @@ export default function UsagePage() {
                   100%
                 </span>
               )}
+            </div>
+
+            {/* Next reset time - subtle muted text */}
+            <div className="text-xs text-muted-foreground mt-2">
+              {getNextResetMessage()}
             </div>
           </div>
         </CardContent>

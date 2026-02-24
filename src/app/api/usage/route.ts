@@ -22,11 +22,19 @@ export async function GET() {
       throw allowanceError;
     }
 
-    // Calculate remaining percentage
+    // Calculate effective remaining percentage (accounts for sliding window expiration)
     const alloted = allowance?.alloted_allowance ?? 0;
     const remaining = allowance?.remaining_allowance ?? 0;
+    const periodEnd = allowance?.period_end ? new Date(allowance.period_end) : null;
+
+    // Determine effective remaining: if window expired (past period_end), user effectively has full allowance
+    let effectiveRemaining = remaining;
+    if (alloted > 0 && periodEnd && new Date() > periodEnd) {
+      effectiveRemaining = alloted; // Expired window = full allowance
+    }
+
     const remainingPercentage = alloted > 0
-      ? Math.round((remaining / alloted) * 100)
+      ? Math.round((effectiveRemaining / alloted) * 100)
       : 0;
 
     return NextResponse.json({
