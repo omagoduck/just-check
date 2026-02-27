@@ -46,16 +46,17 @@ export async function POST(req: Request) {
     const internalModelId = route.id;
     const provider = route.provider;
 
-    // Verify that the user has available allowance before proceeding.
-    // This prevents wasteful streaming when balance is zero.
-    const remainingAllowance = await getRemainingAllowance(clerkUserId);
-    if (remainingAllowance <= 0) {
-      return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
-    }
-
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
     const isNewUserTurn = lastMessageInArray.role === 'user';
+
+    // Only check allowance for new user messages, not continuations (tool results)
+    if (isNewUserTurn) {
+      const remainingAllowance = await getRemainingAllowance(clerkUserId);
+      if (remainingAllowance <= 0) {
+        return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
+      }
+    }
 
     // Fetch the last message from DB to check for context or continuations
     let lastMessageFromDB = await getLastMessageFromDB(conversationId);
