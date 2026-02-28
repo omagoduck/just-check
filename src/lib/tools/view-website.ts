@@ -36,8 +36,10 @@ export interface ViewWebsiteOutput {
     /**
      * Array of image URLs found on the page
      */
-    images?: string[];
-  }>;
+    images?: string[];    /**
+     * URL to the favicon of the website
+     */
+    favicon?: string;  }>;
 }
 
 /**

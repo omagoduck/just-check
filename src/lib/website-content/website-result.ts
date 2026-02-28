@@ -24,6 +24,11 @@ export interface WebsiteContentResult {
    */
   images?: string[];
 
+  /**
+   * URL to the favicon of the website
+   */
+  favicon?: string;
+
 
 }
 

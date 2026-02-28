@@ -50,6 +50,7 @@ export async function executeViewWebsite(
           title: result.title,
           content: result.content,
           images: result.images,
+          favicon: result.favicon,
         };
       })
     );

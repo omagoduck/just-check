@@ -52,6 +52,9 @@ export class TavilyExtractor implements IWebsiteContentProvider {
         payload.include_image_descriptions = true;
       }
 
+      // Always request favicon
+      payload.include_favicon = true;
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -67,10 +70,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
       const data = await response.json();
 
-      // Log raw response for debugging
-      console.log('Tavily extract raw response:', JSON.stringify(data, null, 2));
 
-      // Parse the Tavily response
       const result = this.parseTavilyResponse(url, data);
 
       // Charge allowance and log usage (only on success)
@@ -116,6 +116,11 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       result.images = extracted.images
         .map((img: any) => img.url || img)
         .filter((url: string) => typeof url === 'string' && url.startsWith('http'));
+    }
+
+    // Extract favicon if available
+    if (extracted.favicon) {
+      result.favicon = extracted.favicon;
     }
 
     return result;

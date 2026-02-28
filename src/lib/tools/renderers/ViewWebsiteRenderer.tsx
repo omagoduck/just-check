@@ -76,7 +76,7 @@ export function ViewWebsiteRenderer({ part }: ViewWebsiteRendererProps) {
                   <div className="flex items-center space-x-3 min-w-0">
                     {/* Favicon */}
                     <img
-                      src={getFaviconUrlFromGoogle(result.url) || ''}
+                      src={result.favicon || getFaviconUrlFromGoogle(result.url) || ''}
                       alt=""
                       className="h-4 w-4 shrink-0"
                       onError={(e) => {

@@ -58,10 +58,7 @@ export class ExaExtractor implements IWebsiteContentProvider {
 
       const data = await response.json();
 
-      // Log raw response for debugging
-      console.log('Exa extract raw response:', JSON.stringify(data, null, 2));
 
-      // Parse the Exa response
       return this.parseExaResponse(url, data);
     } catch (error) {
       console.error('Exa extract error:', error);
@@ -78,6 +75,7 @@ export class ExaExtractor implements IWebsiteContentProvider {
       title: extracted.title || undefined,
       content: extracted.text || undefined,
       images: [],
+      favicon: extracted.favicon || undefined,
     };
 
     // Collect all image URLs
