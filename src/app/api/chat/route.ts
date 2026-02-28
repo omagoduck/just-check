@@ -159,9 +159,10 @@ export async function POST(req: Request) {
 
     // Create wrapped tools with user context for charging
     const tools = {
-      // Client side tools
-      getTime: getTimeTool, // No charging for it.
-      getWeather: getWeatherTool, // It is costly and will be charged but it's a client tool. It need to be handled carefully.
+      // Client side tools (made disabled due to some issue need to be considered)
+      // TODO: consider what will happen if user get's disconnected. what is user doesn't send back result. also what about charging.
+      // getTime: getTimeTool, // No charging for it.
+      // getWeather: getWeatherTool, // It is costly and will be charged but it's a client tool. It need to be handled carefully.
       
       // Server side tools with charging via thin wrappers
       webSearch: {
