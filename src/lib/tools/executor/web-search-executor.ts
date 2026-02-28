@@ -32,7 +32,8 @@ export function normalizeSearchInput(input: any): WebSearchInput {
  */
 export async function executeWebSearch(
   input: WebSearchInput,
-  clerkUserId?: string
+  clerkUserId?: string,
+  messageId?: string
 ): Promise<WebSearchOutput> {
   try {
     // Validate input
@@ -71,8 +72,8 @@ export async function executeWebSearch(
     const searchProvider = getSearchProvider(providerType);
 
     // Execute the search - now returns SearchResult container
-    // Pass clerkUserId to provider for charging
-    const searchResult = await searchProvider.search(searchQuery, clerkUserId);
+    // Pass clerkUserId and messageId to provider for charging
+    const searchResult = await searchProvider.search(searchQuery, clerkUserId, messageId);
 
     // Return simplified output to AI (only essential information)
     return {

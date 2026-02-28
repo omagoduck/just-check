@@ -10,10 +10,12 @@ export interface ISearchProvider {
    * Execute a search using the provider's API
    * @param query The search query parameters
    * @param clerkUserId Optional user ID for allowance deduction
+   * @param messageId Optional message ID for logging
    * @returns Promise with search results
    */
   search(
     query: SearchQuery,
-    clerkUserId?: string
+    clerkUserId?: string,
+    messageId?: string
   ): Promise<SearchResult>;
 }

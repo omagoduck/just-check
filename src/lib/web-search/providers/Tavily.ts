@@ -22,7 +22,8 @@ export class TavilyProvider implements ISearchProvider {
 
   async search(
     query: SearchQuery,
-    clerkUserId?: string
+    clerkUserId?: string,
+    messageId?: string
   ): Promise<SearchResult> {
     try {
       // 1. Translation: Unified SearchQuery -> Tavily Request
@@ -53,6 +54,7 @@ export class TavilyProvider implements ISearchProvider {
           result: data,
           costCents,
           clerkUserId,
+          messageId,
           metadata: {
             mode: query.mode,
             limit: query.limit,

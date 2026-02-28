@@ -10,7 +10,8 @@ import { getWebsiteContentProvider } from '../../website-content';
  */
 export async function executeViewWebsite(
   input: ViewWebsiteInput,
-  clerkUserId?: string
+  clerkUserId?: string,
+  messageId?: string
 ): Promise<ViewWebsiteOutput> {
   try {
     // Validate input
@@ -40,7 +41,8 @@ export async function executeViewWebsite(
             includeImages: true,
             includeRawContent: true,
           },
-          clerkUserId
+          clerkUserId,
+          messageId
         );
 
         return {

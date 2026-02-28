@@ -7,6 +7,7 @@ export interface ToolChargeAndLogParams {
   result: any;
   costCents: number;
   clerkUserId: string;
+  messageId?: string;
   metadata?: Record<string, any>;
 }
 
@@ -23,6 +24,7 @@ export async function chargeAndLogToolAllowance({
   result,
   costCents,
   clerkUserId,
+  messageId,
   metadata,
 }: ToolChargeAndLogParams): Promise<void> {
   if (costCents <= 0) return;
@@ -43,6 +45,7 @@ export async function chargeAndLogToolAllowance({
       .from('tool_usage_log')
       .insert({
         clerk_user_id: clerkUserId,
+        message_id: messageId || null,
         tool_name: toolName,
         args: args,
         result: result,

@@ -7,6 +7,7 @@
 CREATE TABLE IF NOT EXISTS public.tool_usage_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     clerk_user_id TEXT NOT NULL,
+    message_id TEXT,
     tool_name TEXT NOT NULL,
     args JSONB NOT NULL DEFAULT '{}',
     result JSONB,
@@ -20,6 +21,8 @@ CREATE INDEX IF NOT EXISTS idx_tool_usage_log_clerk_user_id
     ON public.tool_usage_log(clerk_user_id);
 CREATE INDEX IF NOT EXISTS idx_tool_usage_log_tool_name
     ON public.tool_usage_log(tool_name);
+CREATE INDEX IF NOT EXISTS idx_tool_usage_log_message_id
+    ON public.tool_usage_log(message_id);
 CREATE INDEX IF NOT EXISTS idx_tool_usage_log_created_at
     ON public.tool_usage_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_tool_usage_log_cost

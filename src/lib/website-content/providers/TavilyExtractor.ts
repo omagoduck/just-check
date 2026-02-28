@@ -19,7 +19,8 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
   async extract(
     query: WebsiteContentQuery,
-    clerkUserId?: string
+    clerkUserId?: string,
+    messageId?: string
   ): Promise<WebsiteContentResult> {
     const { url, includeImages = true, includeRawContent = true } = query;
 
@@ -82,6 +83,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
           result: data,
           costCents,
           clerkUserId,
+          messageId,
           metadata: {
             urlCount: 1,
             provider: 'tavily',

@@ -150,6 +150,13 @@ export async function POST(req: Request) {
     // Build personalized system prompt from user settings
     const systemPrompt = buildSystemPrompt(userAISettings);
 
+    // Generate assistant message ID upfront for tool charging
+    // For new user turns: generate new ID
+    // For continuations: reuse existing ID from last assistant message, or generate new if not found
+    const assistantMessageId = isNewUserTurn 
+      ? uuidv4() 
+      : lastMessageFromDB?.id ?? uuidv4();
+
     // Create wrapped tools with user context for charging
     const tools = {
       // Client side tools
@@ -160,12 +167,12 @@ export async function POST(req: Request) {
       webSearch: {
         ...webSearchTool,
         execute: async (input: WebSearchInput) =>
-          await executeWebSearch(input, clerkUserId)
+          await executeWebSearch(input, clerkUserId, assistantMessageId)
       },
       viewWebsite: {
         ...viewWebsiteTool,
         execute: async (input: ViewWebsiteInput) =>
-          await executeViewWebsite(input, clerkUserId)
+          await executeViewWebsite(input, clerkUserId, assistantMessageId)
       }
     };
 
@@ -226,7 +233,7 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse({
-      generateMessageId: uuidv4,
+      generateMessageId: () => assistantMessageId,
       // 1. Define message metadata behavior - ONLY client-safe fields
       messageMetadata: ({ part }) => {
 
