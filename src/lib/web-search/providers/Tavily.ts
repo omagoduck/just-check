@@ -7,6 +7,7 @@ import { SearchQuery } from '../search-query';
 import { SearchResult, SearchResultItem } from '../search-result';
 import { convertTimeRangeToStartDate, TimeRange } from '../time-range';
 import { getFaviconUrlFromGoogle } from '../favicon-utils';
+import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
 export class TavilyProvider implements ISearchProvider {
   private apiKey: string;
@@ -19,7 +20,10 @@ export class TavilyProvider implements ISearchProvider {
     }
   }
 
-  async search(query: SearchQuery): Promise<SearchResult> {
+  async search(
+    query: SearchQuery,
+    clerkUserId?: string
+  ): Promise<SearchResult> {
     try {
       // 1. Translation: Unified SearchQuery -> Tavily Request
       const tavilyPayload = this.buildTavilyPayload(query);
@@ -39,7 +43,26 @@ export class TavilyProvider implements ISearchProvider {
 
       const data = await response.json();
 
-      // 3. Translation: Tavily Response -> Unified SearchResult container
+      // 3. Charge allowance and log usage (only on success)
+      if (clerkUserId) {
+        const costCents = this.calculateCost(query);
+
+        await chargeAndLogToolAllowance({
+          toolName: 'webSearch',
+          args: query,
+          result: data,
+          costCents,
+          clerkUserId,
+          metadata: {
+            mode: query.mode,
+            limit: query.limit,
+            provider: 'tavily',
+            searchDepth: query.mode === 'advanced' ? 'advanced' : 'basic'
+          },
+        });
+      }
+
+      // 4. Translation: Tavily Response -> Unified SearchResult container
       return this.translateTavilyResults(data, query);
     } catch (error) {
       console.error('Tavily search error:', error);
@@ -181,5 +204,14 @@ export class TavilyProvider implements ISearchProvider {
       return `${year}-${month}-${day}`;
     }
     return dateStr; // Return as-is if format doesn't match
+  }
+
+  /**
+   * Calculate cost in cents for this search query
+   * Tavily: basic = 1 credit ($0.008), advanced = 2 credits ($0.016)
+   * We round to nearest cent: 0.8 → 1, 1.6 → 2
+   */
+  private calculateCost(query: SearchQuery): number {
+    return query.mode === 'advanced' ? 2 : 1;
   }
 }

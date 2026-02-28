@@ -9,7 +9,8 @@ import { getWebsiteContentProvider } from '../../website-content';
  * Uses the website content provider to extract content from URLs
  */
 export async function executeViewWebsite(
-  input: ViewWebsiteInput
+  input: ViewWebsiteInput,
+  clerkUserId?: string
 ): Promise<ViewWebsiteOutput> {
   try {
     // Validate input
@@ -33,11 +34,14 @@ export async function executeViewWebsite(
     // Extract content from all URLs
     const results = await Promise.all(
       input.urls.map(async (url) => {
-        const result = await provider.extract({
-          url,
-          includeImages: true,
-          includeRawContent: true,
-        });
+        const result = await provider.extract(
+          {
+            url,
+            includeImages: true,
+            includeRawContent: true,
+          },
+          clerkUserId
+        );
 
         return {
           url: result.url,

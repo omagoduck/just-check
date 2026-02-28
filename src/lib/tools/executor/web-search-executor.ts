@@ -31,7 +31,8 @@ export function normalizeSearchInput(input: any): WebSearchInput {
  * Execute the webSearch tool on the server side
  */
 export async function executeWebSearch(
-  input: WebSearchInput
+  input: WebSearchInput,
+  clerkUserId?: string
 ): Promise<WebSearchOutput> {
   try {
     // Validate input
@@ -60,17 +61,18 @@ export async function executeWebSearch(
     // Determine which provider to use
     // For now, we'll default to Tavily but allow future extension to auto-select based on query type
     let providerType: ProviderType = 'tavily';
-    
+
     // Future logic could be:
     // - Use Exa for research/technical queries
     // - Use Tavily for general queries
     // - Auto-select based on query complexity
-    
+
     // Initialize the provider
     const searchProvider = getSearchProvider(providerType);
 
     // Execute the search - now returns SearchResult container
-    const searchResult = await searchProvider.search(searchQuery);
+    // Pass clerkUserId to provider for charging
+    const searchResult = await searchProvider.search(searchQuery, clerkUserId);
 
     // Return simplified output to AI (only essential information)
     return {
@@ -78,7 +80,7 @@ export async function executeWebSearch(
     };
   } catch (error) {
     console.error('Web search error:', error);
-    
+
     // Return fallback data in case of error
     return {
       results: [],

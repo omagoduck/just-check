@@ -9,7 +9,11 @@ export interface ISearchProvider {
   /**
    * Execute a search using the provider's API
    * @param query The search query parameters
+   * @param clerkUserId Optional user ID for allowance deduction
    * @returns Promise with search results
    */
-  search(query: SearchQuery): Promise<SearchResult>;
+  search(
+    query: SearchQuery,
+    clerkUserId?: string
+  ): Promise<SearchResult>;
 }

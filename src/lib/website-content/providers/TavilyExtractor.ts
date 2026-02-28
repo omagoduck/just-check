@@ -4,6 +4,7 @@
  */
 import { IWebsiteContentProvider } from '../IWebsiteContentProvider';
 import { WebsiteContentQuery, WebsiteContentResult } from '../website-result';
+import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
 export class TavilyExtractor implements IWebsiteContentProvider {
   private apiKey: string;
@@ -16,7 +17,10 @@ export class TavilyExtractor implements IWebsiteContentProvider {
     }
   }
 
-  async extract(query: WebsiteContentQuery): Promise<WebsiteContentResult> {
+  async extract(
+    query: WebsiteContentQuery,
+    clerkUserId?: string
+  ): Promise<WebsiteContentResult> {
     const { url, includeImages = true, includeRawContent = true } = query;
 
     // Validate URL
@@ -41,7 +45,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       if (includeRawContent) {
         payload.include_raw_content = true;
       }
-      
+
       if (includeImages) {
         payload.include_images = true;
         payload.include_image_descriptions = true;
@@ -66,7 +70,27 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       console.log('Tavily extract raw response:', JSON.stringify(data, null, 2));
 
       // Parse the Tavily response
-      return this.parseTavilyResponse(url, data);
+      const result = this.parseTavilyResponse(url, data);
+
+      // Charge allowance and log usage (only on success)
+      if (clerkUserId) {
+        const costCents = 1; // Fixed cost per extraction
+
+        await chargeAndLogToolAllowance({
+          toolName: 'viewWebsite',
+          args: query,
+          result: data,
+          costCents,
+          clerkUserId,
+          metadata: {
+            urlCount: 1,
+            provider: 'tavily',
+            providerMode: 'extract'
+          },
+        });
+      }
+
+      return result;
     } catch (error) {
       console.error('Tavily extract error:', error);
       throw error instanceof Error ? error : new Error('Unknown error occurred during extraction');

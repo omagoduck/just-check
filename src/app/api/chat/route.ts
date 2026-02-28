@@ -20,6 +20,14 @@ import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 
+// Import raw executors for tool charging
+import { executeWebSearch } from '@/lib/tools/executor/web-search-executor';
+import { executeViewWebsite } from '@/lib/tools/executor/view-website-executor';
+
+// Import tool input types
+import type { WebSearchInput } from '@/lib/tools/web-search';
+import type { ViewWebsiteInput } from '@/lib/tools/view-website';
+
 export async function POST(req: Request) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -28,6 +36,18 @@ export async function POST(req: Request) {
     }
 
     const { messages, id: conversationId, UIModelId } = await req.json();
+
+    // Get the last message from the client
+    const lastMessageInArray = messages[messages.length - 1];
+    const isNewUserTurn = lastMessageInArray.role === 'user';
+
+    // Only check allowance for new user messages, not continuations (tool results)
+    if (isNewUserTurn) {
+      const remainingAllowance = await getRemainingAllowance(clerkUserId);
+      if (remainingAllowance <= 0) {
+        return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
+      }
+    }
 
     // Calculate Routing Context
     const hasImages = messages.some((m: UIMessage) =>
@@ -45,18 +65,6 @@ export async function POST(req: Request) {
     // Get model info for metadata
     const internalModelId = route.id;
     const provider = route.provider;
-
-    // Get the last message from the client
-    const lastMessageInArray = messages[messages.length - 1];
-    const isNewUserTurn = lastMessageInArray.role === 'user';
-
-    // Only check allowance for new user messages, not continuations (tool results)
-    if (isNewUserTurn) {
-      const remainingAllowance = await getRemainingAllowance(clerkUserId);
-      if (remainingAllowance <= 0) {
-        return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
-      }
-    }
 
     // Fetch the last message from DB to check for context or continuations
     let lastMessageFromDB = await getLastMessageFromDB(conversationId);
@@ -142,18 +150,30 @@ export async function POST(req: Request) {
     // Build personalized system prompt from user settings
     const systemPrompt = buildSystemPrompt(userAISettings);
 
+    // Create wrapped tools with user context for charging
+    const tools = {
+      // Client side tools
+      getTime: getTimeTool, // No charging for it.
+      getWeather: getWeatherTool, // It is costly and will be charged but it's a client tool. It need to be handled carefully.
+      
+      // Server side tools with charging via thin wrappers
+      webSearch: {
+        ...webSearchTool,
+        execute: async (input: WebSearchInput) =>
+          await executeWebSearch(input, clerkUserId)
+      },
+      viewWebsite: {
+        ...viewWebsiteTool,
+        execute: async (input: ViewWebsiteInput) =>
+          await executeViewWebsite(input, clerkUserId)
+      }
+    };
+
     const result = streamText({
       model: modelInstance,
       messages: modelMessages,
       system: systemPrompt,
-      tools: {
-        // Client side tools
-        getTime: getTimeTool, //Needs client time
-        getWeather: getWeatherTool, //Needs client location also works with given location, no matter what it runs client side.
-        // Server side tools
-        webSearch: webSearchTool,
-        viewWebsite: viewWebsiteTool
-      },
+      tools,
 
       // Track each step as it happens
       onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
@@ -206,7 +226,7 @@ export async function POST(req: Request) {
     });
 
     return result.toUIMessageStreamResponse({
-      generateMessageId: uuidv4, // Use custom ID generator for consistent UUIDs
+      generateMessageId: uuidv4,
       // 1. Define message metadata behavior - ONLY client-safe fields
       messageMetadata: ({ part }) => {
 
