@@ -44,6 +44,6 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
 
         default:
             // Fallback for any unknown or unspecified model IDs
-            return { provider: 'openrouter', id: 'xiaomi/mimo-v2-flash:free' };
+            return { provider: 'google', id: 'gemini-2.5-flash' }; //supports image
     }
 }
