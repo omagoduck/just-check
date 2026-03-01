@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { v4 as uuidv4 } from 'uuid';
+import { conversationsRatelimit } from '@/lib/ratelimit';
 
 export async function POST(req: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { success } = await conversationsRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
     const supabase = getSupabaseAdminClient();

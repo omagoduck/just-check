@@ -1,5 +1,6 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool } from '@/lib/tools';
+import { chatRatelimit } from '@/lib/ratelimit';
 import {
   saveUserMessage,
   saveAssistantMessage,
@@ -33,6 +34,11 @@ export async function POST(req: Request) {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
+    const { success } = await chatRatelimit.limit(clerkUserId);
+    if (!success) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), { status: 429 });
     }
 
     const { messages, id: conversationId, UIModelId } = await req.json();
