@@ -146,6 +146,6 @@ async function callWeatherApi(params: { location?: string; lat?: number; lon?: n
 
   } catch (error) {
     console.error('Weather API call failed:', error);
-    throw new Error('Failed to fetch weather data. Please try again later.');
+    throw error instanceof Error ? error : new Error('Failed to fetch weather data. Please try again later.');
   }
 }

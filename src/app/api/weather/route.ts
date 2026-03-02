@@ -66,25 +66,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Weather API error:', error);
 
-    // Return fallback data in case of error
-    const fallbackData = {
-      current: {
-        location: location || 'Unknown Location',
-        temperature: 0,
-        feelsLike: 0,
-        humidity: 0,
-        conditions: 'Unknown',
-        description: 'Weather data unavailable',
-        windSpeed: 0,
-        pressure: 0,
-        visibility: 0,
-        uvIndex: 0,
-      },
-      forecast: [],
-    };
-
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error', data: fallbackData },
+      { error: error instanceof Error ? error.message : 'Failed to fetch weather data' },
       { status: 500 }
     );
   }

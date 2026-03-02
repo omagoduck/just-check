@@ -23,7 +23,7 @@ export const getLocationFromCoordinates = async (lat: number, lon: number): Prom
     return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
   } catch (error) {
     console.error('Error getting location name:', error);
-    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    throw error instanceof Error ? error : new Error('Failed to get location name');
   }
 };
 
@@ -133,22 +133,6 @@ export async function executeGetWeather(
     };
   } catch (error) {
     console.error('Weather fetch error:', error);
-    
-    // Return fallback data in case of error
-    return {
-      current: {
-        location: location || 'Unknown Location',
-        temperature: 0,
-        feelsLike: 0,
-        humidity: 0,
-        conditions: 'Unknown',
-        description: 'Weather data unavailable',
-        windSpeed: 0,
-        pressure: 0,
-        visibility: 0,
-        uvIndex: 0,
-      },
-      forecast: [],
-    };
+    throw error instanceof Error ? error : new Error('Failed to fetch weather data');
   }
 }
