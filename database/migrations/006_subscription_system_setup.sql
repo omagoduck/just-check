@@ -60,6 +60,34 @@ ALTER TABLE public.user_subscriptions DISABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.user_subscriptions;
 
 -- ============================================================================
+-- GET USER SUBSCRIPTION FUNCTION
+-- Returns the most relevant subscription for a user:
+-- 1. Prioritizes 'active' status over 'on_hold'
+-- 2. Sorts by current_period_start (newest first)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION get_user_subscription(p_clerk_user_id TEXT)
+RETURNS SETOF public.user_subscriptions
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT *
+  FROM public.user_subscriptions
+  WHERE clerk_user_id = p_clerk_user_id
+    AND status IN ('active', 'on_hold')
+  ORDER BY 
+    CASE 
+      WHEN status = 'active' THEN 1
+      WHEN status = 'on_hold' THEN 2
+    END,
+    current_period_start DESC
+  LIMIT 1;
+END;
+$$;
+
+-- ============================================================================
 -- PERIODIC ALLOWANCE TABLE
 -- Tracks token/message usage allowance per user per billing period
 -- ============================================================================

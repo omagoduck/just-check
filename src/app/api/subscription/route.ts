@@ -12,16 +12,15 @@ export async function GET() {
     const supabase = getSupabaseAdminClient();
 
     // Fetch subscription data for the user
-    const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions')
-      .select('*')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
+    const { data: subscriptions, error: subError } = await supabase
+      .rpc('get_user_subscription', { p_clerk_user_id: clerkUserId });
 
-    // If no subscription exists, return null/empty data
-    if (subError && subError.code !== 'PGRST116') {
+    if (subError) {
       throw subError;
     }
+
+    // The RPC returns an array, not a single object. So subscription is [] (empty array) or [{...}]
+    const subscription = Array.isArray(subscriptions) ? subscriptions[0] : subscriptions;
 
     if (!subscription) {
       return NextResponse.json({
