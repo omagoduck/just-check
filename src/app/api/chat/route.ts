@@ -151,7 +151,11 @@ export async function POST(req: Request) {
     // Capture final usage from streamText's onFinish callback
     let streamOnFinishUsage: { totalTokens?: number; inputTokens?: number; outputTokens?: number; inputTokenDetails?: any; outputTokenDetails?: any } | undefined;
 
-    const modelMessages = await convertToModelMessages(messages);
+    const modelMessages = await convertToModelMessages(messages, {
+      // safety net for incomplete tool calls. incomplete tool call may cause errors. 
+      // TODO: take a look if our model provider supports incomplete tool calls. cause many returns error. right now ignoring is okay and safe.
+      ignoreIncompleteToolCalls: true
+    });
 
     // Build personalized system prompt from user settings
     const systemPrompt = buildSystemPrompt(userAISettings);
