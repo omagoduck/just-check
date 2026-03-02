@@ -9,7 +9,7 @@ export const getLocationFromCoordinates = async (lat: number, lon: number): Prom
   try {
     // Using OpenWeatherMap's reverse geocoding API
     const response = await fetch(
-      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`
+      `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
     );
 
     if (!response.ok) {
@@ -29,7 +29,7 @@ export const getLocationFromCoordinates = async (lat: number, lon: number): Prom
 
 // Utility function to make weather API calls
 export const fetchWeatherData = async (lat: number, lon: number) => {
-  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+  const apiKey = process.env.OPENWEATHER_API_KEY;
   if (!apiKey) {
     throw new Error('OpenWeatherMap API key not configured');
   }
@@ -71,7 +71,7 @@ export async function executeGetWeather(
     if (location) {
       // Geocode the location
       const geocodeResponse = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${process.env.OPENWEATHER_API_KEY}`
       );
 
       if (!geocodeResponse.ok) {
