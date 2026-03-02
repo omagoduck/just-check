@@ -13,7 +13,7 @@
 -- Create user_subscriptions table
 CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clerk_user_id TEXT NOT NULL,
+    clerk_user_id TEXT NOT NULL REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     dodo_subscription_id TEXT UNIQUE,
     status TEXT NOT NULL DEFAULT 'inactive',
     plan_type TEXT NOT NULL DEFAULT 'free',
@@ -95,7 +95,7 @@ $$;
 -- Create periodic_allowance table
 -- clerk_user_id is the PRIMARY KEY to ensure one row per user
 CREATE TABLE IF NOT EXISTS public.periodic_allowance (
-    clerk_user_id TEXT PRIMARY KEY,
+    clerk_user_id TEXT PRIMARY KEY REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     alloted_allowance INTEGER NOT NULL DEFAULT 0,
     remaining_allowance INTEGER NOT NULL DEFAULT 0,
     period_start TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -164,7 +164,7 @@ ALTER TABLE public.webhook_event_log DISABLE ROW LEVEL SECURITY;
 
 -- Create dodo_customer_mapping table
 CREATE TABLE IF NOT EXISTS public.dodo_customer_mapping (
-    clerk_user_id TEXT PRIMARY KEY,
+    clerk_user_id TEXT PRIMARY KEY REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     dodo_customer_id TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
@@ -202,4 +202,5 @@ ALTER TABLE public.dodo_customer_mapping DISABLE ROW LEVEL SECURITY;
 -- - periodic_allowance.clerk_user_id is PRIMARY KEY = only ONE row per user
 -- - webhook_event_log helps debug and retry failed webhook processing
 -- - dodo_customer_mapping enables customer-based checkout flow
+-- - All tables have FK constraints to public.profiles(clerk_user_id) with ON DELETE CASCADE
 -- ============================================================================
