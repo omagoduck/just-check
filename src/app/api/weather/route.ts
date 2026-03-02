@@ -1,10 +1,24 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { executeGetWeather } from '@/lib/tools/executor/get-weather-executor';
 import { getLocationFromCoordinates, fetchWeatherData } from '@/lib/tools/executor/get-weather-executor';
+import { weatherRatelimit } from '@/lib/ratelimit';
 import type { GetWeatherOutput } from '@/lib/tools/get-weather';
 
 export async function POST(request: Request) {
   try {
+    // Verify authentication
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Apply rate limiting
+    const { success } = await weatherRatelimit.limit(userId);
+    if (!success) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const { location, lat, lon } = await request.json();
 
     // Validate input

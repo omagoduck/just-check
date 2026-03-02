@@ -22,3 +22,8 @@ export const subscriptionRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "1m"),
 });
+
+export const weatherRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, "1m"),
+});
