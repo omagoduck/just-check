@@ -1,6 +1,7 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool } from '@/lib/tools';
 import { chatRatelimit } from '@/lib/ratelimit';
+import { NextResponse } from 'next/server';
 import {
   saveUserMessage,
   saveAssistantMessage,
@@ -33,12 +34,12 @@ export async function POST(req: Request) {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { success } = await chatRatelimit.limit(clerkUserId);
     if (!success) {
-      return new Response(JSON.stringify({ error: 'Too many requests. Please wait a moment.' }), { status: 429 });
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
     const { messages, id: conversationId, UIModelId } = await req.json();
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     if (isNewUserTurn) {
       const remainingAllowance = await getRemainingAllowance(clerkUserId);
       if (remainingAllowance <= 0) {
-        return new Response(JSON.stringify({ error: 'Insufficient allowance' }), { status: 402 });
+        return NextResponse.json({ error: 'Insufficient allowance' }, { status: 402 });
       }
     }
 
@@ -385,9 +386,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Chat API error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json({ error: 'Failed to process chat' }, { status: 500 });
   }
 }
