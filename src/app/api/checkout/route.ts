@@ -1,28 +1,132 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { getSupabaseAdminClient } from "@/lib/supabase-client";
+import { clerkClient } from "@/lib/clerk/clerk-client";
 
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
 const RETURN_URL = process.env.DODO_PAYMENTS_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success`;
 
-// TODO: P5. Check if we can use native library for DODO payments instead of making API calls manually.
 // DODO API base URL
 const DODO_API_URL =
   DODO_ENVIRONMENT === "live_mode"
     ? "https://live.dodopayments.com"
     : "https://test.dodopayments.com";
 
+interface DODOCustomer {
+  customer_id: string;
+  email: string;
+  name: string;
+  metadata?: Record<string, any>;
+}
+
 /**
- * Creates a DODO checkout session with customer association
+ * Gets or creates a DODO customer for the authenticated Clerk user.
+ * Checks for existing mapping in database, creates new DODO customer if needed,
+ * and stores the clerk_id ↔ dodo_customer_id mapping.
+ */
+async function getOrCreateDODOCustomer(clerkUserId: string): Promise<string> {
+  const supabase = getSupabaseAdminClient();
+
+  // Check if mapping already exists
+  const { data: existingMapping, error: mappingError } = await supabase
+    .from("dodo_customer_mapping")
+    .select("dodo_customer_id")
+    .eq("clerk_user_id", clerkUserId)
+    .maybeSingle();
+
+  if (mappingError) {
+    console.error("Error checking customer mapping:", mappingError);
+    throw new Error("Database error checking customer mapping");
+  }
+
+  // Return existing customer ID
+  if (existingMapping) {
+    return existingMapping.dodo_customer_id;
+  }
+
+  // Get user details from Clerk
+  let clerkUser;
+  try {
+    clerkUser = await clerkClient.users.getUser(clerkUserId);
+  } catch (clerkError) {
+    console.error("Error fetching user from Clerk:", clerkError);
+    throw new Error("User not found in Clerk");
+  }
+
+  // Extract email and name from Clerk user
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  const name = clerkUser.fullName || clerkUser.firstName || clerkUser.username || "User";
+
+  if (!email) {
+    throw new Error("User email not found");
+  }
+
+  // Create new DODO customer
+  let dodoCustomer: DODOCustomer;
+  try {
+    const response = await fetch(`${DODO_API_URL}/customers`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${DODO_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        name,
+        metadata: {
+          clerk_user_id: clerkUserId,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("DODO API error:", errorText);
+      throw new Error(`Failed to create DODO customer: ${errorText}`);
+    }
+
+    dodoCustomer = await response.json();
+  } catch (dodoError) {
+    console.error("Error calling DODO API:", dodoError);
+    throw new Error("Failed to connect to DODO API");
+  }
+
+  // Store mapping in database
+  const { error: insertError } = await supabase
+    .from("dodo_customer_mapping")
+    .insert({
+      clerk_user_id: clerkUserId,
+      dodo_customer_id: dodoCustomer.customer_id,
+    });
+
+  if (insertError) {
+    console.error("Error storing customer mapping:", insertError);
+    // Note: Customer was created in DODO but mapping failed
+    // This is a data inconsistency that should be monitored
+    throw new Error(`Failed to store customer mapping: ${insertError.message}`);
+  }
+
+  return dodoCustomer.customer_id;
+}
+
+/**
+ * Creates a DODO checkout session with automatic customer association
  * 
  * Query Parameters:
  * - productId: DODO product ID to purchase
- * - customerId: DODO customer ID (optional, but recommended for subscription tracking)
+ * 
+ * The customer ID is automatically retrieved or created based on the authenticated Clerk user.
  */
 export async function GET(request: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
-    const customerId = searchParams.get("customerId");
 
     if (!productId) {
       return NextResponse.json(
@@ -31,17 +135,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build checkout payload
-    const payload: any = {
+    // Get or create DODO customer automatically
+    const customerId = await getOrCreateDODOCustomer(clerkUserId);
+
+    // Build checkout payload with customer association
+    const payload = {
       product_cart: [{ product_id: productId, quantity: 1 }],
       return_url: RETURN_URL,
+      customer: { customer_id: customerId },
     };
-
-    // Add customer ID if provided (links subscription to customer)
-    // Note: customer_id must be nested inside customer object
-    if (customerId) {
-      payload.customer = { customer_id: customerId };
-    }
 
     // Call DODO API to create checkout session
     const response = await fetch(`${DODO_API_URL}/checkouts`, {
@@ -67,13 +169,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       checkout_url: data.checkout_url,
       checkout_id: data.checkout_id,
-      customer_id: customerId, // Return for reference
     });
 
   } catch (error) {
     console.error("Checkout error:", error);
+    // Return generic error to client, log details server-side
+    const message = error instanceof Error && error.message === "Unauthorized"
+      ? error.message
+      : "Checkout failed. Please try again.";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -81,12 +186,17 @@ export async function GET(request: NextRequest) {
 
 /**
  * Dynamic checkout with full payload control
- * Use this for more complex checkout scenarios
+ * Customer ID is automatically retrieved or created based on the authenticated Clerk user.
  */
 export async function POST(request: NextRequest) {
   try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { productId, customerId, ...otherOptions } = body;
+    const { productId, ...otherOptions } = body;
 
     if (!productId) {
       return NextResponse.json(
@@ -95,10 +205,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get or create DODO customer automatically
+    const customerId = await getOrCreateDODOCustomer(clerkUserId);
+
     const payload = {
       product_cart: [{ product_id: productId, quantity: 1 }],
       return_url: RETURN_URL,
-      customer: customerId ? { customer_id: customerId } : undefined,
+      customer: { customer_id: customerId },
       ...otherOptions,
     };
 
@@ -129,8 +242,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Checkout error:", error);
+    // Return generic error to client, log details server-side
+    const message = error instanceof Error && error.message === "Unauthorized"
+      ? error.message
+      : "Checkout failed. Please try again.";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: message },
       { status: 500 }
     );
   }

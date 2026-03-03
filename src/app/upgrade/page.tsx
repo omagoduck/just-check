@@ -99,34 +99,19 @@ const pricingPlans: PricingPlan[] = [
  * Handles checkout for new subscriptions (users without existing subscription)
  * Creates DODO customer and redirects to checkout session
  */
-async function handleCheckout(productId: string, userId: string) {
+async function handleCheckout(productId: string) {
   try {
-    // Step 1: Create or get DODO customer ID for this user
-    const customerResponse = await fetch('/api/customers/create-or-get', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ clerkUserId: userId }),
-    });
-
-    if (!customerResponse.ok) {
-      const errorData = await customerResponse.json();
-      throw new Error(errorData.error || 'Failed to create customer');
-    }
-
-    const { dodoCustomerId } = await customerResponse.json();
-
-    // Step 2: Create checkout session with customer association
+    // Checkout API automatically handles customer creation/retrieval
     const checkoutResponse = await fetch(
-      `/api/checkout?productId=${productId}&customerId=${dodoCustomerId}`,
+      `/api/checkout?productId=${productId}`,
       {
         method: 'GET',
       }
     );
 
     if (!checkoutResponse.ok) {
-      throw new Error('Failed to create checkout session');
+      const errorData = await checkoutResponse.json();
+      throw new Error(errorData.error || 'Failed to create checkout session');
     }
 
     const data = await checkoutResponse.json();
@@ -269,7 +254,7 @@ export default function UpgradePage() {
     } else if (plan.productId && userId) {
       // User is on free plan or no subscription - new checkout flow
       setLoadingPlan(plan.name);
-      handleCheckout(plan.productId, userId);
+      handleCheckout(plan.productId);
     } else if (!userId) {
       // Not authenticated
       alert('Please sign in to upgrade');
