@@ -3,8 +3,8 @@
  * Represents the subscription information needed on the client side
  */
 export interface SubscriptionData {
-  /** Internal plan identifier (e.g., "free", "plus", "pro", "max") */
-  planType: string;
+  /** Internal plan identifier (e.g., "free_monthly", "plus_monthly", "pro_monthly", "max_monthly") */
+  planId: string;
   /** Subscription status: active, cancelled, trialing, past_due, etc. */
   status: string;
   /** Start of current billing period (ISO 8601 timestamp) */

@@ -23,6 +23,7 @@ import { useAuth } from "@clerk/nextjs";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { PRODUCT_IDS } from "@/lib/product-ids";
 
 // Pricing plan interface defining the structure for each plan card
 interface PricingPlan {
@@ -61,7 +62,7 @@ const pricingPlans: PricingPlan[] = [
       "Priority email support",
     ],
     buttonText: "Upgrade to Plus",
-    productId: "pdt_0NWpWdXK777ZVmVKjUc4J",
+    productId: PRODUCT_IDS.PLUS_MONTHLY,
   },
   {
     name: "Pro",
@@ -78,7 +79,7 @@ const pricingPlans: PricingPlan[] = [
     buttonText: "Upgrade to Pro",
     highlight: true,
     badge: "Most Popular",
-    productId: "pdt_0NX2rc1Ua1xjdVKhj3oXW",
+    productId: PRODUCT_IDS.PRO_MONTHLY,
   },
   {
     name: "Max",
@@ -92,6 +93,7 @@ const pricingPlans: PricingPlan[] = [
       "Custom AI model training",
     ],
     buttonText: "Upgrade to Max",
+    productId: PRODUCT_IDS.MAX_MONTHLY,
   },
 ];
 
@@ -145,8 +147,8 @@ export default function UpgradePage() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Determine current plan type from subscription (default to 'free' if none)
-  const currentPlanType = subscription?.planType || 'free';
+  // Determine current plan ID from subscription (default to 'free_monthly' if none)
+  const currentPlanId = subscription?.planId || 'free_monthly';
 
   // EFFECT: Fetch preview data when confirmation dialog opens
   useEffect(() => {
@@ -243,10 +245,10 @@ export default function UpgradePage() {
    * - Not authenticated: show alert
    */
   const handlePlanClick = (plan: PricingPlan) => {
-    if (plan.name.toLowerCase() === currentPlanType) {
+    if (plan.productId === currentPlanId) {
       // User clicked their current plan - go to app
       window.location.href = '/';
-    } else if (subscription && subscription.planType !== 'free') {
+    } else if (subscription && subscription.planId !== 'free_monthly') {
       // User has an existing paid subscription and wants to change
       // Show confirmation dialog with credit calculation
       setSelectedPlan(plan);
@@ -304,7 +306,7 @@ export default function UpgradePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {pricingPlans.map((plan) => {
-            const isCurrentPlan = plan.name.toLowerCase() === currentPlanType;
+            const isCurrentPlan = plan.productId === currentPlanId;
 
             return (
               <Card
@@ -380,8 +382,8 @@ export default function UpgradePage() {
               {/* Main change summary */}
               <p className="text-muted-foreground text-sm">
                 You are about to change your subscription from{" "}
-                <span className="font-semibold capitalize">{currentPlanType}</span> to{" "}
-                <span className="font-semibold capitalize">{selectedPlan?.name}</span>.
+                <span className="font-semibold">{currentPlanId.replace(/_/g, ' ')}</span> to{" "}
+                <span className="font-semibold">{selectedPlan?.name}</span>.
               </p>
 
               {/* Dodo Preview Section - Shows immediate charge */}
@@ -477,8 +479,8 @@ export default function UpgradePage() {
             <div className="space-y-3 pt-2 text-muted-foreground">
               <p className="text-sm">
                 Your subscription has been changed from{" "}
-                <span className="font-semibold capitalize">{currentPlanType}</span> to{" "}
-                <span className="font-semibold capitalize">{selectedPlan?.name}</span>.
+                <span className="font-semibold">{currentPlanId.replace(/_/g, ' ')}</span> to{" "}
+                <span className="font-semibold">{selectedPlan?.name}</span>.
               </p>
 
               {previewData && (

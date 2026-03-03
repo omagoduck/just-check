@@ -32,6 +32,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
+import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/product-ids";
 
 // =============================================================================
 // TIMESTAMP DEDUPLICATION
@@ -75,35 +76,28 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 // =============================================================================
 
 // This object defines how many AI messages each subscription plan allows per 6-hour sliding window.
-// The key is the plan name (lowercase) and the value is the message allowance. The allowance is a number, neither token nor money. Just number.
+// The key is the plan ID (e.g., "free_monthly", "plus_monthly") and the value is the message allowance.
+// The allowance is a number, neither token nor money. Just number.
 // Values are proportional to the former monthly allowances (divided by 120).
 //
 // Example:
-// - "free" plan: 0 messages
-// - "plus" plan: 3 messages per 6 hours
-// - "pro" plan: 13 messages per 6 hours
-// - "max" plan: 67 messages per 6 hours
+// - "free_monthly" plan: 0 messages
+// - "plus_monthly" plan: 3 messages per 6 hours
+// - "pro_monthly" plan: 13 messages per 6 hours
+// - "max_monthly" plan: 67 messages per 6 hours
 const PLAN_ALLOWANCES: Record<string, number> = {
-  free: 0,
-  plus: 3,
-  pro: 13,
-  max: 67,
+  free_monthly: 0,
+  plus_monthly: 3,
+  pro_monthly: 13,
+  max_monthly: 67,
 };
 
-// Maps Dodo product IDs to internal plan types (monthly plans only)
-// TODO: Replace placeholder product IDs with actual IDs from Dodo dashboard
-const PLAN_PRODUCT_IDS: Record<string, string> = {
-  plus_monthly: 'pdt_0NWpWdXK777ZVmVKjUc4J',
-  pro_monthly: 'pdt_0NX2rc1Ua1xjdVKhj3oXW',
-  max_monthly: 'pdt_max_monthly_product_id',
-};
-
-// Helper function to map Dodo product ID to internal plan type
-function getPlanTypeFromProductId(productId: string): string | null {
+// Helper function to map Dodo product ID to internal plan ID
+function getPlanIdFromProductId(productId: string): string | null {
   const reverseMap: Record<string, string> = {
-    [PLAN_PRODUCT_IDS.plus_monthly]: 'plus',
-    [PLAN_PRODUCT_IDS.pro_monthly]: 'pro',
-    [PLAN_PRODUCT_IDS.max_monthly]: 'max',
+    [DODO_PRODUCT_IDS[PRODUCT_IDS.PLUS_MONTHLY]]: 'plus_monthly',
+    [DODO_PRODUCT_IDS[PRODUCT_IDS.PRO_MONTHLY]]: 'pro_monthly',
+    [DODO_PRODUCT_IDS[PRODUCT_IDS.MAX_MONTHLY]]: 'max_monthly',
   };
   return reverseMap[productId] || null;
 }
@@ -126,8 +120,8 @@ async function upsertSubscriptionAndAllowance(
     customer?: { customer_id?: string };
   }
 ) {
-  const planType = getPlanTypeFromProductId(productId);
-  if (!planType) {
+  const planId = getPlanIdFromProductId(productId);
+  if (!planId) {
     throw new Error(`Unknown product_id: ${productId}. Not mapped to a plan.`);
   }
 
@@ -142,7 +136,7 @@ async function upsertSubscriptionAndAllowance(
     clerk_user_id: clerkUserId,
     dodo_subscription_id: subscriptionId,
     status: 'active',
-    plan_type: planType,
+    plan_id: planId,
     billing_period: data.payment_frequency_interval?.toLowerCase(),
     current_period_start: data.created_at,
     current_period_end: data.next_billing_date,
@@ -170,7 +164,7 @@ async function upsertSubscriptionAndAllowance(
   }
 
   // Update/create periodic allowance
-  const allowance = PLAN_ALLOWANCES[planType];
+  const allowance = PLAN_ALLOWANCES[planId];
   const allowanceData = {
     clerk_user_id: clerkUserId,
     alloted_allowance: allowance,
@@ -188,7 +182,7 @@ async function upsertSubscriptionAndAllowance(
     throw new Error(`Failed to upsert allowance: ${allowanceError.message}`);
   }
 
-  return { planType, allowance };
+  return { planId, allowance };
 }
 
 // =============================================================================
@@ -376,7 +370,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
-        const { planType, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId, allowance } = await upsertSubscriptionAndAllowance(
           supabase,
           clerkUserId,
           productId,
@@ -397,7 +391,7 @@ export async function POST(request: NextRequest) {
         processingDetails = {
           action: 'subscription_activated',
           clerk_user_id: clerkUserId,
-          plan_type: planType,
+          plan_id: planId,
           subscription_id: subscriptionId,
           allowance: allowance,
         };
@@ -429,7 +423,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
-        const { planType, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId, allowance } = await upsertSubscriptionAndAllowance(
           supabase,
           clerkUserId,
           productId,
@@ -452,7 +446,7 @@ export async function POST(request: NextRequest) {
           clerk_user_id: clerkUserId,
           subscription_id: subscriptionId,
           previous_billing_date: data.previous_billing_date,
-          plan_type: planType,
+          plan_id: planId,
           allowance: allowance,
         };
         break;
@@ -484,7 +478,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
-        const { planType, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId, allowance } = await upsertSubscriptionAndAllowance(
           supabase,
           clerkUserId,
           productId,
@@ -505,7 +499,7 @@ export async function POST(request: NextRequest) {
         processingDetails = {
           action: 'subscription_plan_changed',
           clerk_user_id: clerkUserId,
-          plan_type: planType,
+          plan_id: planId,
           subscription_id: subscriptionId,
           allowance: allowance,
         };

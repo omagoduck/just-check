@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-client";
 import { clerkClient } from "@/lib/clerk/clerk-client";
+import { getDodoProductId } from "@/lib/product-ids";
 
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
@@ -135,12 +136,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const dodoProductId = getDodoProductId(productId);
+    if (!dodoProductId) {
+      return NextResponse.json(
+        { error: "Invalid product ID" },
+        { status: 400 }
+      );
+    }
+
     // Get or create DODO customer automatically
     const customerId = await getOrCreateDODOCustomer(clerkUserId);
 
     // Build checkout payload with customer association
     const payload = {
-      product_cart: [{ product_id: productId, quantity: 1 }],
+      product_cart: [{ product_id: dodoProductId, quantity: 1 }],
       return_url: RETURN_URL,
       customer: { customer_id: customerId },
     };
@@ -205,11 +214,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const dodoProductId = getDodoProductId(productId);
+    if (!dodoProductId) {
+      return NextResponse.json(
+        { error: "Invalid product ID" },
+        { status: 400 }
+      );
+    }
+
     // Get or create DODO customer automatically
     const customerId = await getOrCreateDODOCustomer(clerkUserId);
 
     const payload = {
-      product_cart: [{ product_id: productId, quantity: 1 }],
+      product_cart: [{ product_id: dodoProductId, quantity: 1 }],
       return_url: RETURN_URL,
       customer: { customer_id: customerId },
       ...otherOptions,

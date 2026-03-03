@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { subscriptionRatelimit } from '@/lib/ratelimit';
+import { getDodoProductId } from '@/lib/product-ids';
 
 // DODO Payments API configuration
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
@@ -46,12 +47,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'productId is required' }, { status: 400 });
     }
 
+    const dodoProductId = getDodoProductId(productId);
+    if (!dodoProductId) {
+      return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
+    }
+
     const supabase = getSupabaseAdminClient();
 
     // 3. FETCH CURRENT SUBSCRIPTION: Get DODO subscription and customer IDs
     const { data: subscription, error: subError } = await supabase
       .from('user_subscriptions')
-      .select('dodo_subscription_id, dodo_customer_id, plan_type, amount, currency')
+      .select('dodo_subscription_id, dodo_customer_id, plan_id, amount, currency')
       .eq('clerk_user_id', clerkUserId)
       .single();
 
@@ -77,7 +83,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        product_id: productId,
+        product_id: dodoProductId,
         quantity: 1,
         proration_billing_mode: 'prorated_immediately',
         on_payment_failure: 'prevent_change',

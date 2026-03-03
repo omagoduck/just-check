@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     clerk_user_id TEXT NOT NULL REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     dodo_subscription_id TEXT UNIQUE,
     status TEXT NOT NULL DEFAULT 'inactive',
-    plan_type TEXT NOT NULL DEFAULT 'free',
+    plan_id TEXT NOT NULL DEFAULT 'free_monthly',
     billing_period TEXT,
     current_period_start TIMESTAMP WITH TIME ZONE,
     current_period_end TIMESTAMP WITH TIME ZONE,
@@ -39,8 +39,8 @@ CREATE INDEX IF NOT EXISTS idx_user_subscriptions_dodo_subscription_id
     ON public.user_subscriptions(dodo_subscription_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_status 
     ON public.user_subscriptions(status);
-CREATE INDEX IF NOT EXISTS idx_user_subscriptions_plan_type 
-    ON public.user_subscriptions(plan_type);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_plan_id
+    ON public.user_subscriptions(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_current_period_end 
     ON public.user_subscriptions(current_period_end);
 CREATE INDEX IF NOT EXISTS idx_active_subscriptions 

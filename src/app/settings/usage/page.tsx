@@ -186,7 +186,9 @@ export default function UsagePage() {
             {/* TODO P4: Add proper mapping for plan name instead of such bullshit logic */}
             <div className="flex items-center gap-2">
               <div className="text-lg font-semibold">
-                {subscriptionData?.planType ? subscriptionData.planType.charAt(0).toUpperCase() + subscriptionData.planType.slice(1) : 'Free'}
+                {subscriptionData?.planId
+                  ? subscriptionData.planId.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                  : 'Free Monthly'}
               </div>
               {subscriptionData?.status && (
                 <Badge variant={getBadgeVariant(subscriptionData.status)} className="capitalize">
