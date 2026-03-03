@@ -345,11 +345,11 @@ export async function POST(req: Request) {
         // =========================================================================
         // ALLOWANCE DEDUCTION
         // =========================================================================
-        // Use the server metadata for cost calculation
+        // Use streamOnFinishUsage for cost calculation (only current request tokens)
+        // Do NOT use accumulated total - that would cause double-charging!
         try {
-          const totalUsage = serverMetadata.totalUsage;
 
-          if (totalUsage && route) {
+          if (streamOnFinishUsage && route) {
             const pricing = getModelPricing(route.provider, route.id);
             let cost = 0;
 
@@ -357,8 +357,8 @@ export async function POST(req: Request) {
               console.error(`Pricing not found for model ${route.provider}/${route.id}`);
             } else {
               cost = calculateCostCents(
-                totalUsage.totalInputTokens || 0,
-                totalUsage.totalOutputTokens || 0,
+                streamOnFinishUsage.inputTokens || 0,
+                streamOnFinishUsage.outputTokens || 0,
                 pricing
               );
               if (cost > 0) {
@@ -368,9 +368,16 @@ export async function POST(req: Request) {
 
             // Log token usage for analytics
             try {
+              const currentUsageTotal: TotalUsage = {
+                totalUsedTokens: streamOnFinishUsage.totalTokens || 0,
+                totalInputTokens: streamOnFinishUsage.inputTokens || 0,
+                totalOutputTokens: streamOnFinishUsage.outputTokens || 0,
+                inputTokenDetails: streamOnFinishUsage.inputTokenDetails,
+                outputTokenDetails: streamOnFinishUsage.outputTokenDetails,
+              };
               await logMessageTokenUsage({
                 messageId: assistantMessage.id,
-                tokenUsage: totalUsage,
+                tokenUsage: currentUsageTotal,
                 modelInfo: { provider, UIModelId, internalModelId },
                 totalCostCents: cost,
                 pricingUsed: pricing ?? { input: 0, output: 0 },
