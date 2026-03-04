@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useConversations, useDeleteConversation, useRenameConversation } from '@/hooks/use-conversations';
+import { useSubscription } from '@/hooks/use-subscription';
+import { getPlanDisplayName } from '@/lib/subscription-utils';
 import { useUser, useAuth } from '@clerk/nextjs';
 import {
   SquarePen,
@@ -20,6 +22,7 @@ import {
   PanelLeftOpen,
   PanelLeftClose,
   Loader2,
+  Crown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -76,6 +79,22 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
   const deleteConversation = useDeleteConversation();
   const renameConversation = useRenameConversation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Subscription data for dynamic upgrade button
+  const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
+
+  // Determine subscription button state
+  // Database already filters for active/on_hold subscriptions via get_user_subscription
+  // If planId is 'free_monthly', user has no paid subscription
+  const hasActiveSubscription = subscription && subscription.planId !== 'free_monthly';
+
+  const subscriptionButtonLabel = hasActiveSubscription
+    ? getPlanDisplayName(subscription.planId)
+    : 'Upgrade';
+
+  const subscriptionButtonHref = hasActiveSubscription
+    ? '/settings/usage'
+    : '/upgrade';
 
   // Flatten infinite query data for display
   const chatHistory = useMemo(() => {
@@ -444,12 +463,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
           transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        {/* Upgrade Button - Keeping gradient as requested */}
+        {/* Subscription Button - Dynamic based on subscription status */}
         <button
           className={cn(
             "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-            "bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700",
-            "text-white font-medium shadow-sm hover:shadow-md"
+            "font-medium shadow-sm hover:shadow-md",
+            "bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white",
+            subscriptionLoading && "opacity-70 cursor-wait"
           )}
           style={{
             width: isCollapsed ? '40px' : '100%',
@@ -457,9 +477,16 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
             paddingRight: isCollapsed ? '0' : '12px',
             justifyContent: isCollapsed ? 'center' : 'flex-start'
           }}
-          onClick={() => router.push('/upgrade')}
+          onClick={() => router.push(subscriptionButtonHref)}
+          disabled={subscriptionLoading}
         >
-          <Sparkles size={20} className="shrink-0" />
+          {subscriptionLoading ? (
+            <Loader2 size={20} className="shrink-0 animate-spin" />
+          ) : hasActiveSubscription ? (
+            <Crown size={20} className="shrink-0" />
+          ) : (
+            <Sparkles size={20} className="shrink-0" />
+          )}
           <span
             className={cn(
               "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
@@ -471,7 +498,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
               overflow: 'hidden'
             }}
           >
-            Upgrade to Pro
+            {subscriptionLoading ? 'Loading...' : subscriptionButtonLabel}
           </span>
         </button>
 
