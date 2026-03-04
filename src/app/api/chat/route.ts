@@ -44,6 +44,19 @@ export async function POST(req: Request) {
 
     const { messages, id: conversationId, UIModelId } = await req.json();
 
+    // Verify conversation ownership
+    const supabase = getSupabaseAdminClient();
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('clerk_user_id', clerkUserId)
+      .single();
+
+    if (convError || !conversation) {
+      return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 });
+    }
+
     // Get the last message from the client
     const lastMessageInArray = messages[messages.length - 1];
     const isNewUserTurn = lastMessageInArray.role === 'user';
