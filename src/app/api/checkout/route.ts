@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-client";
 import { clerkClient } from "@/lib/clerk/clerk-client";
-import { getDodoProductId } from "@/lib/product-ids";
+import { getDodoProductId } from "@/lib/subscription-utils";
 
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";

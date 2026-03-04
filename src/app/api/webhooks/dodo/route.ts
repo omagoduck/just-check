@@ -32,7 +32,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
-import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/product-ids";
+import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/subscription-utils";
 
 // =============================================================================
 // TIMESTAMP DEDUPLICATION

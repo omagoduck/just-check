@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useUsage } from "@/hooks/use-usage";
 import { useSubscription } from "@/hooks/use-subscription";
+import { getPlanDisplayName } from "@/lib/subscription-utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -230,12 +231,9 @@ export default function UsagePage() {
             <CardTitle>Current Plan</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* TODO P4: Add proper mapping for plan name instead of such bullshit logic */}
             <div className="flex items-center gap-2">
               <div className="text-lg font-semibold">
-                {subscriptionData?.planId
-                  ? subscriptionData.planId.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-                  : 'Free Monthly'}
+                {subscriptionData?.planId ? getPlanDisplayName(subscriptionData.planId) : 'Free'}
               </div>
               {subscriptionData?.status && (
                 <Badge variant={getBadgeVariant(subscriptionData.status)} className="capitalize">

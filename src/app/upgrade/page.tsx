@@ -23,7 +23,7 @@ import { useAuth } from "@clerk/nextjs";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
-import { PRODUCT_IDS } from "@/lib/product-ids";
+import { PRODUCT_IDS, getPlanDisplayName } from "@/lib/subscription-utils";
 
 // Pricing plan interface defining the structure for each plan card
 interface PricingPlan {
@@ -382,7 +382,7 @@ export default function UpgradePage() {
               {/* Main change summary */}
               <p className="text-muted-foreground text-sm">
                 You are about to change your subscription from{" "}
-                <span className="font-semibold">{currentPlanId.replace(/_/g, ' ')}</span> to{" "}
+                <span className="font-semibold">{getPlanDisplayName(currentPlanId)}</span> to{" "}
                 <span className="font-semibold">{selectedPlan?.name}</span>.
               </p>
 
@@ -479,7 +479,7 @@ export default function UpgradePage() {
             <div className="space-y-3 pt-2 text-muted-foreground">
               <p className="text-sm">
                 Your subscription has been changed from{" "}
-                <span className="font-semibold">{currentPlanId.replace(/_/g, ' ')}</span> to{" "}
+                <span className="font-semibold">{getPlanDisplayName(currentPlanId)}</span> to{" "}
                 <span className="font-semibold">{selectedPlan?.name}</span>.
               </p>
 
