@@ -4,30 +4,32 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client'
 import { clerkClient } from '@/lib/clerk/clerk-client'
 import { validateAge } from '@/lib/age-validation'
 import { splitFullName } from '@/lib/clerk/utils'
+import { onboardingRatelimit } from '@/lib/ratelimit';
 
 export async function POST(req: Request) {
   try {
-    console.log('🎯 ONBOARDING COMPLETION STARTED')
-
     // Authenticate user and get current user details
-    console.log('🔐 Authenticating user...')
     const { userId } = await auth()
     if (!userId) {
-      console.log('🚨 AUTH FAILED: No user ID found')
       return NextResponse.json(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       )
     }
 
-    console.log('✅ User authenticated:', userId)
+    // Rate limit check
+    const { success } = await onboardingRatelimit.limit(userId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
+    }
 
     // Get current user to access email
-    console.log('📧 Fetching user email from Clerk...')
     const currentUserData = await currentUser()
 
     if (!currentUserData) {
-      console.log('🚨 ERROR: Could not fetch current user details')
       return NextResponse.json(
         { error: 'Could not fetch user details', code: 'USER_FETCH_ERROR' },
         { status: 500 }
@@ -39,15 +41,11 @@ export async function POST(req: Request) {
       currentUserData.primaryEmailAddress?.emailAddress
 
     if (!userEmail) {
-      console.log('🚨 ERROR: No email found in Clerk user data')
-      console.log('🔍 Available email data:', currentUserData.emailAddresses)
       return NextResponse.json(
         { error: 'No email address found for user', code: 'NO_EMAIL' },
         { status: 400 }
       )
     }
-
-    console.log('✅ User email retrieved:', userEmail)
 
     // Parse request body
     const body = await req.json()
@@ -92,28 +90,18 @@ export async function POST(req: Request) {
     const supabase = getSupabaseAdminClient()
 
     try {
-      console.log('💾 Starting database operation for user:', userId)
-
       // First, check if profile exists
-      console.log('🔍 Checking if profile exists...')
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id, clerk_user_id, email')
         .eq('clerk_user_id', userId)
         .single()
 
-      console.log('👤 Profile check result:', {
-        profile_exists: !!existingProfile,
-        profile_id: existingProfile?.id,
-        email: existingProfile?.email
-      })
-
       let updateError
       let updatedProfile
 
       if (existingProfile) {
         // Update existing profile
-        console.log('📝 Updating existing profile...')
         const result = await supabase
           .from('profiles')
           .update({
@@ -128,23 +116,8 @@ export async function POST(req: Request) {
 
         updateError = result.error
         updatedProfile = result.data
-
-        console.log('🔄 Profile update result:', {
-          success: !updateError,
-          updated_rows: updatedProfile?.length || 0
-        })
       } else {
         // Create new profile with real email
-        console.log('➕ Creating new profile with email:', userEmail)
-        console.log('📊 Profile data to create:', {
-          clerk_user_id: userId,
-          email: userEmail,
-          full_name: fullName.trim(),
-          nickname: sanitizedNickname,
-          date_of_birth: dateOfBirth,
-          avatar_url: currentUserData.imageUrl || null,
-        })
-
         const result = await supabase
           .from('profiles')
           .insert({
@@ -159,40 +132,20 @@ export async function POST(req: Request) {
 
         updateError = result.error
         updatedProfile = result.data
-
-        console.log('✨ Profile creation result:', {
-          success: !updateError,
-          created_profile: updatedProfile
-        })
       }
 
       if (updateError) {
-        console.error('🚨 DATABASE ERROR:', updateError)
-        console.error('🚨 ERROR DETAILS:', {
-          code: updateError.code,
-          message: updateError.message,
-          details: updateError.details,
-          hint: updateError.hint
-        })
         throw updateError
       }
 
-      console.log('✅ Profile database operation completed successfully')
-      console.log('Profile updated successfully for user:', userId)
-
       // Update Clerk metadata to mark profile as complete
-      console.log('🔧 Updating Clerk metadata...')
       await clerkClient.users.updateUser(userId, {
         publicMetadata: {
           profileComplete: true
         }
       })
 
-      console.log('✅ Clerk metadata updated successfully for user:', userId)
-      console.log('User metadata updated successfully for user:', userId)
-
       // Sync full name to Clerk's firstName and lastName fields
-      console.log('🔧 Syncing full name to Clerk...')
       const fullNameTrimmed = fullName.trim()
       const splitName = splitFullName(fullNameTrimmed)
       if (splitName) {
@@ -200,9 +153,6 @@ export async function POST(req: Request) {
           firstName: splitName.firstName,
           lastName: splitName.lastName
         })
-        console.log('✅ Full name synced to Clerk:', splitName)
-      } else {
-        console.warn('⚠️ Full name validation passed but splitting failed, skipping Clerk name sync')
       }
 
       return NextResponse.json({
@@ -219,7 +169,6 @@ export async function POST(req: Request) {
       })
 
     } catch (dbError) {
-      console.error('Database operation failed:', dbError)
       return NextResponse.json(
         {
           error: 'Failed to update profile',
@@ -230,8 +179,6 @@ export async function POST(req: Request) {
     }
 
   } catch (error) {
-    console.error('Onboarding completion error:', error)
-
     // Return user-friendly error messages
     if (error instanceof Error) {
       return NextResponse.json(
@@ -278,7 +225,6 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Profile status check error:', error)
     return NextResponse.json(
       {
         error: 'Failed to check profile status',

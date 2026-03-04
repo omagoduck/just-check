@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
+import { userSettingsPostRatelimit, userSettingsGetRatelimit } from '@/lib/ratelimit';
 
 export async function GET() {
   try {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await userSettingsGetRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const supabase = getSupabaseAdminClient();
@@ -50,6 +60,15 @@ export async function POST(req: Request) {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await userSettingsPostRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const body = await req.json();

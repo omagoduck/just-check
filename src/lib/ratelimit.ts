@@ -29,7 +29,47 @@ export const subscriptionRatelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(30, "1m"),
 });
 
+export const subscriptionPreviewRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(60, "1m"),
+});
+
 export const checkoutRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "1m"),
+});
+
+export const onboardingRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1m"),
+});
+
+export const userSettingsPostRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(60, "1m"),
+});
+
+export const userSettingsGetRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, "1m"),
+});
+
+export const userProfileGetRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, "1m"),
+});
+
+export const userProfilePatchRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(60, "1m"),
+});
+
+export const messageFeedbackGetRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(200, "1m"),
+});
+
+export const messageFeedbackChangeRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, "1m"),
 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { getDodoProductId } from '@/lib/subscription-utils';
+import { subscriptionPreviewRatelimit } from '@/lib/ratelimit';
 
 // DODO Payments API configuration
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest) {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await subscriptionPreviewRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const supabase = getSupabaseAdminClient();

@@ -5,6 +5,7 @@ import { clerkClient } from '@/lib/clerk/clerk-client';
 import { UpdateProfileRequest } from '@/types/profile';
 import { splitFullName } from '@/lib/clerk/utils';
 import { validateAge } from '@/lib/age-validation';
+import { userProfileGetRatelimit, userProfilePatchRatelimit } from '@/lib/ratelimit';
 
 /**
  * Profile API Route
@@ -23,6 +24,15 @@ export async function GET() {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await userProfileGetRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const supabase = getSupabaseAdminClient();
@@ -63,6 +73,15 @@ export async function PATCH(req: Request) {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await userProfilePatchRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     // Parse and validate request body

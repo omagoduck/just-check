@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { messageFeedbackChangeRatelimit, messageFeedbackGetRatelimit } from '@/lib/ratelimit';
 
 /**
  * GET /api/message-feedback/[messageId]
@@ -15,6 +16,15 @@ export async function GET(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await messageFeedbackGetRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const { messageId } = await params;
@@ -70,6 +80,15 @@ export async function POST(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await messageFeedbackChangeRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const { messageId } = await params;
@@ -182,6 +201,15 @@ export async function DELETE(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const { success } = await messageFeedbackChangeRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Too many requests.' },
+        { status: 429 }
+      );
     }
 
     const { messageId } = await params;
