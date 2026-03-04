@@ -43,7 +43,7 @@ export async function GET() {
       status: subscription.status,
       currentPeriodStart: subscription.current_period_start,
       currentPeriodEnd: subscription.current_period_end,
-      cancelAtPeriodEnd: subscription.cancel_at_next_billing_date || false,
+      cancelAtPeriodEnd: subscription.metadata?.cancel_at_next_billing_date || false,
       trialStart: subscription.trial_start,
       trialEnd: subscription.trial_end,
       amount: subscription.amount || 0,

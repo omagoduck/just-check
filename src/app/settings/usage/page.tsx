@@ -4,13 +4,44 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useUsage } from "@/hooks/use-usage";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function UsagePage() {
   const { data: usageData, isLoading: usageLoading, error: usageError } = useUsage();
   const { data: subscriptionData, isLoading: subscriptionLoading, error: subscriptionError } = useSubscription();
+  const queryClient = useQueryClient();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel subscription');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch subscription data
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      setShowCancelDialog(false);
+    },
+  });
 
   // Format date range with time
   const formatDate = (dateStr: string | null | undefined) => {
@@ -199,6 +230,56 @@ export default function UsagePage() {
             <div className="text-sm text-muted-foreground mt-1">
               {formatDate(subscriptionData?.currentPeriodStart)} - {formatDate(subscriptionData?.currentPeriodEnd)}
             </div>
+            {/* Cancel subscription button - subtle styling */}
+            {subscriptionData && !subscriptionData.cancelAtPeriodEnd && (
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={cancelSubscriptionMutation.isPending}
+                  className="text-muted-foreground hover:text-destructive hover:border-destructive"
+                >
+                  Cancel Subscription
+                </Button>
+              </div>
+            )}
+            {/* Show cancelled status if already set to cancel */}
+            {subscriptionData?.cancelAtPeriodEnd && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Subscription will be cancelled at the end of the current billing period.
+                </p>
+              </div>
+            )}
+
+            {/* Confirmation Dialog */}
+            <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancel Subscription</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to cancel your subscription? You will retain access until the end of the current billing period ({formatDate(subscriptionData?.currentPeriodEnd)}).
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCancelDialog(false)}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    Keep Subscription
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => cancelSubscriptionMutation.mutate()}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Yes, Cancel'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
