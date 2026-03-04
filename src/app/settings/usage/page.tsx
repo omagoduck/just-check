@@ -17,12 +17,14 @@ import { useUsage } from "@/hooks/use-usage";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function UsagePage() {
   const { data: usageData, isLoading: usageLoading, error: usageError } = useUsage();
   const { data: subscriptionData, isLoading: subscriptionLoading, error: subscriptionError } = useSubscription();
   const queryClient = useQueryClient();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showUpdatePaymentDialog, setShowUpdatePaymentDialog] = useState(false);
 
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
@@ -40,6 +42,20 @@ export default function UsagePage() {
       // Invalidate and refetch subscription data
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       setShowCancelDialog(false);
+    },
+  });
+
+  // Update payment method mutation (for on_hold subscriptions)
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/subscription/update-payment-method', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update payment method');
+      }
+      return response.json();
     },
   });
 
@@ -252,6 +268,21 @@ export default function UsagePage() {
                 </p>
               </div>
             )}
+            {/* Update payment method section for on_hold subscriptions */}
+            {subscriptionData?.status === 'on_hold' && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-amber-500 mb-3 font-medium">
+                  Your subscription is on hold due to a payment issue. Update your payment method to regain access immediately.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => setShowUpdatePaymentDialog(true)}
+                  disabled={updatePaymentMethodMutation.isPending}
+                >
+                  {updatePaymentMethodMutation.isPending ? 'Processing...' : 'Update Payment Method'}
+                </Button>
+              </div>
+            )}
 
             {/* Confirmation Dialog */}
             <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
@@ -280,15 +311,53 @@ export default function UsagePage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Update Payment Method Confirmation Dialog */}
+            <Dialog open={showUpdatePaymentDialog} onOpenChange={setShowUpdatePaymentDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Payment Method</DialogTitle>
+                  <DialogDescription>
+                    You will be redirected to a secure page to update your payment method. This will also reactivate your subscription.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowUpdatePaymentDialog(false)}
+                    disabled={updatePaymentMethodMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const result = await updatePaymentMethodMutation.mutateAsync();
+                        if (result.payment_link) {
+                          window.location.href = result.payment_link;
+                        }
+                      } catch (error) {
+                        console.error('Failed to update payment method:', error);
+                        toast.error('Failed to initiate payment method update. Please try again.');
+                        setShowUpdatePaymentDialog(false);
+                      }
+                    }}
+                    disabled={updatePaymentMethodMutation.isPending}
+                  >
+                    {updatePaymentMethodMutation.isPending ? 'Processing...' : 'Continue'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
         {/* Upgrade Card */}
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Upgrade Plan</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col flex-1 space-y-4">
             <ul className="space-y-2 text-sm">
               <li className="flex items-start">
                 <span className="mr-2 text-primary">•</span>
@@ -304,7 +373,7 @@ export default function UsagePage() {
               </li>
             </ul>
 
-            <Link href="/upgrade" passHref className="block">
+            <Link href="/upgrade" passHref className="block mt-auto">
               <Button className="w-full">
                 Upgrade to Higher Plan
               </Button>
