@@ -261,8 +261,8 @@ export default function UsagePage() {
             {/* Show cancelled status if already set to cancel */}
             {subscriptionData?.cancelAtPeriodEnd && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  Subscription will be cancelled at the end of the current billing period.
+                <p className="text-sm text-destructive">
+                  Your subscription has been cancelled and will end on {formatDate(subscriptionData?.currentPeriodEnd)}. It will not renew automatically.
                 </p>
               </div>
             )}
