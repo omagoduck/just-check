@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-client";
 import { clerkClient } from "@/lib/clerk/clerk-client";
 import { getDodoProductId } from "@/lib/subscription-utils";
+import { checkoutRatelimit } from "@/lib/ratelimit";
 
 const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
 const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
@@ -126,6 +127,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Apply rate limiting
+    const { success } = await checkoutRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+    }
+
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
 
@@ -202,6 +209,12 @@ export async function POST(request: NextRequest) {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Apply rate limiting
+    const { success } = await checkoutRatelimit.limit(clerkUserId);
+    if (!success) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
     }
 
     const body = await request.json();
