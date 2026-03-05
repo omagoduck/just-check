@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. FETCH CURRENT SUBSCRIPTION
-    const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions')
-      .select('dodo_subscription_id, dodo_customer_id, plan_id, amount, currency')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
+    const { data: subscriptions, error: subError } = await supabase
+      .rpc('get_user_subscription', { p_clerk_user_id: clerkUserId });
+
+    // The RPC returns an array, not a single object. So subscription is [] (empty array) or [{...}]
+    const subscription = Array.isArray(subscriptions) ? subscriptions[0] : subscriptions;
 
     if (subError || !subscription) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
