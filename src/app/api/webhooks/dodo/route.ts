@@ -34,33 +34,7 @@ import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
 import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/subscription-utils";
 
-// =============================================================================
-// TIMESTAMP DEDUPLICATION
-// ==============================================================================
 
-/**
- * Checks if a Dodo event's timestamp matches the stored subscription's provider_updated_at.
- * Dodo fires duplicate events with the same timestamp for the same action.
- *
- * @param supabase - Supabase client
- * @param subscriptionId - Dodo subscription ID
- * @param dodoTimestamp - ISO 8601 timestamp from Dodo event
- * @returns True if the timestamp matches the stored value (duplicate event)
- */
-async function hasMatchingDodoWebhookTimestamp(
-  supabase: SupabaseClient,
-  subscriptionId: string,
-  dodoTimestamp: string
-): Promise<boolean> {
-  const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('metadata')
-    .eq('dodo_subscription_id', subscriptionId)
-    .single();
-
-  const currentProviderTimestamp = subscription?.metadata?.provider_updated_at || null;
-  return currentProviderTimestamp === dodoTimestamp;
-}
 
 // =============================================================================
 // CONFIGURATION
@@ -102,14 +76,24 @@ function getPlanIdFromProductId(productId: string): string | null {
   return reverseMap[productId] || null;
 }
 
-// Shared helper to upsert subscription and allowance
-async function upsertSubscriptionAndAllowance(
+// Helper to add days to a date (handles month/year rollovers automatically)
+function addDays(date: string, days: number): string {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result.toISOString();
+}
+
+/**
+ * Updates subscription only (no allowance changes)
+ * Uses status from the payload data
+ */
+async function updateSubscription(
   supabase: SupabaseClient,
   clerkUserId: string,
   productId: string,
   subscriptionId: string,
-  dodoEventTimestamp: string,
   data: {
+    status: string; // From payload - could be 'active', 'on_hold', 'cancelled', etc.
     created_at: string;
     next_billing_date: string;
     payment_frequency_interval?: string;
@@ -118,6 +102,7 @@ async function upsertSubscriptionAndAllowance(
     currency: string;
     cancel_at_next_billing_date?: boolean;
     customer?: { customer_id?: string };
+    canceled_at?: string;
   }
 ) {
   const planId = getPlanIdFromProductId(productId);
@@ -125,17 +110,10 @@ async function upsertSubscriptionAndAllowance(
     throw new Error(`Unknown product_id: ${productId}. Not mapped to a plan.`);
   }
 
-  // Helper function to add days to a date (handles month/year rollovers automatically)
-  function addDays(date: string, days: number): string {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result.toISOString();
-  }
-
-  const subscriptionData = {
+  const subscriptionData: any = {
     clerk_user_id: clerkUserId,
     dodo_subscription_id: subscriptionId,
-    status: 'active',
+    status: data.status, // Use status from payload
     plan_id: planId,
     billing_period: data.payment_frequency_interval?.toLowerCase(),
     current_period_start: data.created_at,
@@ -148,10 +126,10 @@ async function upsertSubscriptionAndAllowance(
     amount: data.recurring_pre_tax_amount,
     currency: data.currency,
     dodo_customer_id: data.customer?.customer_id,
+    canceled_at: data.canceled_at || null,
     metadata: {
       product_id: productId,
       cancel_at_next_billing_date: data.cancel_at_next_billing_date,
-      provider_updated_at: dodoEventTimestamp,
     },
   };
 
@@ -163,12 +141,44 @@ async function upsertSubscriptionAndAllowance(
     throw new Error(`Failed to upsert subscription: ${subError.message}`);
   }
 
-  // Update/create periodic allowance
+  return { planId };
+}
+
+/**
+ * Updates subscription and resets allowance to plan's full amount
+ * Used for: subscription.active, subscription.renewed, subscription.plan_changed
+ */
+async function upsertSubscriptionAndResetAllowance(
+  supabase: SupabaseClient,
+  clerkUserId: string,
+  productId: string,
+  subscriptionId: string,
+  data: {
+    status: string; // From payload
+    created_at: string;
+    next_billing_date: string;
+    payment_frequency_interval?: string;
+    trial_period_days?: number;
+    recurring_pre_tax_amount: number;
+    currency: string;
+    cancel_at_next_billing_date?: boolean;
+    customer?: { customer_id?: string };
+    canceled_at?: string;
+  }
+) {
+  const { planId } = await updateSubscription(
+    supabase,
+    clerkUserId,
+    productId,
+    subscriptionId,
+    data
+  );
+
   const allowance = PLAN_ALLOWANCES[planId];
   const allowanceData = {
     clerk_user_id: clerkUserId,
     alloted_allowance: allowance,
-    remaining_allowance: allowance, // Full reset on plan change
+    remaining_allowance: allowance, // Full reset
     period_start: data.created_at,
     period_end: data.created_at, // Same as start; window not active until first message
     last_reset_at: new Date().toISOString(),
@@ -183,6 +193,31 @@ async function upsertSubscriptionAndAllowance(
   }
 
   return { planId, allowance };
+}
+
+/**
+ * Resets allowance to the free plan's allowance
+ * Used for: subscription.on_hold, subscription.cancelled
+ * This ensures users on free tier get the correct allowance even if the value changes
+ */
+async function resetAllowanceToFreePlan(supabase: SupabaseClient, clerkUserId: string) {
+  const freePlanAllowance = PLAN_ALLOWANCES['free_monthly'];
+  const now = new Date().toISOString();
+
+  const { error: allowanceError } = await supabase
+    .from('periodic_allowance')
+    .upsert({
+      clerk_user_id: clerkUserId,
+      alloted_allowance: freePlanAllowance,
+      remaining_allowance: freePlanAllowance,
+      period_start: now,
+      period_end: now,
+      last_reset_at: now,
+    }, { onConflict: 'clerk_user_id' });
+
+  if (allowanceError) {
+    throw new Error(`Failed to reset allowance to free plan: ${allowanceError.message}`);
+  }
 }
 
 // =============================================================================
@@ -344,39 +379,28 @@ export async function POST(request: NextRequest) {
 
     switch (eventType) {
 
-      case "subscription.active": {
+      case "subscription.active":
+      case "subscription.plan_changed": {
+        // These events update subscription metadata but do NOT reset allowance.
+        // Allowance resets only on renewal (new billing cycle) to avoid
+        // unintended resets during plan changes or activation events.
         const data = payload.data;
-        const dodoEventTimestamp = payload.timestamp;
 
-        // Extract clerk_user_id from customer metadata
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
         const subscriptionId = data.subscription_id;
 
-        // Validate required fields
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
         }
 
-        // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
-          supabase,
-          subscriptionId,
-          dodoEventTimestamp
-        );
-
-        if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
-          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
-        }
-
-        const { planId, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId } = await updateSubscription(
           supabase,
           clerkUserId,
           productId,
           subscriptionId,
-          dodoEventTimestamp,
           {
+            status: data.status, // Use status from payload
             created_at: data.created_at,
             next_billing_date: data.next_billing_date,
             payment_frequency_interval: data.payment_frequency_interval,
@@ -385,24 +409,27 @@ export async function POST(request: NextRequest) {
             currency: data.currency,
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
+            canceled_at: data.cancelled_at,
           }
         );
 
         processingDetails = {
-          action: 'subscription_activated',
+          action: eventType === 'subscription.active' ? 'subscription_activated' :
+                  'subscription_plan_changed',
           clerk_user_id: clerkUserId,
           plan_id: planId,
           subscription_id: subscriptionId,
-          allowance: allowance,
         };
         break;
       }
 
       case "subscription.renewed": {
+        // Renewal represents a new billing cycle - this is the appropriate time
+        // to reset the user's allowance to the full plan amount.
+        // Dodo sends it in case of new subscription, subscription renewal, plan change.
+        // kinda general event for critical allowance level change.
         const data = payload.data;
-        const dodoEventTimestamp = payload.timestamp;
 
-        // Extract clerk_user_id from customer metadata
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
         const subscriptionId = data.subscription_id;
@@ -411,25 +438,13 @@ export async function POST(request: NextRequest) {
           throw new Error('Missing clerk_user_id in customer metadata');
         }
 
-        // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
-          supabase,
-          subscriptionId,
-          dodoEventTimestamp
-        );
-
-        if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
-          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
-        }
-
-        const { planId, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId, allowance } = await upsertSubscriptionAndResetAllowance(
           supabase,
           clerkUserId,
           productId,
           subscriptionId,
-          dodoEventTimestamp,
           {
+            status: data.status, // Use status from payload
             created_at: data.created_at,
             next_billing_date: data.next_billing_date,
             payment_frequency_interval: data.payment_frequency_interval,
@@ -438,53 +453,38 @@ export async function POST(request: NextRequest) {
             currency: data.currency,
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
+            canceled_at: data.cancelled_at,
           }
         );
 
         processingDetails = {
           action: 'subscription_renewed',
           clerk_user_id: clerkUserId,
-          subscription_id: subscriptionId,
-          previous_billing_date: data.previous_billing_date,
           plan_id: planId,
+          subscription_id: subscriptionId,
           allowance: allowance,
         };
         break;
       }
 
-      case "subscription.plan_changed": {
+      case "subscription.on_hold": {
         const data = payload.data;
-        const dodoEventTimestamp = payload.timestamp;
 
-        // Extract clerk_user_id from customer metadata
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
         const subscriptionId = data.subscription_id;
 
-        // Validate required fields
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
         }
 
-        // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
-          supabase,
-          subscriptionId,
-          dodoEventTimestamp
-        );
-
-        if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
-          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
-        }
-
-        const { planId, allowance } = await upsertSubscriptionAndAllowance(
+        const { planId } = await updateSubscription(
           supabase,
           clerkUserId,
           productId,
           subscriptionId,
-          dodoEventTimestamp,
           {
+            status: data.status, // Use status from payload
             created_at: data.created_at,
             next_billing_date: data.next_billing_date,
             payment_frequency_interval: data.payment_frequency_interval,
@@ -493,91 +493,102 @@ export async function POST(request: NextRequest) {
             currency: data.currency,
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
+            canceled_at: data.cancelled_at,
+          }
+        );
+
+        // Reset allowance to free plan
+        await resetAllowanceToFreePlan(supabase, clerkUserId);
+
+        processingDetails = {
+          action: 'subscription_on_hold',
+          clerk_user_id: clerkUserId,
+          plan_id: planId,
+          subscription_id: subscriptionId,
+        };
+        break;
+      }
+
+      case "subscription.updated": {
+        const data = payload.data;
+
+        const clerkUserId = data.customer?.metadata?.clerk_user_id;
+        const productId = data.product_id;
+        const subscriptionId = data.subscription_id;
+
+        if (!clerkUserId) {
+          throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const { planId } = await updateSubscription(
+          supabase,
+          clerkUserId,
+          productId,
+          subscriptionId,
+          {
+            status: data.status, // Use status from payload
+            created_at: data.created_at,
+            next_billing_date: data.next_billing_date,
+            payment_frequency_interval: data.payment_frequency_interval,
+            trial_period_days: data.trial_period_days,
+            recurring_pre_tax_amount: data.recurring_pre_tax_amount,
+            currency: data.currency,
+            cancel_at_next_billing_date: data.cancel_at_next_billing_date,
+            customer: data.customer,
+            canceled_at: data.cancelled_at,
           }
         );
 
         processingDetails = {
-          action: 'subscription_plan_changed',
+          action: 'subscription_updated',
           clerk_user_id: clerkUserId,
           plan_id: planId,
           subscription_id: subscriptionId,
-          allowance: allowance,
         };
         break;
       }
 
       case "subscription.cancelled": {
         const data = payload.data;
-        const dodoEventTimestamp = payload.timestamp;
 
-        // Extract required fields
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
+        const productId = data.product_id;
         const subscriptionId = data.subscription_id;
-        const cancelledAt = data.cancelled_at;
+        const canceledAt = data.cancelled_at;
 
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
         }
 
-        // DUPLICATE CHECK: Compare with stored provider_updated_at
-        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+        const { planId } = await updateSubscription(
           supabase,
+          clerkUserId,
+          productId,
           subscriptionId,
-          dodoEventTimestamp
+          {
+            status: data.status, // Use status from payload
+            created_at: data.created_at,
+            next_billing_date: data.next_billing_date,
+            payment_frequency_interval: data.payment_frequency_interval,
+            trial_period_days: data.trial_period_days,
+            recurring_pre_tax_amount: data.recurring_pre_tax_amount,
+            currency: data.currency,
+            cancel_at_next_billing_date: data.cancel_at_next_billing_date,
+            customer: data.customer,
+            canceled_at: data.cancelled_at,
+          }
         );
 
-        if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
-          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
-        }
-
-        // Update subscription status to cancelled
-        const { error: subError } = await supabase
-          .from('user_subscriptions')
-          .update({
-            status: 'cancelled',
-            canceled_at: cancelledAt,
-          })
-          .eq('dodo_subscription_id', subscriptionId);
-
-        if (subError) {
-          throw new Error(`Failed to cancel subscription: ${subError.message}`);
-        }
-
-        // Immediately revoke access - set allowance to 0
-        const { error: allowanceError } = await supabase
-          .from('periodic_allowance')
-          .update({
-            alloted_allowance: 0,
-            remaining_allowance: 0,
-          })
-          .eq('clerk_user_id', clerkUserId);
-
-        if (allowanceError) {
-          throw new Error(`Failed to reset allowance: ${allowanceError.message}`);
-        }
+        // Reset allowance to free plan
+        await resetAllowanceToFreePlan(supabase, clerkUserId);
 
         processingDetails = {
           action: 'subscription_cancelled',
           clerk_user_id: clerkUserId,
+          plan_id: planId,
           subscription_id: subscriptionId,
-          cancelled_at: cancelledAt,
+          canceled_at: canceledAt,
         };
-        break;
-      }
-
-      // Which events are NOT implemented to handle yet...
-      // TODO: These should be added later with same deduplication (timestamp based) pattern, as used above, when needed.
-
-      case "subscription.on_hold": {
-        // Fired when a subscription is temporarily put on hold due to failed renewal.
-        // Handle on_hold here.
-        break;
-      }
-
-      case "subscription.updated": {
-        // Fired when any field of a subscription is updated. It's kinda universal event to subscription.
-        // Handle updated here.
         break;
       }
 
