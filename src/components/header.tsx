@@ -8,11 +8,11 @@ import Link from "next/link";
 
 // Props for the Header component
 interface HeaderProps {
-  onMobileMenuToggle: () => void;
-  isMobileMenuOpen: boolean;
+  onMobileSidebarToggle: () => void;
+  isMobileSidebarOpen: boolean;
 }
 
-export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderProps) {
+export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: HeaderProps) {
   return (
     <header className="shrink-0 bg-background h-header-height text-foreground px-1 sm:px-2 flex items-center">
       {/* 
@@ -25,11 +25,11 @@ export default function Header({ onMobileMenuToggle, isMobileMenuOpen }: HeaderP
         <div className="flex items-center gap-2">
           {/* Mobile Menu Toggle Button: Visible only on screens smaller than 'md' */}
           <button
-            onClick={onMobileMenuToggle}
+            onClick={onMobileSidebarToggle}
             className="md:hidden p-1 text-foreground hover:text-foreground/80"
-            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={isMobileSidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
-            {isMobileMenuOpen ? <X size={24} /> : <MenuIcon size={24} />}
+            {isMobileSidebarOpen ? <X size={24} /> : <MenuIcon size={24} />}
           </button>
 
           {/* Brand Logo and Name */}

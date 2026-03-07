@@ -45,11 +45,11 @@ import { Input } from '@/components/ui/input';
 import type { StoredConversation } from '@/lib/chat-history';
 
 interface ChatSidebarProps {
-  isMobileMenuOpen: boolean;
-  onMobileMenuToggle: () => void;
+  isMobileSidebarOpen: boolean;
+  onMobileSidebarToggle: () => void;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMenuToggle }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobileSidebarToggle }) => {
   const router = useRouter();
   const pathname = usePathname();
   const isTouchDevice = useIsTouchDevice();
@@ -134,17 +134,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Close mobile menu when clicking outside
+  // Close mobile sidebar when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
-        if (isMobileMenuOpen) {
-          onMobileMenuToggle();
+        if (isMobileSidebarOpen) {
+          onMobileSidebarToggle();
         }
       }
     };
 
-    if (isMobileMenuOpen) {
+    if (isMobileSidebarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -153,7 +153,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobileMenuOpen, onMobileMenuToggle]);
+  }, [isMobileSidebarOpen, onMobileSidebarToggle]);
 
   const isMobile = useIsMobile();
 
@@ -228,7 +228,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
         "flex flex-col h-dvh bg-sidebar border-r border-border shadow-lg z-30",
         // Mobile styles
         "fixed inset-y-0",
-        isMobileMenuOpen ? "left-0" : "left-[-272px] md:left-0",
+        isMobileSidebarOpen ? "left-0" : "left-[-272px] md:left-0",
         // Desktop styles
         "md:relative"
       )}
@@ -288,7 +288,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
             paddingRight: isCollapsed ? '0' : '12px',
             justifyContent: isCollapsed ? 'center' : 'flex-start'
           }}
-          onClick={() => router.push('/')}
+          onClick={() => {
+            router.push('/');
+            if (isMobile) onMobileSidebarToggle();
+          }}
         >
           <SquarePen size={20} className="shrink-0" />
           <span
@@ -355,9 +358,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         router.push(`/chats/${conversation.id}`);
+                        if (isMobile) onMobileSidebarToggle();
                       }
                     }}
-                    onClick={() => router.push(`/chats/${conversation.id}`)}
+                    onClick={() => {
+                      router.push(`/chats/${conversation.id}`);
+                      if (isMobile) onMobileSidebarToggle();
+                    }}
                   >
                     <span className="truncate text-sidebar-foreground transition-colors duration-200">
                       {conversation.title || 'Untitled Conversation'}
@@ -477,7 +484,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileMenuOpen, onMobileMen
             paddingRight: isCollapsed ? '0' : '12px',
             justifyContent: isCollapsed ? 'center' : 'flex-start'
           }}
-          onClick={() => router.push(subscriptionButtonHref)}
+          onClick={() => {
+            router.push(subscriptionButtonHref);
+            if (isMobile) onMobileSidebarToggle();
+          }}
           disabled={subscriptionLoading}
         >
           {subscriptionLoading ? (

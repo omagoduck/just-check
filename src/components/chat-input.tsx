@@ -102,7 +102,7 @@ export function ChatInput({
     }
   }, [inputValue]);
 
-  // #region This codeblock is soully for auto focus on load. If you want to remove auto focus, just delete this block.
+  // #region This codeblock is responsible for auto focus on load. If you want to remove auto focus, just delete this block.
   // Auto-focus on the textarea when the component mounts
   useEffect(() => {
     if (textareaRef.current) {
