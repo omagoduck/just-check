@@ -34,7 +34,45 @@ import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
 import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/subscription-utils";
 
+// =============================================================================
+// TIMESTAMP DEDUPLICATION (OPTIONAL)
+// ==============================================================================
 
+/**
+ * Checks if a Dodo event's timestamp matches the stored subscription's provider_updated_at.
+ * Dodo fires duplicate events with the same timestamp for the same action.
+ * This check is only performed when a timestamp is provided in the event.
+ * But as of our knowledge dodo provides it in all the subscription.___ events.
+ *
+ * @param supabase - Supabase client
+ * @param subscriptionId - Dodo subscription ID
+ * @param dodoTimestamp - ISO 8601 timestamp from Dodo event
+ * @returns True if the timestamp matches the stored value (duplicate event)
+ */
+async function hasMatchingDodoWebhookTimestamp(
+  supabase: SupabaseClient,
+  subscriptionId: string,
+  dodoTimestamp: string
+): Promise<boolean> {
+  try {
+    const { data: subscription, error } = await supabase
+      .from('user_subscriptions')
+      .select('metadata')
+      .eq('dodo_subscription_id', subscriptionId)
+      .single();
+
+    if (error || !subscription) {
+      console.warn(`Subscription not found for ${subscriptionId}:`, error);
+      return false; // Can't deduplicate, let it process
+    }
+
+    const currentProviderTimestamp = subscription?.metadata?.provider_updated_at ?? null;
+    return currentProviderTimestamp === dodoTimestamp;
+  } catch (error) {
+    console.error(`Error checking timestamp for ${subscriptionId}:`, error);
+    return false; // Fail safe - process the webhook
+  }
+}
 
 // =============================================================================
 // CONFIGURATION
@@ -51,14 +89,14 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 
 // This object defines how many AI messages each subscription plan allows per 6-hour sliding window.
 // The key is the plan ID (e.g., "free_monthly", "plus_monthly") and the value is the message allowance.
-// The allowance is a number, neither token nor money. Just number.
+// The allowance is cost of cents allocation per 6 hour sliding window.
 // Values are proportional to the former monthly allowances (divided by 120).
 //
 // Example:
-// - "free_monthly" plan: 0 messages
-// - "plus_monthly" plan: 3 messages per 6 hours
-// - "pro_monthly" plan: 13 messages per 6 hours
-// - "max_monthly" plan: 67 messages per 6 hours
+// - "free_monthly" plan: 0 cents of equivalent cost
+// - "plus_monthly" plan: 3 cents of equivalent cost per 6 hours
+// - "pro_monthly" plan: 13 cents of equivalent cost per 6 hours
+// - "max_monthly" plan: 67 cents of equivalent cost per 6 hours
 const PLAN_ALLOWANCES: Record<string, number> = {
   free_monthly: 0,
   plus_monthly: 3,
@@ -103,12 +141,22 @@ async function updateSubscription(
     cancel_at_next_billing_date?: boolean;
     customer?: { customer_id?: string };
     canceled_at?: string;
-  }
+  },
+  dodoEventTimestamp?: string // Optional: only used for deduplication when provided
 ) {
   const planId = getPlanIdFromProductId(productId);
   if (!planId) {
     throw new Error(`Unknown product_id: ${productId}. Not mapped to a plan.`);
   }
+
+  // Fetch existing subscription to merge metadata (avoid overwriting)
+  const { data: existingSubscription } = await supabase
+    .from('user_subscriptions')
+    .select('metadata')
+    .eq('dodo_subscription_id', subscriptionId)
+    .single();
+
+  const existingMetadata = existingSubscription?.metadata || {};
 
   const subscriptionData: any = {
     clerk_user_id: clerkUserId,
@@ -128,8 +176,10 @@ async function updateSubscription(
     dodo_customer_id: data.customer?.customer_id,
     canceled_at: data.canceled_at || null,
     metadata: {
+      ...existingMetadata, // Preserve existing metadata fields
       product_id: productId,
       cancel_at_next_billing_date: data.cancel_at_next_billing_date,
+      ...(dodoEventTimestamp && { provider_updated_at: dodoEventTimestamp }), // Only add if provided
     },
   };
 
@@ -146,7 +196,7 @@ async function updateSubscription(
 
 /**
  * Updates subscription and resets allowance to plan's full amount
- * Used for: subscription.active, subscription.renewed, subscription.plan_changed
+ * Used for: subscription.renewed (and optionally active/plan_changed if they provide timestamp)
  */
 async function upsertSubscriptionAndResetAllowance(
   supabase: SupabaseClient,
@@ -164,14 +214,16 @@ async function upsertSubscriptionAndResetAllowance(
     cancel_at_next_billing_date?: boolean;
     customer?: { customer_id?: string };
     canceled_at?: string;
-  }
+  },
+  dodoEventTimestamp?: string // Optional: only used for deduplication when provided
 ) {
   const { planId } = await updateSubscription(
     supabase,
     clerkUserId,
     productId,
     subscriptionId,
-    data
+    data,
+    dodoEventTimestamp
   );
 
   const allowance = PLAN_ALLOWANCES[planId];
@@ -313,39 +365,21 @@ export async function POST(request: NextRequest) {
   // STEP 3: IDEMPOTENCY CHECK - Prevent duplicate processing
   // ===========================================================================
   // Webhooks might be sent multiple times due to network issues or retries.
-  // We check if we've already processed this specific webhook delivery before.
+  // We use a unique constraint on (provider, provider_event_id) in the database
+  // to ensure atomic idempotency.
   //
-  // IMPORTANT: Dodo does NOT include event ID in the payload body.
-  // The unique identifier for idempotency is the webhook-id HEADER.
+  // APPROACH:
+  // 1. Try to insert the webhook log entry first (atomic with unique constraint)
+  // 2. If insert fails due to unique constraint, another request is handling this webhook
+  // 3. Check the existing record's processed status
+  // 4. If already processed, return success (idempotent behavior)
+  // 5. If not processed, return 200 to acknowledge receipt (the other request will handle it)
   //
-  // The webhook_event_log table tracks:
-  // - provider: Which provider (Dodo in this case)
-  // - provider_event_id: The unique webhook-id from the HEADER
-  // - processed: Whether we've already handled this event
+  // This eliminates the race condition between check-then-insert.
   // ===========================================================================
 
-  const { data: existingWebhook } = await supabase
-    .from("webhook_event_log")
-    .select("id, processed")
-    .eq("provider_event_id", webhookId)
-    .eq("provider", "dodo")
-    .single();
-
-  // If we've already processed this webhook, just acknowledge it without doing anything
-  // This is the "idempotent" behavior - processing the same event twice has no extra effect
-  if (existingWebhook?.processed) {
-    console.log(`Webhook ${webhookId} already processed, skipping`);
-    return NextResponse.json({ received: true, status: "already_processed" }, { status: 200 });
-  }
-
-  // ===========================================================================
-  // STEP 4: LOG THE INCOMING WEBHOOK
-  // ===========================================================================
-  // Before processing, we always log the webhook to the database.
-  // This creates an audit trail for debugging and support.
-  // Even if processing fails, we want to record that we received it.
-  // ===========================================================================
-
+  // Try to insert the webhook log entry first
+  // This will fail with a unique constraint violation if another request is handling this webhook
   const { data: logEntry, error: logError } = await supabase
     .from("webhook_event_log")
     .insert({
@@ -356,11 +390,34 @@ export async function POST(request: NextRequest) {
       processed: false,                           // Not processed yet
       received_at: new Date().toISOString(),      // When we received it
     })
-    .select()
+    .select("id")
     .single();
 
-  // If we can't even log the webhook, something is seriously wrong
   if (logError) {
+    // Check if this is a unique constraint violation (duplicate webhook)
+    if (logError.code === '23505' || logError.message?.includes('unique')) {
+      // Unique constraint violation - another request is handling this webhook
+      // Fetch the existing record to check its processed status
+      const { data: existingWebhook } = await supabase
+        .from("webhook_event_log")
+        .select("id, processed")
+        .eq("provider_event_id", webhookId)
+        .eq("provider", "dodo")
+        .single();
+
+      if (existingWebhook?.processed) {
+        // Already processed by a previous request - idempotent response
+        console.log(`Webhook ${webhookId} already processed (duplicate insert), skipping`);
+        return NextResponse.json({ received: true, status: "already_processed" }, { status: 200 });
+      }
+
+      // Not processed yet - another request is currently processing it
+      // Return 200 to acknowledge receipt (the other request will complete processing)
+      console.log(`Webhook ${webhookId} is being processed by another request`);
+      return NextResponse.json({ received: true, status: "in_progress" }, { status: 200 });
+    }
+
+    // Some other error occurred - this is a hard error, return 500
     console.error("Failed to log webhook:", logError);
     return NextResponse.json({ error: "Logging failed" }, { status: 500 });
   }
@@ -371,7 +428,7 @@ export async function POST(request: NextRequest) {
     let processingDetails: Record<string, unknown> = {};
 
     // ===========================================================================
-    // STEP 5: PROCESS THE SPECIFIC EVENT TYPE
+    // STEP 4: PROCESS THE SPECIFIC EVENT TYPE
     // ===========================================================================
     // Now we handle the actual business logic based on what type of event occurred.
     // Each case handles a different scenario in the subscription lifecycle.
@@ -385,6 +442,7 @@ export async function POST(request: NextRequest) {
         // Allowance resets only on renewal (new billing cycle) to avoid
         // unintended resets during plan changes or activation events.
         const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp; // May be undefined for .updated
 
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
@@ -392,6 +450,17 @@ export async function POST(request: NextRequest) {
 
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+          supabase,
+          subscriptionId,
+          dodoEventTimestamp
+        );
+
+        if (isDuplicateWebhookTimestamp) {
+          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
+          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
         const { planId } = await updateSubscription(
@@ -410,7 +479,8 @@ export async function POST(request: NextRequest) {
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
             canceled_at: data.cancelled_at,
-          }
+          },
+          dodoEventTimestamp
         );
 
         processingDetails = {
@@ -429,6 +499,7 @@ export async function POST(request: NextRequest) {
         // Dodo sends it in case of new subscription, subscription renewal, plan change.
         // kinda general event for critical allowance level change.
         const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp;
 
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
@@ -437,6 +508,10 @@ export async function POST(request: NextRequest) {
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
         }
+
+        // This doesn't have a timestamp check cause, it needs to update the allowance.
+        // Also as we write the code we are learning that the 'provider updated at' is kind of our logic for 'allowance updated at'.
+        // TODO: Take a look and consider.
 
         const { planId, allowance } = await upsertSubscriptionAndResetAllowance(
           supabase,
@@ -454,7 +529,8 @@ export async function POST(request: NextRequest) {
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
             canceled_at: data.cancelled_at,
-          }
+          },
+          dodoEventTimestamp
         );
 
         processingDetails = {
@@ -469,6 +545,7 @@ export async function POST(request: NextRequest) {
 
       case "subscription.on_hold": {
         const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp;
 
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
@@ -476,6 +553,17 @@ export async function POST(request: NextRequest) {
 
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+          supabase,
+          subscriptionId,
+          dodoEventTimestamp
+        );
+
+        if (isDuplicateWebhookTimestamp) {
+          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
+          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
         const { planId } = await updateSubscription(
@@ -494,7 +582,8 @@ export async function POST(request: NextRequest) {
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
             canceled_at: data.cancelled_at,
-          }
+          },
+          dodoEventTimestamp
         );
 
         // Reset allowance to free plan
@@ -511,6 +600,7 @@ export async function POST(request: NextRequest) {
 
       case "subscription.updated": {
         const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp;
 
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
@@ -518,6 +608,17 @@ export async function POST(request: NextRequest) {
 
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+          supabase,
+          subscriptionId,
+          dodoEventTimestamp
+        );
+
+        if (isDuplicateWebhookTimestamp) {
+          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
+          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
         const { planId } = await updateSubscription(
@@ -536,7 +637,8 @@ export async function POST(request: NextRequest) {
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
             canceled_at: data.cancelled_at,
-          }
+          },
+          // dodoEventTimestamp // we will not save dodoEventTimestamp in case of updated. Cause it is very universal and doesn't give any purpose to ignore further
         );
 
         processingDetails = {
@@ -550,6 +652,7 @@ export async function POST(request: NextRequest) {
 
       case "subscription.cancelled": {
         const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp;
 
         const clerkUserId = data.customer?.metadata?.clerk_user_id;
         const productId = data.product_id;
@@ -558,6 +661,17 @@ export async function POST(request: NextRequest) {
 
         if (!clerkUserId) {
           throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+          supabase,
+          subscriptionId,
+          dodoEventTimestamp
+        );
+
+        if (isDuplicateWebhookTimestamp) {
+          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
+          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
         const { planId } = await updateSubscription(
@@ -576,7 +690,8 @@ export async function POST(request: NextRequest) {
             cancel_at_next_billing_date: data.cancel_at_next_billing_date,
             customer: data.customer,
             canceled_at: data.cancelled_at,
-          }
+          },
+          dodoEventTimestamp
         );
 
         // Reset allowance to free plan

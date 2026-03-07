@@ -129,6 +129,8 @@ ALTER TABLE public.periodic_allowance DISABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 -- Create webhook_event_log table
+-- Uses unique constraint on (provider, provider_event_id) to prevent race conditions
+-- in idempotency checks. This ensures atomic check-then-insert at DB level.
 CREATE TABLE IF NOT EXISTS public.webhook_event_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     provider TEXT NOT NULL,
@@ -139,7 +141,9 @@ CREATE TABLE IF NOT EXISTS public.webhook_event_log (
     processing_details JSONB DEFAULT '{}',
     http_status INTEGER,
     received_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-    processed_at TIMESTAMP WITH TIME ZONE
+    processed_at TIMESTAMP WITH TIME ZONE,
+    -- Unique constraint for idempotency - prevents race condition in webhook processing
+    CONSTRAINT unique_provider_event_id UNIQUE (provider, provider_event_id)
 );
 
 -- Performance indexes for webhook_event_log
