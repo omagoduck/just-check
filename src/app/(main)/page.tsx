@@ -2,7 +2,7 @@
 import ChatInput from '@/components/chat-input';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCreateConversation } from '@/hooks/use-conversations';
 import { useConversationStarterStore } from '@/stores/message-store';
 
@@ -21,14 +21,18 @@ export default function Main() {
     // Use first 256 characters of the message as the conversation title
     const title = message.trim().slice(0, 256);
     createConversation.mutate({ title }, {
-      onSuccess: () => {
-        setIsLoading(false);
-      },
       onError: () => {
         setIsLoading(false);
       },
     });
   };
+
+  // Cleanup: reset loading state if component unmounts during mutation
+  useEffect(() => {
+    return () => {
+      setIsLoading(false);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-4">
