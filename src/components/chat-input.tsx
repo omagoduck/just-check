@@ -11,6 +11,7 @@ import {
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useInputModality } from "@/hooks/use-input-modality";
 import VoiceVisualizer from "./voice-visualizer";
 import {
   Plus,
@@ -232,10 +233,16 @@ export function ChatInput({
     setShowSuggestions(false);
   }, [inputValue, isLoading, isAiGenerating, onSubmit, attachedFiles, filePreviewUrls]);
 
+  const inputModality = useInputModality()
+
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleSubmit();
+      // Only prevent default and submit if it's likely a physical keyboard
+      // Virtual keyboards (on touch devices) will use the send button instead
+      if (inputModality !== "touch") {
+        event.preventDefault();
+        handleSubmit();
+      }
     } else if (event.key === 'Escape') {
       setShowAttachments(false);
       setShowSuggestions(false);
