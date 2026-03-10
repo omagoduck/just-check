@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getMessagesForConversation, StoredMessage, type AssistantResponseMetadata } from '@/lib/conversation-history';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
+import { resolveMessagesAttachments } from '@/lib/storage/attachment-resolver';
 
 /**
  * Organizes messages into a linear sequence based on previous_message_id pointers.
@@ -104,7 +105,10 @@ export async function GET(
             createdAt: msg.created_at ? new Date(msg.created_at) : undefined,
         }));
 
-        return NextResponse.json({ messages: uiMessages });
+        // 5. Resolve attachment:// URLs to fresh signed URLs for client display
+        const resolvedMessages = await resolveMessagesAttachments(uiMessages, clerkUserId);
+
+        return NextResponse.json({ messages: resolvedMessages });
     } catch (error) {
         console.error('Error fetching messages:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

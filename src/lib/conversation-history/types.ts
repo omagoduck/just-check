@@ -103,3 +103,23 @@ export interface ClientMessageMetadata {
     UIModelId: string;
   };
 }
+// ============================================================================
+// FILE UPLOAD TYPES
+// ============================================================================
+
+/**
+ * Represents a file that has been uploaded to storage
+ * This is stored in the file_uploads table
+ */
+export interface UploadedFile {
+  id: string;
+  user_id: string;
+  storage_path: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}

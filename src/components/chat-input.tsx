@@ -26,7 +26,9 @@ import {
   Square,
   Stone,
   ChevronDown,
-  Check
+  Check,
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { UIModels } from "@/lib/models";
 import {
@@ -39,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSubmit'> {
-  onSubmit?: (message: string, attachments?: File[], UIModelId?: string) => void;
+  onSubmit?: (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => void;
   isLoading?: boolean;
   isAiGenerating?: boolean;
   onStopGenerating?: () => void;
@@ -53,6 +55,14 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
 interface AttachedFile {
   id: string;
   file: File;
+  uploadStatus: 'pending' | 'uploading' | 'success' | 'error';
+  uploadProgress?: number;
+  uploadResult?: {
+    url: string;
+    originalName: string;
+    mimeType: string;
+  };
+  error?: string;
 }
 
 export function ChatInput({
@@ -78,6 +88,9 @@ export function ChatInput({
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [audioData, setAudioData] = useState(new Uint8Array(0));
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +155,115 @@ export function ChatInput({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showAttachments, showSuggestions]);
+
+  // Compute upload states (used in processFiles and canSubmit)
+  const hasUploadsInProgress = attachedFiles.some(f => f.uploadStatus === 'pending' || f.uploadStatus === 'uploading');
+  const hasFailedUploads = attachedFiles.some(f => f.uploadStatus === 'error');
+
+  // Handle drag and drop with counter pattern for robustness
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) {
+      setIsDragging(false);
+      dragCounterRef.current = 0;
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Required to allow drop
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      processFiles(files);
+    }
+  }, []);
+
+  // Handle paste (copy-paste file upload)
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    // clipboardData.files is more reliable for multi-file pastes from file explorer
+    const filesFromList = Array.from(e.clipboardData.files);
+
+    if (filesFromList.length > 0) {
+      e.preventDefault();
+      processFiles(filesFromList);
+      return;
+    }
+
+    // Fallback to items for pasted images (e.g. screenshot from clipboard)
+    const items = Array.from(e.clipboardData.items);
+    const files: File[] = [];
+
+    for (const item of items) {
+      if (item.kind === 'file' && (item.type.startsWith('image/') || item.type.startsWith('application/') || item.type.startsWith('text/'))) {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      e.preventDefault();
+      processFiles(files);
+    }
+  }, []);
+
+  const processFiles = async (files: File[]) => {
+
+    const newPreviewUrls: { [id: string]: string } = {};
+
+    const uniqueNewFiles = files.filter(newFile =>
+      !attachedFiles.some(existingFile =>
+        existingFile.file.name === newFile.name && existingFile.file.size === newFile.size
+      )
+    );
+
+    if (uniqueNewFiles.length < files.length) {
+      console.warn('Duplicate files were detected and not added.');
+    }
+
+    const filesWithIds: AttachedFile[] = uniqueNewFiles.map(file => ({
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+      file,
+      uploadStatus: 'pending',
+    }));
+
+    filesWithIds.forEach(fileWithId => {
+      const preview = createFilePreview(fileWithId.file);
+      if (preview) {
+        newPreviewUrls[fileWithId.id] = preview;
+      }
+    });
+
+    setAttachedFiles(prev => [...prev, ...filesWithIds]);
+    setFilePreviewUrls(prev => ({ ...prev, ...newPreviewUrls }));
+
+    if (onAttachmentUpload) {
+      onAttachmentUpload(filesWithIds.map(f => f.file));
+    }
+
+    await Promise.all(filesWithIds.map(fileWithId => uploadFile(fileWithId)));
+  };
 
   // Enhanced input handling with debounced suggestions
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -215,30 +337,54 @@ export function ChatInput({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!inputValue.trim() || isLoading || isAiGenerating) return;
 
-    onSubmit?.(inputValue.trim(), attachedFiles.map(f => f.file), selectedUIModelId);
-    setInputValue("");
+    const hasUploadsInProgress = attachedFiles.some(f => f.uploadStatus === 'pending' || f.uploadStatus === 'uploading');
+    const hasFailedUploads = attachedFiles.some(f => f.uploadStatus === 'error');
 
-    Object.values(filePreviewUrls).forEach(url => {
-      if (url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
-    });
+    if (hasUploadsInProgress) {
+      setUploadError('Please wait for all files to finish uploading.');
+      return;
+    }
 
-    setAttachedFiles([]);
-    setFilePreviewUrls({});
-    setShowAttachments(false);
-    setShowSuggestions(false);
+    if (hasFailedUploads) {
+      setUploadError('Some files failed to upload. Please remove them and try again.');
+      return;
+    }
+
+    try {
+      const processedAttachments = attachedFiles
+        .filter(f => f.uploadStatus === 'success' && f.uploadResult)
+        .map(f => f.uploadResult!);
+
+      onSubmit?.(inputValue.trim(), processedAttachments, selectedUIModelId);
+      setInputValue('');
+
+      // Cleanup blob URLs
+      Object.values(filePreviewUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+
+      setAttachedFiles([]);
+      setFilePreviewUrls({});
+      setShowAttachments(false);
+      setShowSuggestions(false);
+      // Only clear error on successful submit
+      setUploadError(null);
+    } catch (error) {
+      console.error('Submit error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Submit failed');
+      // Don't cleanup on error - keep attachments for retry
+    }
   }, [inputValue, isLoading, isAiGenerating, onSubmit, attachedFiles, filePreviewUrls]);
 
   const inputModality = useInputModality()
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey) {
-      // Only prevent default and submit if it's likely a physical keyboard
-      // Virtual keyboards (on touch devices) will use the send button instead
       if (inputModality !== "touch") {
         event.preventDefault();
         handleSubmit();
@@ -246,6 +392,11 @@ export function ChatInput({
     } else if (event.key === 'Escape') {
       setShowAttachments(false);
       setShowSuggestions(false);
+      // Cancels an active drag-and-drop operation
+      if (isDragging) {
+        setIsDragging(false);
+        dragCounterRef.current = 0;
+      }
     }
   };
 
@@ -337,45 +488,62 @@ export function ChatInput({
     setIsRecording(prev => !prev);
   }, []);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(event.target.files || []);
     if (!newFiles.length) return;
 
-    const newPreviewUrls: { [id: string]: string } = {};
+    // Use the shared processFiles function
+    await processFiles(newFiles);
 
-    const uniqueNewFiles = newFiles.filter(newFile =>
-      !attachedFiles.some(existingFile =>
-        existingFile.file.name === newFile.name && existingFile.file.size === newFile.size
-      )
-    );
-
-    if (uniqueNewFiles.length < newFiles.length) {
-      console.warn("Duplicate files were detected and not added.");
-    }
-
-    const filesWithIds = uniqueNewFiles.map(file => ({
-      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
-      file,
-    }));
-
-    filesWithIds.forEach(fileWithId => {
-      const preview = createFilePreview(fileWithId.file);
-      if (preview) {
-        newPreviewUrls[fileWithId.id] = preview;
-      }
-    });
-
-    setAttachedFiles(prev => [...prev, ...filesWithIds]);
-    setFilePreviewUrls(prev => ({ ...prev, ...newPreviewUrls }));
-
-    if (onAttachmentUpload) {
-      onAttachmentUpload(filesWithIds.map(f => f.file));
-    }
-
+    // Additional cleanup specific to file input
     setShowAttachments(false);
-
     if (event.target) {
       event.target.value = '';
+    }
+  };
+
+  const uploadFile = async (fileWithId: AttachedFile) => {
+    setAttachedFiles(prev => prev.map(f => 
+      f.id === fileWithId.id ? { ...f, uploadStatus: 'uploading' as const } : f
+    ));
+
+    try {
+      const formData = new FormData();
+      formData.append('files', fileWithId.file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      const uploadedFile = result.files[0];
+
+      setAttachedFiles(prev => prev.map(f => 
+        f.id === fileWithId.id ? { 
+          ...f, 
+          uploadStatus: 'success' as const,
+          uploadResult: {
+            url: uploadedFile.attachmentUrl,
+            originalName: uploadedFile.originalName,
+            mimeType: uploadedFile.mimeType,
+          }
+        } : f
+      ));
+    } catch (error) {
+      console.error('Upload error:', error);
+      setAttachedFiles(prev => prev.map(f => 
+        f.id === fileWithId.id ? { 
+          ...f, 
+          uploadStatus: 'error' as const,
+          error: error instanceof Error ? error.message : 'Upload failed'
+        } : f
+      ));
     }
   };
 
@@ -404,7 +572,7 @@ export function ChatInput({
   const characterCount = inputValue.length;
   const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
   const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
-  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit;
+  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads;
 
   return (
     <TooltipProvider>
@@ -431,14 +599,50 @@ export function ChatInput({
         )}
 
         {/* Main input container */}
-        <div className={cn(
-          "flex w-full items-end space-x-3 p-2 rounded-2xl transition-all duration-300 shadow-xl",
-          "bg-linear-to-br from-card/90 via-secondary/90 to-card/90",
-          "border border-border/30 backdrop-blur-xl",
-          isFocused && "ring-2 ring-primary/30 border-primary/30",
-          isLoading && "opacity-90",
-          className
-        )} {...props}>
+        <div
+          className={cn(
+            "flex w-full items-end space-x-3 p-2 rounded-2xl transition-all duration-300 shadow-xl relative",
+            "bg-linear-to-br from-card/90 via-secondary/90 to-card/90",
+            "border border-border/30 backdrop-blur-xl",
+            isFocused && "ring-2 ring-primary/30 border-primary/30",
+            isLoading && "opacity-90",
+            isDragging && "ring-2 ring-primary/50 border-primary/50 bg-primary/5",
+            className
+          )}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          role="region"
+          aria-label="Chat input with file upload"
+          {...props}
+        >
+          {/* Screen reader live region for drag status announcements */}
+          <div
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {isDragging ? 'Drag and drop area active. Release to upload files.' : ''}
+          </div>
+          
+          {/* Drag and drop overlay */}
+          <AnimatePresence>
+            {isDragging && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 w-full z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-2xl border-2 border-dashed border-primary"
+              >
+                <div className="flex flex-col items-center gap-2 text-primary">
+                  <Paperclip className="h-8 w-8" />
+                  <p className="text-sm font-medium">Drop files here</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* FIX: Removed space-y-2 from this container. Spacing is now handled by children. */}
           <div className="flex flex-col w-full">
@@ -458,7 +662,7 @@ export function ChatInput({
                       layout
                       className="flex flex-wrap gap-3"
                     >
-                      {attachedFiles.map(({ id, file }) => {
+                      {attachedFiles.map(({ id, file, uploadStatus, error }) => {
                         const previewUrl = filePreviewUrls[id];
                         const FileIcon = getFileIcon(file);
                         const isImage = file.type.startsWith('image/');
@@ -471,6 +675,34 @@ export function ChatInput({
                             animate={{ opacity: 1, scale: 1 }}
                             className="group relative bg-muted rounded-lg overflow-hidden border border-border hover:border-border/80 shadow-md"
                           >
+                            {(uploadStatus === 'pending' || uploadStatus === 'uploading') && (
+                              <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {uploadStatus === 'uploading' ? 'Uploading...' : 'Pending'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {uploadStatus === 'error' && (
+                              <div className="absolute inset-0 bg-destructive/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => {
+                                        const fileToRetry = attachedFiles.find(f => f.id === id);
+                                        if (fileToRetry) uploadFile(fileToRetry);
+                                      }}
+                                      className="w-8 h-8 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full flex items-center justify-center transition-colors"
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Retry upload</p></TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
                             {isImage && previewUrl ? (
                               <div className="relative">
                                 <img
@@ -557,6 +789,7 @@ export function ChatInput({
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setTimeout(() => setIsFocused(false), 100)}
+                onPaste={handlePaste}
                 rows={1}
               />
 

@@ -77,14 +77,45 @@ export default function ChatPage() {
   // Handle pending message from main page
   useEffect(() => {
     if (conversationStarter && !isLoadingHistory && messagesData) {
-      sendMessage({ text: conversationStarter.message }, { body: { UIModelId: conversationStarter.UIModelId } });
+      const parts: Array<{ type: 'text'; text: string } | { type: 'file'; url: string; mediaType: string; filename?: string }> = [
+        { type: 'text', text: conversationStarter.message }
+      ];
+
+      if (conversationStarter.attachments) {
+        conversationStarter.attachments.forEach(att => {
+          parts.push({
+            type: 'file',
+            url: att.url,
+            mediaType: att.mimeType,
+            filename: att.originalName,
+          });
+        });
+      }
+
+      sendMessage({ parts }, { body: { UIModelId: conversationStarter.UIModelId } });
       clearConversationStarter();
     }
   }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
 
-  const handleSendMessage = (text: string, attachments?: File[], UIModelId?: string) => {
-    sendMessage({ text }, {
-      body: { UIModelId }
+  const handleSendMessage = (text: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => {
+    // Build message parts including attachments if present
+    const parts: Array<{ type: 'text'; text: string } | { type: 'file'; url: string; mediaType: string; filename?: string }> = [
+      { type: 'text', text }
+    ];
+
+    if (attachments) {
+      attachments.forEach(att => {
+        parts.push({
+          type: 'file',
+          url: att.url, // This is the attachment:// URL
+          mediaType: att.mimeType,
+          filename: att.originalName,
+        });
+      });
+    }
+
+    sendMessage({ parts }, {
+      body: { UIModelId: modelId }
     });
   };
 

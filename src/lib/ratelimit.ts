@@ -73,3 +73,8 @@ export const messageFeedbackChangeRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(100, "1m"),
 });
+
+export const uploadRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1m"),
+});

@@ -1,7 +1,6 @@
 'use client';
 
-import { memo } from 'react';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { UIMessage } from 'ai';
 import { Copy, Check, Pencil, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,11 +17,14 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
   const [copyFailed, setCopyFailed] = useState(false);
   const isTouchDevice = useIsTouchDevice();
 
+  const textParts = message.parts.filter(part => part.type === 'text');
+  const imageParts = message.parts.filter(
+    (part): part is Extract<UIMessage['parts'][number], { type: 'file' }> =>
+      part.type === 'file' && part.mediaType?.startsWith('image/')
+  );
+
   const handleCopy = async () => {
-    const textContent = message.parts
-      .filter(part => part.type === 'text')
-      .map(part => part.text)
-      .join('');
+    const textContent = textParts.map(part => part.text).join('');
 
     try {
       await copyToClipboard(textContent);
@@ -40,7 +42,25 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
   return (
     <div className="flex justify-end mb-4 group">
       <div className="max-w-[70%]">
-        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-sm">
+        {/* Image attachments displayed above and outside the bubble — V1 UI */}
+        {imageParts.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2 justify-end">
+            {imageParts.map((part, index) => (
+              <div
+                key={`image-${index}`}
+                className="relative rounded-lg overflow-hidden border border-border/50 shadow-sm"
+              >
+                <img
+                  src={part.url}
+                  alt={part.filename || 'Uploaded image'}
+                  className="w-24 h-24 object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-sm w-fit max-w-full ml-auto">
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':

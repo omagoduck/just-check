@@ -21,6 +21,7 @@ import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCostC
 import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { resolveMessagesAttachments } from '@/lib/storage/attachment-resolver';
 
 // Import raw executors for tool charging
 import { executeWebSearch } from '@/lib/tools/executor/web-search-executor';
@@ -162,10 +163,15 @@ export async function POST(req: Request) {
 
     const currentStepData: StepData[] = [];
 
-    // Capture final usage from streamText's onFinish callback
     let streamOnFinishUsage: { totalTokens?: number; inputTokens?: number; outputTokens?: number; inputTokenDetails?: any; outputTokenDetails?: any } | undefined;
 
-    const modelMessages = await convertToModelMessages(messages, {
+    // =========================================================================
+    // RESOLVE ATTACHMENT URLs (NEW STEP)
+    // =========================================================================
+    // Convert attachment:// URLs to fresh signed URLs before sending to AI
+    const attachmentResolvedMessages = await resolveMessagesAttachments(messages, clerkUserId);
+    
+    const modelMessages = await convertToModelMessages(attachmentResolvedMessages, {
       // safety net for incomplete tool calls. incomplete tool call may cause errors. 
       // TODO: take a look if our model provider supports incomplete tool calls. cause many returns error. right now ignoring is okay and safe.
       ignoreIncompleteToolCalls: true
