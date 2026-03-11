@@ -63,6 +63,46 @@ export async function createSignedUrl(storagePath: string): Promise<string> {
 }
 
 /**
+ * Gets cached signed URL from database
+ * Returns null if not found or expired
+ */
+async function getCachedSignedUrl(fileId: string): Promise<string | null> {
+  const supabase = getSupabaseAdminClient();
+  
+  const { data, error } = await supabase
+    .from('signed_url_cache')
+    .select('signed_url, expires_at')
+    .eq('file_id', fileId)
+    .single();
+  
+  if (error || !data) return null;
+  
+  // Check if cached URL is still valid
+  if (new Date(data.expires_at) > new Date()) {
+    return data.signed_url;
+  }
+  
+  return null; // Expired
+}
+
+/**
+ * Caches a signed URL in the database
+ */
+async function cacheSignedUrl(fileId: string, signedUrl: string, expiresInSeconds: number): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+  const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+  
+  await supabase
+    .from('signed_url_cache')
+    .upsert({
+      file_id: fileId,
+      signed_url: signedUrl,
+      expires_at: expiresAt.toISOString(),
+      cached_at: new Date().toISOString()
+    }, { onConflict: 'file_id' });
+}
+
+/**
  * Resolves an attachment:// URL to a fresh signed URL
  * Format: attachment://{fileId}
  */
@@ -92,8 +132,19 @@ export async function resolveAttachmentUrl(
     throw new Error('File has been deleted');
   }
 
-  // Generate fresh signed URL
-  return await createSignedUrl(file.storage_path);
+  // Try to get cached URL first
+  const cachedUrl = await getCachedSignedUrl(fileId);
+  if (cachedUrl) {
+    return cachedUrl;
+  }
+
+  // Generate fresh signed URL if not cached
+  const signedUrl = await createSignedUrl(file.storage_path);
+  
+  // Cache the new URL
+  await cacheSignedUrl(fileId, signedUrl, URL_EXPIRY_SECONDS);
+  
+  return signedUrl;
 }
 
 /**
