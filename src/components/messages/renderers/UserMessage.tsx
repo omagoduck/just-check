@@ -2,15 +2,54 @@
 
 import { memo, useState } from 'react';
 import { UIMessage } from 'ai';
-import { Copy, Check, Pencil, X } from 'lucide-react';
+import { Copy, Check, Pencil, X, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
+import { useAttachmentUrl, isAttachmentUrl } from '@/hooks/use-attachment-url';
 import { cn } from '@/lib/utils';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 
 interface UserMessageProps {
   message: UIMessage;
 }
+
+/**
+ * Individual image component that handles URL resolution
+ */
+const MessageImage = memo(function MessageImage({ 
+  url, 
+  filename 
+}: { 
+  url: string; 
+  filename?: string 
+}) {
+  const { resolvedUrl, isResolving, error } = useAttachmentUrl(url);
+
+  // If it's not an attachment URL, use it directly
+  const displayUrl = !isAttachmentUrl(url) ? url : resolvedUrl;
+  const showLoading = isAttachmentUrl(url) && isResolving;
+  const showError = isAttachmentUrl(url) && error;
+
+  return (
+    <div className="relative rounded-lg overflow-hidden border border-border/50 shadow-sm">
+      {showLoading ? (
+        <div className="w-24 h-24 flex items-center justify-center bg-muted">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : showError ? (
+        <div className="w-24 h-24 flex items-center justify-center bg-muted text-destructive text-xs p-2">
+          Failed to load image
+        </div>
+      ) : (
+        <img
+          src={displayUrl}
+          alt={filename || 'Uploaded image'}
+          className="w-24 h-24 object-cover"
+        />
+      )}
+    </div>
+  );
+});
 
 export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
   const [copied, setCopied] = useState(false);
@@ -46,16 +85,11 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
         {imageParts.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2 justify-end">
             {imageParts.map((part, index) => (
-              <div
+              <MessageImage
                 key={`image-${index}`}
-                className="relative rounded-lg overflow-hidden border border-border/50 shadow-sm"
-              >
-                <img
-                  src={part.url}
-                  alt={part.filename || 'Uploaded image'}
-                  className="w-24 h-24 object-cover"
-                />
-              </div>
+                url={part.url}
+                filename={part.filename}
+              />
             ))}
           </div>
         )}
@@ -121,3 +155,4 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
     </div>
   );
 });
+
