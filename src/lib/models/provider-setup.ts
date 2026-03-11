@@ -4,7 +4,7 @@ import { ModelRoute } from './router';
 import { LanguageModel } from 'ai';
 
 /**
- * Centeralized AI Provider Instances
+ * Centralized AI Provider Instances
  */
 
 // OpenRouter Setup

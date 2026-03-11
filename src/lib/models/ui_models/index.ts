@@ -9,21 +9,21 @@ export const UIModels: UIModel[] = [
     {
         id: 'thinker',
         name: 'Thinker',
-        description: 'Deep reasoning for complex problems and detailed analysis.'
+        description: 'Reasons for complex problems and detailed analysis.'
     },
     {
         id: 'pro-thinker',
         name: 'Pro Thinker',
-        description: 'Our most advanced reasoning model for the toughest challenges.'
+        description: 'Advanced reasoning model for the toughest challenges.'
     },
     {
         id: 'lumy-sense-1',
         name: 'Lumy Sense 1',
-        description: 'Optimized for creative writing, empathy, and natural conversation.'
+        description: 'Good for daily necessary and simple tasks.'
     },
     {
         id: 'lumy-itor-1',
         name: 'Lumy Itor 1',
-        description: 'Specialized for coding, debugging, and technical architecture.'
+        description: 'Our best reasoning model for complex tasks handling.'
     }
 ];

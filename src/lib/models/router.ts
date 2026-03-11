@@ -13,37 +13,33 @@ export interface RoutingContext {
 /**
  * Smart Router
  * 
- * Resolves a UI Persona ID to a technical model route.
- * This is where the "intelligence" of Lumy's model selection lives.
+ * Resolves a UI or display model ID to a technical model route.
  */
 export function resolveModelRoute(uiModelId: string, context?: RoutingContext): ModelRoute {
     switch (uiModelId) {
         case 'fast':
-            // If the user uploads an image, we upgrade from the free Mimo model 
-            // to Gemini 2.0 Flash which has native vision support.
             if (context?.hasImages) {
-                return { provider: 'google', id: 'gemini-2.0-flash' };
+                return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
             }
-            return { provider: 'openrouter', id: 'arcee-ai/trinity-large-preview:free' };
+            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2' };
 
         case 'thinker':
-            // Logic for the basic 'Thinker' persona
-            return { provider: 'openrouter', id: 'nvidia/nemotron-3-nano-30b-a3b:free' };
+            if (context?.hasImages) {
+                return { provider: 'openrouter', id: 'qwen/qwen3.5-397b-a17b' };
+            }
+            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2' };
 
         case 'pro-thinker':
-            // Logic for the advanced 'Pro Thinker' persona
-            return { provider: 'openrouter', id: 'z-ai/glm-4.5-air:free' };
+            return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
 
         case 'lumy-sense-1':
-            // Focused on creative writing and empathy
-            return { provider: 'google', id: 'gemini-2.5-flash' };
+            return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
 
         case 'lumy-itor-1':
-            // Specialised technical/coding persona
-            return { provider: 'openrouter', id: 'openai/gpt-oss-120b:free' };
+            return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
 
         default:
             // Fallback for any unknown or unspecified model IDs
-            return { provider: 'google', id: 'gemini-2.5-flash' }; //supports image
+            return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
     }
 }
