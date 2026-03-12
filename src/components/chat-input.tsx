@@ -11,6 +11,8 @@ import {
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { isWebSpeechRecognitionSupported } from "@/lib/input-speech-recognition/providers/web-speech-api";
 import { useInputModality } from "@/hooks/use-input-modality";
 import VoiceVisualizer from "./voice-visualizer";
 import {
@@ -90,7 +92,10 @@ export function ChatInput({
   const [audioData, setAudioData] = useState(new Uint8Array(0));
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const isMobile = useIsMobile();
   const dragCounterRef = useRef(0);
+
+  const isVoiceSupported = isWebSpeechRecognitionSupported();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
@@ -814,8 +819,8 @@ export function ChatInput({
                     className="text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 px-3"
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    <span className="text-sm">Attach</span>
+                    <Plus className="h-4 w-4" />
+                    {!isMobile && <span className="text-sm">Attach</span>}
                   </Button>
 
                   {showAttachments && (
@@ -886,26 +891,28 @@ export function ChatInput({
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className={cn(
-                        "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 w-9",
-                        isRecording && "bg-destructive/20 text-destructive animate-pulse ring-2 ring-destructive/30"
-                      )}
-                      onClick={toggleRecording}
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{isRecording ? "Stop recording" : "Start voice input"}</p>
-                  </TooltipContent>
-                </Tooltip>
+                {isVoiceSupported && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 w-9",
+                          isRecording && "bg-destructive/20 text-destructive animate-pulse ring-2 ring-destructive/30"
+                        )}
+                        onClick={toggleRecording}
+                      >
+                        <Mic className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{isRecording ? "Stop recording" : "Start voice input"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
-                <Tooltip>
+                {/* <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       size="sm"
@@ -920,7 +927,7 @@ export function ChatInput({
                   <TooltipContent side="bottom">
                     <p>Live Voice Chat</p>
                   </TooltipContent>
-                </Tooltip>
+                </Tooltip> */}
 
                 {isAiGenerating ? (
                   <Tooltip>

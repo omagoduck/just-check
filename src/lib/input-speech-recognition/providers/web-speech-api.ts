@@ -49,6 +49,12 @@ const BrowserSpeechRecognition: SpeechRecognitionStatic | null =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
 
+export function isWebSpeechRecognitionSupported(): boolean {
+  return typeof window !== 'undefined' && !!(
+    (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  );
+}
+
 
 export class WebSpeechApiProvider implements SpeechRecognitionProvider {
   private recognition: SpeechRecognition | null = null;
