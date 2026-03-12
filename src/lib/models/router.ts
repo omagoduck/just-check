@@ -1,9 +1,9 @@
-import { ModelProvider, UIModelMeta } from './types';
+import { ModelProvider, ProviderOptions } from './types';
 
 export interface ModelRoute {
     provider: ModelProvider;
     id: string;
-    meta?: UIModelMeta;
+    providerOptions?: ProviderOptions;
 }
 
 export interface RoutingContext {
@@ -23,23 +23,42 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
             if (context?.hasImages) {
                 return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
             }
-            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2' };
+            return {
+                provider: 'openrouter',
+                id: 'deepseek/deepseek-v3.2',
+                providerOptions: { openrouter: { reasoning: { enabled: false } } }
+            };
 
         case 'thinker':
             if (context?.hasImages) {
-                return { provider: 'openrouter', id: 'qwen/qwen3.5-397b-a17b' };
+                return {
+                    provider: 'openrouter',
+                    id: 'qwen/qwen3.5-397b-a17b',
+                    providerOptions: { openrouter: { reasoning: { enabled: true } } }
+                };
             }
-            // Enable thinking mode for hybrid models
-            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2', meta: { thinking: true } };
+            return {
+                provider: 'openrouter',
+                id: 'deepseek/deepseek-v3.2',
+                providerOptions: { openrouter: { reasoning: { enabled: true } } }
+            };
 
         case 'pro-thinker':
-            return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
+            return {
+                provider: 'openrouter',
+                id: 'moonshotai/kimi-k2.5',
+                providerOptions: { openrouter: { reasoning: { enabled: true } } }
+            };
 
         case 'lumy-sense-1':
             return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
 
         case 'lumy-itor-1':
-            return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
+            return {
+                provider: 'openrouter',
+                id: 'moonshotai/kimi-k2.5',
+                providerOptions: { openrouter: { reasoning: { enabled: true } } }
+            };
 
         default:
             // Fallback for any unknown or unspecified model IDs

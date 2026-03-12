@@ -5,16 +5,6 @@ export type ModelProvider = 'openrouter' | 'google';
 export type Modality = 'text' | 'image' | 'audio' | 'video';
 
 /**
- * Optional metadata for UI model resolution.
- * This allows specifying provider-specific options like thinking mode.
- */
-export interface UIModelMeta {
-    /** Enable thinking/reasoning mode for hybrid models */
-    thinking?: boolean;
-    // Add more options here as needed
-}
-
-/**
  * Provider-specific metadata for model configuration.
  * This is used to pass additional options to the AI SDK provider.
  * For OpenRouter, this is typically used for reasoning/thinking mode.
