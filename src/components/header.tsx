@@ -3,8 +3,10 @@
 
 import Image from "next/image";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants"; // Ensure these constants are correctly defined and exported
-import { Menu as MenuIcon, X } from 'lucide-react';
+import { Menu as MenuIcon, X, MessageCirclePlus } from 'lucide-react';
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Props for the Header component
 interface HeaderProps {
@@ -13,6 +15,13 @@ interface HeaderProps {
 }
 
 export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: HeaderProps) {
+  const pathname = usePathname();
+  const isMobile = useIsMobile();
+  
+  // Only show new chat button on mobile and on chat pages
+  const isChatPage = pathname.startsWith('/chats/');
+  const showNewChatButton = isMobile && isChatPage;
+
   return (
     <header className="shrink-0 bg-background h-header-height text-foreground px-1 sm:px-2 flex items-center">
       {/* 
@@ -46,6 +55,17 @@ export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: H
             <div className="text-xl text-foreground/90 transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
           </Link>
         </div>
+
+        {/* Right Group: New Chat Button (only on mobile chat pages) */}
+        {showNewChatButton && (
+          <Link
+            href="/chats"
+            className="p-2 text-foreground hover:text-foreground/80 hover:bg-accent rounded-lg transition-colors"
+            aria-label="New chat"
+          >
+            <MessageCirclePlus size={20} />
+          </Link>
+        )}
       </div>
     </header>
   );
