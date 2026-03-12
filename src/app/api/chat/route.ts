@@ -13,7 +13,7 @@ import {
   type TotalUsage,
   type StepUsage,
 } from '@/lib/conversation-history';
-import { resolveModelRoute, getLanguageModel } from '@/lib/models';
+import { resolveModelRoute, getLanguageModel, findModelByProviderAndId } from '@/lib/models';
 import { logMessageTokenUsage } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@clerk/nextjs/server';
@@ -81,11 +81,24 @@ export async function POST(req: Request) {
 
     // Resolve the UI Model to a technical route using the context
     const route = resolveModelRoute(UIModelId, { hasImages });
-    const modelInstance = getLanguageModel(route);
+    
+    // Use the route to look up internal model details and resolve provider metadata
+    // This uses the optional meta (e.g., { thinking: true }) from the router
+    const modelDetails = findModelByProviderAndId(route.provider, route.id, route.meta);
+    
+    // Create a route with resolved provider + model ID
+    const resolvedRoute = { provider: modelDetails.provider, id: modelDetails.id };
+    
+    // Create the model instance using the resolved route
+    const modelInstance = getLanguageModel(resolvedRoute);
 
     // Get model info for metadata
-    const internalModelId = route.id;
-    const provider = route.provider;
+    const internalModelId = modelDetails.id;
+    const provider = modelDetails.provider;
+
+    // Extract provider options for streamText (e.g., for thinking mode)
+    // Format: { openrouter: { reasoning: { type: 'enabled' } } }
+    const providerOptions = modelDetails.providerMetadata;
 
     // Fetch the last message from DB to check for context or continuations
     let lastMessageFromDB = await getLastMessageFromDB(conversationId);
@@ -212,6 +225,7 @@ export async function POST(req: Request) {
       messages: modelMessages,
       system: systemPrompt,
       tools,
+      providerOptions,
 
       // Track each step as it happens
       onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
@@ -368,12 +382,12 @@ export async function POST(req: Request) {
         // Do NOT use accumulated total - that would cause double-charging!
         try {
 
-          if (streamOnFinishUsage && route) {
-            const pricing = getModelPricing(route.provider, route.id);
+          if (streamOnFinishUsage && resolvedRoute) {
+            const pricing = getModelPricing(resolvedRoute.provider, resolvedRoute.id);
             let cost = 0;
 
             if (!pricing) {
-              console.error(`Pricing not found for model ${route.provider}/${route.id}`);
+              console.error(`Pricing not found for model ${resolvedRoute.provider}/${resolvedRoute.id}`);
             } else {
               cost = calculateCostCents(
                 streamOnFinishUsage.inputTokens || 0,

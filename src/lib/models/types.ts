@@ -1,6 +1,25 @@
+import type { SharedV3ProviderOptions } from '@ai-sdk/provider';
+
 export type ModelProvider = 'openrouter' | 'google';
 
 export type Modality = 'text' | 'image' | 'audio' | 'video';
+
+/**
+ * Optional metadata for UI model resolution.
+ * This allows specifying provider-specific options like thinking mode.
+ */
+export interface UIModelMeta {
+    /** Enable thinking/reasoning mode for hybrid models */
+    thinking?: boolean;
+    // Add more options here as needed
+}
+
+/**
+ * Provider-specific metadata for model configuration.
+ * This is used to pass additional options to the AI SDK provider.
+ * For OpenRouter, this is typically used for reasoning/thinking mode.
+ */
+export type ProviderOptions = SharedV3ProviderOptions;
 
 // Model interface for internal models' detailed information. Optional fields are currently mainly for future use. 
 export interface Model {
@@ -37,6 +56,12 @@ export interface Model {
 
     /** Friendly description of what this model is best for */
     description?: string;
+
+    /**
+     * Optional provider-specific metadata.
+     * Used to pass additional options to the AI SDK provider.
+     */
+    providerMetadata?: ProviderOptions;
 }
 
 export interface UIModel {

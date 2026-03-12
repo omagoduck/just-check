@@ -15,6 +15,9 @@ export const openrouter = createOpenRouter({
 /**
  * Resolves a technical route into a concrete AI SDK LanguageModel instance.
  * This function encapsulates all provider-specific initialization logic.
+ * 
+ * @param route - The model route containing provider and model ID
+ * @returns A LanguageModel instance ready for use with AI SDK
  */
 export function getLanguageModel(route: ModelRoute): LanguageModel {
     const { provider, id } = route;

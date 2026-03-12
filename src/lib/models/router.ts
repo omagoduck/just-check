@@ -1,8 +1,9 @@
-import { ModelProvider } from './types';
+import { ModelProvider, UIModelMeta } from './types';
 
 export interface ModelRoute {
     provider: ModelProvider;
     id: string;
+    meta?: UIModelMeta;
 }
 
 export interface RoutingContext {
@@ -14,6 +15,7 @@ export interface RoutingContext {
  * Smart Router
  * 
  * Resolves a UI or display model ID to a technical model route.
+ * Returns the provider, model ID, and optional metadata (like thinking mode).
  */
 export function resolveModelRoute(uiModelId: string, context?: RoutingContext): ModelRoute {
     switch (uiModelId) {
@@ -27,7 +29,8 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
             if (context?.hasImages) {
                 return { provider: 'openrouter', id: 'qwen/qwen3.5-397b-a17b' };
             }
-            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2' };
+            // Enable thinking mode for hybrid models
+            return { provider: 'openrouter', id: 'deepseek/deepseek-v3.2', meta: { thinking: true } };
 
         case 'pro-thinker':
             return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
