@@ -2,16 +2,17 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, createIdGenerator } from 'ai';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
 import { executeClientTool } from '@/lib/tools/client-executors';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import { useConversationStarterStore } from '@/stores/message-store';
 import { ChatHistorySkeleton } from '@/components/messages/renderers/ChatHistorySkeleton';
 import { v4 as uuidv4 } from 'uuid';
+import { ChevronDown } from 'lucide-react';
 
 export default function ChatPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const conversationStarter = useConversationStarterStore((state) => state.conversationStarter);
   const clearConversationStarter = useConversationStarterStore((state) => state.clearConversationStarter);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Fetch conversation history using TanStack Query
   const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
@@ -119,6 +121,48 @@ export default function ChatPage() {
     });
   };
 
+  const isUserAtBottomRef = useRef(true);
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
+  // Track scroll position to show/hide scroll button and track if user is near bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const nearBottom = distanceFromBottom < 100;
+      
+      setShowScrollButton(!nearBottom);
+      isUserAtBottomRef.current = nearBottom;
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom only when user is near bottom
+  useEffect(() => {
+    if (messages.length > 0 && !isLoadingHistory && isUserAtBottomRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (messagesContainerRef.current && isUserAtBottomRef.current) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 50);
+    }
+  }, [messages, isLoadingHistory]);
+
   // Determine loading states based on chat status
   const isLoading = status === 'submitted'; // When message is submitted
   const isGenerating = status === 'streaming'; // When AI is generating response
@@ -153,6 +197,25 @@ export default function ChatPage() {
             </>
           )}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Scroll to bottom button - sticky within messages container */}
+        <div className="sticky bottom-4 mx-auto h-10 flex items-center justify-center">
+          <AnimatePresence>
+            {showScrollButton && (
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.2 }}
+                onClick={scrollToBottom}
+                className="flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-black/70 border border-white/20 rounded-full text-white shadow-lg transition-colors"
+                aria-label="Scroll to bottom"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
