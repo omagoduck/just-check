@@ -174,49 +174,51 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
-      {/* Messages container - takes all available space and scrolls */}
-      <div
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4"
-      >
-        <div className="space-y-6 min-h-full max-w-3xl mx-auto">
-          {isLoadingHistory ? (
-            <ChatHistorySkeleton />
-          ) : (
-            <>
-              {messages.map((message, index, array) => {
-                const isLastMessage = index === array.length - 1;
-                return (
-                  <MessageRenderer
-                    key={message.id}
-                    message={message}
-                    isStreaming={isGenerating && isLastMessage}
-                  />
-                );
-              })}
-            </>
-          )}
-          <div ref={messagesEndRef} />
+      {/* Container with relative for positioning the button outside scroll area */}
+      <div className="relative flex-1">
+        {/* Messages container - takes all available space and scrolls */}
+        <div
+          ref={messagesContainerRef}
+          className="absolute inset-0 overflow-y-auto p-4"
+        >
+          <div className="space-y-6 min-h-full max-w-3xl mx-auto">
+            {isLoadingHistory ? (
+              <ChatHistorySkeleton />
+            ) : (
+              <>
+                {messages.map((message, index, array) => {
+                  const isLastMessage = index === array.length - 1;
+                  return (
+                    <MessageRenderer
+                      key={message.id}
+                      message={message}
+                      isStreaming={isGenerating && isLastMessage}
+                    />
+                  );
+                })}
+              </>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
-        {/* Scroll to bottom button - sticky within messages container */}
-        <div className="sticky bottom-4 mx-auto h-10 flex items-center justify-center">
-          <AnimatePresence>
-            {showScrollButton && (
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.2 }}
-                onClick={scrollToBottom}
-                className="flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-black/70 border border-white/20 rounded-full text-white shadow-lg transition-colors"
-                aria-label="Scroll to bottom"
-              >
-                <ChevronDown className="w-5 h-5" />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Scroll to bottom button - fixed position relative to parent */}
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-black/70 border border-white/20 rounded-full text-white shadow-lg transition-colors"
+              aria-label="Scroll to bottom"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+
       </div>
 
       <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-2">
