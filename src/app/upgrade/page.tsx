@@ -23,7 +23,9 @@ import { useAuth } from "@clerk/nextjs";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PRODUCT_IDS, getPlanDisplayName } from "@/lib/subscription-utils";
+import { toast } from "sonner";
 
 // Pricing plan interface defining the structure for each plan card
 interface PricingPlan {
@@ -101,7 +103,7 @@ const pricingPlans: PricingPlan[] = [
  * Handles checkout for new subscriptions (users without existing subscription)
  * Creates DODO customer and redirects to checkout session
  */
-async function handleCheckout(productId: string) {
+async function handleCheckout(productId: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Checkout API automatically handles customer creation/retrieval
     const checkoutResponse = await fetch(
@@ -113,7 +115,16 @@ async function handleCheckout(productId: string) {
 
     if (!checkoutResponse.ok) {
       const errorData = await checkoutResponse.json();
-      throw new Error(errorData.error || 'Failed to create checkout session');
+      
+      // Handle 409 Conflict - user already has subscription
+      if (checkoutResponse.status === 409) {
+        return { 
+          success: false, 
+          error: errorData.message || 'You already have an active subscription. Please use the upgrade option instead.' 
+        };
+      }
+      
+      return { success: false, error: errorData.error || 'Failed to create checkout session' };
     }
 
     const data = await checkoutResponse.json();
@@ -121,12 +132,13 @@ async function handleCheckout(productId: string) {
     if (data.checkout_url) {
       // Redirect user to DODO checkout page
       window.location.href = data.checkout_url;
+      return { success: true };
     } else {
-      throw new Error('No checkout URL returned');
+      return { success: false, error: 'No checkout URL returned' };
     }
   } catch (error) {
     console.error('Checkout error:', error);
-    alert('Failed to initiate checkout. Please try again.');
+    return { success: false, error: 'Failed to initiate checkout. Please try again.' };
   }
 }
 
@@ -134,7 +146,10 @@ export default function UpgradePage() {
   const router = useRouter();
   const { userId } = useAuth();
   const { data: subscription } = useSubscription();  // Current subscription data
+  const queryClient = useQueryClient();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [showUncancelDialog, setShowUncancelDialog] = useState(false);
+  const [pendingPlanAfterUncancel, setPendingPlanAfterUncancel] = useState<PricingPlan | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
   const [previewData, setPreviewData] = useState<{
@@ -146,6 +161,42 @@ export default function UpgradePage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Uncancel subscription mutation
+  const uncancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cancelAtNextBillingDate: false }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || 'Failed to uncancel subscription');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowUncancelDialog(false);
+      
+      // If there's a pending plan after uncancel, proceed to show confirmation dialog
+      if (pendingPlanAfterUncancel) {
+        setSelectedPlan(pendingPlanAfterUncancel);
+        setShowConfirmDialog(true);
+        setPendingPlanAfterUncancel(null);
+      } else {
+        // Otherwise refresh the page to update subscription data
+        window.location.reload();
+      }
+    },
+    onError: (error: Error) => {
+      setErrorMessage(error.message || 'Failed to reactivate subscription. Please try again.');
+      setShowUncancelDialog(false);
+      setPendingPlanAfterUncancel(null);
+    },
+  });
 
   // Determine current plan ID from subscription (default to 'free_monthly' if none)
   const currentPlanId = subscription?.planId || 'free_monthly';
@@ -218,6 +269,12 @@ export default function UpgradePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Handle 403 - subscription scheduled for cancellation or no active subscription
+        if (response.status === 403) {
+          throw new Error(errorData.message || errorData.error || 'Cannot upgrade subscription');
+        }
+        
         throw new Error(errorData.error || 'Failed to update subscription');
       }
 
@@ -245,18 +302,39 @@ export default function UpgradePage() {
    * - Not authenticated: show alert
    */
   const handlePlanClick = (plan: PricingPlan) => {
+    // Check if subscription is scheduled to cancel
+    const isScheduledToCancel = subscription?.cancelAtPeriodEnd;
+    
     if (plan.productId === currentPlanId) {
-      // User clicked their current plan - go to app
-      window.location.href = '/';
+      // User clicked their current plan
+      if (isScheduledToCancel) {
+        // Show uncancel dialog instead of going to app
+        setShowUncancelDialog(true);
+      } else {
+        // Go to app
+        window.location.href = '/';
+      }
     } else if (subscription && subscription.planId !== 'free_monthly') {
       // User has an existing paid subscription and wants to change
-      // Show confirmation dialog with credit calculation
-      setSelectedPlan(plan);
-      setShowConfirmDialog(true);
+      if (isScheduledToCancel) {
+        // If scheduled to cancel, first show uncancel dialog
+        // After uncancel succeeds, proceed to show confirmation dialog
+        setPendingPlanAfterUncancel(plan);
+        setShowUncancelDialog(true);
+      } else {
+        // Show confirmation dialog with credit calculation
+        setSelectedPlan(plan);
+        setShowConfirmDialog(true);
+      }
     } else if (plan.productId && userId) {
       // User is on free plan or no subscription - new checkout flow
       setLoadingPlan(plan.name);
-      handleCheckout(plan.productId);
+      handleCheckout(plan.productId).then((result) => {
+        if (!result.success && result.error) {
+          setErrorMessage(result.error);
+        }
+        setLoadingPlan(null);
+      });
     } else if (!userId) {
       // Not authenticated
       alert('Please sign in to upgrade');
@@ -356,7 +434,9 @@ export default function UpgradePage() {
                         Processing...
                       </>
                     ) : (
-                      isCurrentPlan ? "Continue to App" : plan.buttonText
+                      isCurrentPlan 
+                        ? (subscription?.cancelAtPeriodEnd ? "Uncancel" : "Continue to App") 
+                        : plan.buttonText
                     )}
                   </Button>
                 </CardFooter>
@@ -398,7 +478,7 @@ export default function UpgradePage() {
                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                   <p className="font-semibold">Preview unavailable</p>
                   <p>{previewError}</p>
-                  <p className="mt-1 text-xs">You can still proceed, but the exact charge amount may vary.</p>
+                  <p className="mt-1 text-xs">Please try again later. If the problem persists, contact support.</p>
                 </div>
               )}
 
@@ -440,7 +520,7 @@ export default function UpgradePage() {
             </Button>
             <Button
               onClick={() => selectedPlan && handleUpdateSubscription(selectedPlan.productId!)}
-              disabled={loadingPlan === selectedPlan?.name || previewLoading || (previewError === null && !previewData)}
+              disabled={loadingPlan === selectedPlan?.name || previewLoading || !!previewError || !previewData}
             >
               {loadingPlan === selectedPlan?.name ? (
                 <>
@@ -544,6 +624,60 @@ export default function UpgradePage() {
               }}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Uncancel Confirmation Dialog */}
+      <Dialog open={showUncancelDialog} onOpenChange={(open) => {
+        setShowUncancelDialog(open);
+        if (!open) {
+          setPendingPlanAfterUncancel(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reactivate Subscription</DialogTitle>
+            <div className="space-y-3 pt-2 text-muted-foreground">
+              <p className="text-sm">
+                Your subscription is scheduled to cancel on{" "}
+                <span className="font-semibold">{subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : 'N/A'}</span>.
+              </p>
+              {pendingPlanAfterUncancel ? (
+                <p className="text-sm">
+                  To upgrade to <span className="font-semibold">{pendingPlanAfterUncancel.name}</span>, you need to reactivate your subscription first. Would you like to continue?
+                </p>
+              ) : (
+                <p className="text-sm">
+                  Are you sure you want to reactivate your subscription? It will continue to renew automatically.
+                </p>
+              )}
+            </div>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUncancelDialog(false);
+                setPendingPlanAfterUncancel(null);
+              }}
+              disabled={uncancelSubscriptionMutation.isPending}
+            >
+              {pendingPlanAfterUncancel ? "Cancel" : "Keep Cancelled"}
+            </Button>
+            <Button
+              onClick={() => uncancelSubscriptionMutation.mutate()}
+              disabled={uncancelSubscriptionMutation.isPending}
+            >
+              {uncancelSubscriptionMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Reactivating...
+                </>
+              ) : (
+                pendingPlanAfterUncancel ? "Reactivate & Continue" : "Yes, Reactivate"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

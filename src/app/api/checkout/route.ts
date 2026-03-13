@@ -133,6 +133,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
     }
 
+    // Check if user already has an active subscription
+    const supabase = getSupabaseAdminClient();
+    const { data: existingSubscription } = await supabase
+      .rpc('get_user_subscription', { p_clerk_user_id: clerkUserId });
+
+    if (existingSubscription && existingSubscription.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Active subscription exists',
+          message: 'You already have an active subscription. Use the upgrade endpoint to change plans.',
+          currentPlan: existingSubscription[0].plan_id
+        },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
 

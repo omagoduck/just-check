@@ -15,15 +15,18 @@ const DODO_API_URL =
 
 /**
  * POST /api/subscription/cancel
- * Cancels the user's subscription at the next billing date
+ * Cancels or uncancels the user's subscription based on the cancelAtNextBillingDate parameter
  *
- * This sets cancel_at_next_billing_date to true, meaning the subscription
- * will remain active until the end of the current billing period and then
- * automatically cancel.
+ * When cancelAtNextBillingDate is true, the subscription will remain active until 
+ * the end of the current billing period and then automatically cancel.
  *
+ * When cancelAtNextBillingDate is false, the subscription will be reactivated 
+ * and continue to renew automatically.
+ *
+ * @param cancelAtNextBillingDate - boolean indicating whether to cancel (true) or uncancel (false)
  * @returns JSON with success status and message
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
     // 1. AUTHENTICATION: Get authenticated user from Clerk
     const { userId: clerkUserId } = await auth();
@@ -35,6 +38,25 @@ export async function POST() {
     const { success } = await subscriptionRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
+    // Parse request body to get cancelAtNextBillingDate parameter
+    let cancelAtNextBillingDate: boolean;
+    try {
+      const body = await request.json();
+      cancelAtNextBillingDate = body.cancelAtNextBillingDate;
+      
+      if (typeof cancelAtNextBillingDate !== 'boolean') {
+        return NextResponse.json({ 
+          error: 'Invalid request body',
+          message: 'cancelAtNextBillingDate must be a boolean value'
+        }, { status: 400 });
+      }
+    } catch (parseError) {
+      return NextResponse.json({ 
+        error: 'Invalid request body',
+        message: 'Request body must be valid JSON with cancelAtNextBillingDate boolean field'
+      }, { status: 400 });
     }
 
     const supabase = getSupabaseAdminClient();
@@ -54,6 +76,23 @@ export async function POST() {
       return NextResponse.json({ error: 'Subscription ID not found' }, { status: 400 });
     }
 
+    // Check current state and validate the requested action
+    const isCurrentlyScheduledForCancellation = userSubscription.metadata?.cancel_at_next_billing_date === true;
+    
+    if (cancelAtNextBillingDate && isCurrentlyScheduledForCancellation) {
+      return NextResponse.json({ 
+        error: 'Subscription already scheduled for cancellation',
+        message: 'Your subscription is already scheduled to cancel at the end of the current billing period.'
+      }, { status: 400 });
+    }
+    
+    if (!cancelAtNextBillingDate && !isCurrentlyScheduledForCancellation) {
+      return NextResponse.json({ 
+        error: 'Subscription is not scheduled for cancellation',
+        message: 'Your subscription is not scheduled for cancellation.'
+      }, { status: 400 });
+    }
+
     // 3. CALL DODO API: PATCH subscription to set cancel_at_next_billing_date
     const response = await fetch(`${DODO_API_URL}/subscriptions/${userSubscription.dodo_subscription_id}`, {
       method: 'PATCH',
@@ -62,15 +101,15 @@ export async function POST() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        cancel_at_next_billing_date: true,
+        cancel_at_next_billing_date: cancelAtNextBillingDate,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DODO cancel subscription error:', errorText);
+      console.error('DODO subscription update error:', errorText);
       return NextResponse.json(
-        { error: 'Failed to cancel subscription', details: errorText },
+        { error: `Failed to ${cancelAtNextBillingDate ? 'cancel' : 'uncancel'} subscription`, details: errorText },
         { status: response.status }
       );
     }
@@ -85,14 +124,18 @@ export async function POST() {
     }
 
     // 4. RETURN SUCCESS
+    const successMessage = cancelAtNextBillingDate 
+      ? 'Subscription will be cancelled at the end of the current billing period'
+      : 'Subscription has been reactivated and will continue to renew automatically';
+      
     return NextResponse.json({
       success: true,
-      message: 'Subscription will be cancelled at the end of the current billing period',
+      message: successMessage,
       subscription: data || null,
     });
 
   } catch (error) {
-    console.error('Error cancelling subscription:', error);
+    console.error('Error updating subscription cancellation status:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
     const subscription = Array.isArray(subscriptions) ? subscriptions[0] : subscriptions;
 
     if (subError || !subscription) {
-      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'No active subscription found',
+        message: 'You need an active subscription to upgrade. Please subscribe first.'
+      }, { status: 403 });
     }
 
     if (!subscription.dodo_subscription_id) {

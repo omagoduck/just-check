@@ -25,6 +25,7 @@ export default function UsagePage() {
   const { data: subscriptionData, isLoading: subscriptionLoading, error: subscriptionError } = useSubscription();
   const queryClient = useQueryClient();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showUncancelDialog, setShowUncancelDialog] = useState(false);
   const [showUpdatePaymentDialog, setShowUpdatePaymentDialog] = useState(false);
 
   // Cancel subscription mutation
@@ -32,6 +33,10 @@ export default function UsagePage() {
     mutationFn: async () => {
       const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cancelAtNextBillingDate: true }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -43,6 +48,33 @@ export default function UsagePage() {
       // Invalidate and refetch subscription data
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       setShowCancelDialog(false);
+    },
+  });
+
+  // Uncancel subscription mutation
+  const uncancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cancelAtNextBillingDate: false }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || 'Failed to uncancel subscription');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch subscription data
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      setShowUncancelDialog(false);
+      toast.success('Subscription reactivated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reactivate subscription. Please try again.');
     },
   });
 
@@ -231,13 +263,18 @@ export default function UsagePage() {
             <CardTitle>Current Plan</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="text-lg font-semibold">
                 {subscriptionData?.planId ? getPlanDisplayName(subscriptionData.planId) : 'Free'}
               </div>
               {subscriptionData?.status && (
                 <Badge variant={getBadgeVariant(subscriptionData.status)} className="capitalize">
                   {subscriptionData.status}
+                </Badge>
+              )}
+              {subscriptionData?.cancelAtPeriodEnd && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                  Scheduled to Cancel
                 </Badge>
               )}
             </div>
@@ -261,9 +298,18 @@ export default function UsagePage() {
             {/* Show cancelled status if already set to cancel */}
             {subscriptionData?.cancelAtPeriodEnd && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive mb-3">
                   Your subscription has been cancelled and will end on {formatDate(subscriptionData?.currentPeriodEnd)}. It will not renew automatically.
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUncancelDialog(true)}
+                  disabled={uncancelSubscriptionMutation.isPending}
+                  className="text-muted-foreground hover:text-primary hover:border-primary"
+                >
+                  Uncancel Subscription
+                </Button>
               </div>
             )}
             {/* Update payment method section for on_hold subscriptions */}
@@ -282,11 +328,11 @@ export default function UsagePage() {
               </div>
             )}
 
-            {/* Confirmation Dialog */}
+            {/* Cancel Confirmation Dialog */}
             <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Cancel Subscription</DialogTitle>
+                  <DialogTitle>Are you sure?</DialogTitle>
                   <DialogDescription>
                     Are you sure you want to cancel your subscription? You will retain access until the end of the current billing period ({formatDate(subscriptionData?.currentPeriodEnd)}).
                   </DialogDescription>
@@ -294,17 +340,43 @@ export default function UsagePage() {
                 <DialogFooter>
                   <Button
                     variant="outline"
+                    onClick={() => cancelSubscriptionMutation.mutate()}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Yes, Cancel'}
+                  </Button>
+                  <Button
                     onClick={() => setShowCancelDialog(false)}
                     disabled={cancelSubscriptionMutation.isPending}
                   >
                     Keep Subscription
                   </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Uncancel Confirmation Dialog */}
+            <Dialog open={showUncancelDialog} onOpenChange={setShowUncancelDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reactivate Subscription</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to reactivate your subscription? It will continue to renew automatically on {formatDate(subscriptionData?.currentPeriodEnd)}.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
                   <Button
-                    variant="destructive"
-                    onClick={() => cancelSubscriptionMutation.mutate()}
-                    disabled={cancelSubscriptionMutation.isPending}
+                    variant="outline"
+                    onClick={() => setShowUncancelDialog(false)}
+                    disabled={uncancelSubscriptionMutation.isPending}
                   >
-                    {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Yes, Cancel'}
+                    Keep Cancelled
+                  </Button>
+                  <Button
+                    onClick={() => uncancelSubscriptionMutation.mutate()}
+                    disabled={uncancelSubscriptionMutation.isPending}
+                  >
+                    {uncancelSubscriptionMutation.isPending ? 'Reactivating...' : 'Yes, Reactivate'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
