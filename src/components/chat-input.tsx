@@ -681,17 +681,17 @@ export function ChatInput({
                             className="group relative bg-muted rounded-lg overflow-hidden border border-border hover:border-border/80 shadow-md"
                           >
                             {(uploadStatus === 'pending' || uploadStatus === 'uploading') && (
-                              <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                              <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
                                 <div className="flex flex-col items-center gap-1">
                                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-xs text-foreground">
                                     {uploadStatus === 'uploading' ? 'Uploading...' : 'Pending'}
                                   </span>
                                 </div>
                               </div>
                             )}
                             {uploadStatus === 'error' && (
-                              <div className="absolute inset-0 bg-destructive/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                              <div className="absolute inset-0 backdrop-blur-[2px] z-10 flex items-center justify-center">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button
@@ -699,7 +699,7 @@ export function ChatInput({
                                         const fileToRetry = attachedFiles.find(f => f.id === id);
                                         if (fileToRetry) uploadFile(fileToRetry);
                                       }}
-                                      className="w-8 h-8 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full flex items-center justify-center transition-colors"
+                                      className="w-8 h-8 bg-muted text-foreground rounded-full flex items-center justify-center transition-colors"
                                     >
                                       <RefreshCw className="h-4 w-4" />
                                     </button>
@@ -756,9 +756,9 @@ export function ChatInput({
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => removeAttachment(id)}
-                                  className="absolute top-1 right-1 w-5 h-5 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                                  className="absolute top-1 right-1 w-6 h-6 text-foreground rounded-full bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg z-20"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <X className="h-4 w-4" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent><p>Remove file</p></TooltipContent>
