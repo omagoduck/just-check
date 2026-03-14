@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getRemainingAllowance } from '@/lib/allowance';
 import { uploadFileToStorage, recordFileUpload, deleteFileFromStorage } from '@/lib/storage/file-storage-service';
 import { validateFiles, SUPPORTED_FILE_TYPES } from '@/lib/storage/file-validation';
 import { uploadRatelimit } from '@/lib/ratelimit';
@@ -16,6 +17,12 @@ export async function POST(req: NextRequest) {
     const { success } = await uploadRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json({ error: 'Too many uploads. Please wait a moment.' }, { status: 429 });
+    }
+
+    // Check allowance before creating conversation
+    const remainingAllowance = await getRemainingAllowance(clerkUserId);
+    if (remainingAllowance <= 0) {
+      return NextResponse.json({ error: 'Insufficient allowance' }, { status: 402 });
     }
 
     // Parse form data

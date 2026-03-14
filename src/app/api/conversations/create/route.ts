@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getRemainingAllowance } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { conversationsRatelimit } from '@/lib/ratelimit';
 
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
     const { success } = await conversationsRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
+    // Check allowance before creating conversation
+    const remainingAllowance = await getRemainingAllowance(clerkUserId);
+    if (remainingAllowance <= 0) {
+      return NextResponse.json({ error: 'Insufficient allowance' }, { status: 402 });
     }
 
     const supabase = getSupabaseAdminClient();
