@@ -143,7 +143,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
 
   return (
     <div className="w-full mb-4 group">
-      <div className="space-y-2">
+      <div className="space-y-3">
         {message.parts.map((part, index) => {
           switch (part.type) {
             case 'text':
@@ -162,15 +162,15 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
                 <div key={index}>
                   <Accordion type="single" collapsible>
                     <AccordionItem value={itemId} className="border-none">
-                      <AccordionTrigger className="py-2 hover:no-underline hover:bg-transparent transition-colors duration-200 group w-fit flex-none">
-                        <div className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors">
-                          <Brain className="h-4 w-4" />
+                      <AccordionTrigger className="py-0 hover:no-underline hover:bg-transparent transition-colors duration-200 group w-fit flex-none">
+                        <div className="flex items-start space-x-2 text-muted-foreground hover:text-foreground transition-colors">
+                          <Brain className="h-4 w-4 shrink-0 mt-0.5" />
                           <span className="text-sm">
                             {label}
                           </span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-2">
+                      <AccordionContent className="pb-0 pt-2">
                         <div className="ml-1.5 border-l-2 border-border pl-4">
                           <Response className="text-sm text-muted-foreground leading-relaxed">
                             {part.text}
