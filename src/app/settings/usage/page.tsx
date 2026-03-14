@@ -348,6 +348,7 @@ export default function UsagePage() {
                   <Button
                     onClick={() => setShowCancelDialog(false)}
                     disabled={cancelSubscriptionMutation.isPending}
+                    autoFocus
                   >
                     Keep Subscription
                   </Button>
@@ -375,6 +376,7 @@ export default function UsagePage() {
                   <Button
                     onClick={() => uncancelSubscriptionMutation.mutate()}
                     disabled={uncancelSubscriptionMutation.isPending}
+                    autoFocus
                   >
                     {uncancelSubscriptionMutation.isPending ? 'Reactivating...' : 'Yes, Reactivate'}
                   </Button>

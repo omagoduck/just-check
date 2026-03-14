@@ -669,6 +669,7 @@ export default function UpgradePage() {
             <Button
               onClick={() => uncancelSubscriptionMutation.mutate()}
               disabled={uncancelSubscriptionMutation.isPending}
+              autoFocus
             >
               {uncancelSubscriptionMutation.isPending ? (
                 <>
