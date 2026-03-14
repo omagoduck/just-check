@@ -497,13 +497,20 @@ export function ChatInput({
     const newFiles = Array.from(event.target.files || []);
     if (!newFiles.length) return;
 
-    // Use the shared processFiles function
-    await processFiles(newFiles);
-
-    // Additional cleanup specific to file input
+    // Close modal immediately
     setShowAttachments(false);
+
+    // Reset input value immediately
     if (event.target) {
       event.target.value = '';
+    }
+
+    // Process files, but catch any errors to avoid unhandled rejections
+    try {
+      await processFiles(newFiles);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      // Optionally, you could show an error message to the user
     }
   };
 
