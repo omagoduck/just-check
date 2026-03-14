@@ -62,11 +62,14 @@ export async function executeClientTool(
     const output = await executor(toolCall.input, toolCall);
     return { output };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Log full error server-side for debugging
+    console.error(`Tool execution error for ${toolCall.toolName}:`, error);
+    
+    // Return generic error message to client to prevent data leakage
     return {
       error: {
         state: 'output-error' as const,
-        errorText: errorMessage,
+        errorText: 'Tool execution failed. Please try again.',
       },
     };
   }

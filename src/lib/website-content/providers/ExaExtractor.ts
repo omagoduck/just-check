@@ -52,8 +52,7 @@ export class ExaExtractor implements IWebsiteContentProvider {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Exa API error: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(`Exa API error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -62,7 +61,7 @@ export class ExaExtractor implements IWebsiteContentProvider {
       return this.parseExaResponse(url, data);
     } catch (error) {
       console.error('Exa extract error:', error);
-      throw error instanceof Error ? error : new Error('Unknown error occurred during extraction');
+      throw new Error('Failed to extract website content. Please try again later.');
     }
   }
 

@@ -58,6 +58,6 @@ export async function executeViewWebsite(
     return { results };
   } catch (error) {
     console.error('View website error:', error);
-    throw error instanceof Error ? error : new Error('Unknown error occurred');
+    throw new Error('Failed to view website. Please try again later.');
   }
 }

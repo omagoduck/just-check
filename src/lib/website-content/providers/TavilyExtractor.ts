@@ -95,7 +95,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       return result;
     } catch (error) {
       console.error('Tavily extract error:', error);
-      throw error instanceof Error ? error : new Error('Unknown error occurred during extraction');
+      throw new Error('Failed to extract website content. Please try again later.');
     }
   }
 

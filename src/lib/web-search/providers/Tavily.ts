@@ -68,7 +68,7 @@ export class TavilyProvider implements ISearchProvider {
       return this.translateTavilyResults(data, query);
     } catch (error) {
       console.error('Tavily search error:', error);
-      throw new Error(`Tavily search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error('Search failed. Please try again later.');
     }
   }
 
@@ -184,7 +184,6 @@ export class TavilyProvider implements ISearchProvider {
       metadata: {
         totalResults: data.results.length,
         searchMode: query.mode || 'auto',
-        rawResponse: data // Keep raw response for debugging if needed
       }
     };
   }

@@ -44,7 +44,7 @@ export class ExaProvider implements ISearchProvider {
       return this.translateExaResults(data, query);
     } catch (error) {
       console.error('Exa search error:', error);
-      throw new Error(`Exa search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error('Search failed. Please try again later.');
     }
   }
 
@@ -176,7 +176,6 @@ export class ExaProvider implements ISearchProvider {
       metadata: {
         totalResults: data.results.length,
         searchMode: query.mode || 'auto',
-        rawResponse: data // Keep raw response for debugging if needed
       }
     };
   }

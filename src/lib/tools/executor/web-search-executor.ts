@@ -81,6 +81,6 @@ export async function executeWebSearch(
     };
   } catch (error) {
     console.error('Web search error:', error);
-    throw error instanceof Error ? error : new Error('Failed to perform web search');
+    throw new Error('Failed to perform web search. Please try again later.');
   }
 }
