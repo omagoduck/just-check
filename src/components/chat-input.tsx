@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isWebSpeechRecognitionSupported } from "@/lib/input-speech-recognition/providers/web-speech-api";
@@ -30,7 +31,10 @@ import {
   ChevronDown,
   Check,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle,
+  Clock,
+  Zap
 } from "lucide-react";
 import { UIModels } from "@/lib/models";
 import {
@@ -53,6 +57,16 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   onLiveVoiceChat?: () => void;
   initialUIModelId?: string;
   maxInputCharacterLength?: number;
+  /** Whether user is on the free plan */
+  isFreeUser?: boolean;
+  /** Whether user has remaining allowance to send messages */
+  hasAllowance?: boolean;
+  /** Percentage of allowance remaining (0-100) */
+  remainingPercentage?: number;
+  /** When the current allowance period ends (ISO string) */
+  allowanceResetTime?: string | null;
+  /** Whether allowance data is still loading */
+  isLoadingAllowance?: boolean;
 }
 interface AttachedFile {
   id: string;
@@ -79,6 +93,11 @@ export function ChatInput({
   onLiveVoiceChat,
   initialUIModelId = "fast",
   maxInputCharacterLength,
+  isFreeUser = false,
+  hasAllowance = true,
+  remainingPercentage = 100,
+  allowanceResetTime = null,
+  isLoadingAllowance = false,
   ...props
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
@@ -584,7 +603,7 @@ export function ChatInput({
   const characterCount = inputValue.length;
   const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
   const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
-  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads;
+  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads && hasAllowance;
 
   return (
     <TooltipProvider>
@@ -609,6 +628,58 @@ export function ChatInput({
             </div>
           </div>
         )}
+
+        {/* Allowance exhausted banner */}
+        <AnimatePresence>
+          {!isLoadingAllowance && !hasAllowance && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: "8px" }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className={cn(
+                "flex items-center justify-between gap-3 px-4 py-3 rounded-xl border",
+                isFreeUser
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+                  : "bg-orange-500/10 border-orange-500/30 text-orange-200"
+              )}>
+                <div className="flex items-center gap-3 min-w-0">
+                  {isFreeUser ? (
+                    <Zap className="h-5 w-5 shrink-0 text-amber-400" />
+                  ) : (
+                    <Clock className="h-5 w-5 shrink-0 text-orange-400" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {isFreeUser
+                        ? "Free access is temporarily unavailable due to heavy demand."
+                        : "Your allowance has ended for this period."}
+                    </p>
+                    {!isFreeUser && allowanceResetTime && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Resets at {new Date(allowanceResetTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Link
+                  href="/upgrade"
+                  className={cn(
+                    "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                    isFreeUser
+                      ? "bg-amber-500 hover:bg-amber-500/80 text-amber-950"
+                      : "bg-orange-500 hover:bg-orange-500/80 text-orange-950"
+                  )}
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  Upgrade
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main input container */}
         <div
@@ -976,7 +1047,15 @@ export function ChatInput({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p>{canSubmit ? "Send message" : "Enter a message to send"}</p>
+                      <p>
+                        {canSubmit
+                          ? "Send message"
+                          : !hasAllowance
+                            ? isFreeUser
+                              ? "Free access is temporarily unavailable"
+                              : "Allowance exhausted - wait for reset or upgrade"
+                            : "Enter a message to send"}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 )}

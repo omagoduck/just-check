@@ -5,14 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useCreateConversation } from '@/hooks/use-conversations';
 import { useConversationStarterStore } from '@/stores/message-store';
+import { useSubscriptionAndAllowanceStatus } from '@/hooks/use-subscription-and-allowance';
 
 export default function Main() {
   const createConversation = useCreateConversation();
   const setConversationStarter = useConversationStarterStore((state) => state.setConversationStarter);
   const [isLoading, setIsLoading] = useState(false);
+  const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
   const handleSubmit = (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, UIModelId?: string) => {
     if (!message.trim()) return;
+
+    // Block submission if user has no allowance
+    if (!hasAllowance) return;
 
     setIsLoading(true);
 
@@ -49,13 +54,20 @@ export default function Main() {
       </motion.div>
 
       <motion.div
-        layoutId="chat-input-container"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
         className="w-full max-w-3xl"
       >
         <ChatInput
           onSubmit={handleSubmit}
           isLoading={isLoading}
           placeholder="Type your message..."
+          isFreeUser={isFreeUser}
+          hasAllowance={hasAllowance}
+          remainingPercentage={remainingPercentage}
+          allowanceResetTime={periodEnd}
+          isLoadingAllowance={isLoadingAllowance}
         />
       </motion.div>
     </div>

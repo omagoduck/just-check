@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMessages } from '@/hooks/use-messages';
 import { useConversationStarterStore } from '@/stores/message-store';
 import { ChatHistorySkeleton } from '@/components/messages/renderers/ChatHistorySkeleton';
+import { useSubscriptionAndAllowanceStatus } from '@/hooks/use-subscription-and-allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { ChevronDown } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export default function ChatPage() {
   const conversationStarter = useConversationStarterStore((state) => state.conversationStarter);
   const clearConversationStarter = useConversationStarterStore((state) => state.clearConversationStarter);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
   // Fetch conversation history using TanStack Query
   const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
@@ -100,6 +102,9 @@ export default function ChatPage() {
   }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
 
   const handleSendMessage = (text: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => {
+    // Block submission if user has no allowance
+    if (!hasAllowance) return;
+
     // Build message parts including attachments if present
     const parts: Array<{ type: 'text'; text: string } | { type: 'file'; url: string; mediaType: string; filename?: string }> = [
       { type: 'text', text }
@@ -231,7 +236,9 @@ export default function ChatPage() {
             className="flex-1 flex flex-col"
           >
             <motion.div
-              layoutId="chat-input-container"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
               className="flex-1"
             >
               <ChatInput
@@ -240,6 +247,11 @@ export default function ChatPage() {
                 isAiGenerating={isGenerating}
                 onStopGenerating={stop}
                 placeholder="Type your message..."
+                isFreeUser={isFreeUser}
+                hasAllowance={hasAllowance}
+                remainingPercentage={remainingPercentage}
+                allowanceResetTime={periodEnd}
+                isLoadingAllowance={isLoadingAllowance}
               />
             </motion.div>
             <p className="text-center text-[12px] text-gray-500 mt-1">
