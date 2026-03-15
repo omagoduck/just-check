@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
-import { subscriptionRatelimit } from '@/lib/ratelimit';
+import { subscriptionGetRatelimit } from '@/lib/ratelimit';
 
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     // Rate limiting
-    const { success } = await subscriptionRatelimit.limit(clerkUserId);
+    const { success } = await subscriptionGetRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
