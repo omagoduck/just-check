@@ -629,57 +629,52 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Allowance exhausted banner */}
-        <AnimatePresence>
-          {!isLoadingAllowance && !hasAllowance && (
-            <motion.div
-              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: 'auto', marginBottom: "8px" }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className={cn(
-                "flex items-center justify-between gap-3 px-4 py-3 rounded-xl border",
-                isFreeUser
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
-                  : "bg-orange-500/10 border-orange-500/30 text-orange-200"
-              )}>
-                <div className="flex items-center gap-3 min-w-0">
-                  {isFreeUser ? (
-                    <Zap className="h-5 w-5 shrink-0 text-amber-400" />
-                  ) : (
-                    <Clock className="h-5 w-5 shrink-0 text-orange-400" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {isFreeUser
-                        ? "Free access is temporarily unavailable due to heavy demand."
-                        : "Your allowance has ended for this period."}
-                    </p>
-                    {!isFreeUser && allowanceResetTime && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Resets at {new Date(allowanceResetTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <Link
-                  href="/upgrade"
-                  className={cn(
-                    "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    isFreeUser
-                      ? "bg-amber-500 hover:bg-amber-500/80 text-amber-950"
-                      : "bg-orange-500 hover:bg-orange-500/80 text-orange-950"
-                  )}
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  Upgrade
-                </Link>
-              </div>
-            </motion.div>
+        {/* Allowance exhausted banner - always rendered to prevent layout shift during page transitions */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-out",
+            !isLoadingAllowance && !hasAllowance ? "max-h-24 mb-2 opacity-100" : "max-h-0 mb-0 opacity-0"
           )}
-        </AnimatePresence>
+        >
+          <div className={cn(
+            "flex items-center justify-between gap-3 px-4 py-3 rounded-xl border",
+            isFreeUser
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
+              : "bg-orange-500/10 border-orange-500/30 text-orange-200"
+          )}>
+            <div className="flex items-center gap-3 min-w-0">
+              {isFreeUser ? (
+                <Zap className="h-5 w-5 shrink-0 text-amber-400" />
+              ) : (
+                <Clock className="h-5 w-5 shrink-0 text-orange-400" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {isFreeUser
+                    ? "Free access is temporarily unavailable due to heavy demand."
+                    : "Your allowance has ended for this period."}
+                </p>
+                {!isFreeUser && allowanceResetTime && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Resets at {new Date(allowanceResetTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Link
+              href="/upgrade"
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                isFreeUser
+                  ? "bg-amber-500 hover:bg-amber-500/80 text-amber-950"
+                  : "bg-orange-500 hover:bg-orange-500/80 text-orange-950"
+              )}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              Upgrade
+            </Link>
+          </div>
+        </div>
 
         {/* Main input container */}
         <div

@@ -236,9 +236,7 @@ export default function ChatPage() {
             className="flex-1 flex flex-col"
           >
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
+              layoutId="chat-input-container"
               className="flex-1"
             >
               <ChatInput
