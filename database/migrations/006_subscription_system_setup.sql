@@ -3,6 +3,7 @@
 -- Lumy Alpha - DODO Payments, Allowance Tracking & Webhook System
 -- Version: 006
 -- Created: 2026-02-02
+-- Updated: 2026-03-16 - Changed allowance columns to NUMERIC(16,10) for sub-cent precision
 -- ============================================================================
 
 -- ============================================================================
@@ -96,12 +97,12 @@ $$;
 -- clerk_user_id is the PRIMARY KEY to ensure one row per user
 CREATE TABLE IF NOT EXISTS public.periodic_allowance (
     clerk_user_id TEXT PRIMARY KEY REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
-    alloted_allowance INTEGER NOT NULL DEFAULT 0,
-    remaining_allowance INTEGER NOT NULL DEFAULT 0,
+    alloted_allowance NUMERIC(16,10) NOT NULL DEFAULT 0,
+    remaining_allowance NUMERIC(16,10) NOT NULL DEFAULT 0,
     period_start TIMESTAMP WITH TIME ZONE NOT NULL,
     period_end TIMESTAMP WITH TIME ZONE NOT NULL,
     last_reset_at TIMESTAMP WITH TIME ZONE,
-    rolledover_amount INTEGER DEFAULT 0,
+    rolledover_amount NUMERIC(16,10) DEFAULT 0,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
@@ -126,15 +127,15 @@ ALTER TABLE public.periodic_allowance DISABLE ROW LEVEL SECURITY;
 --- Create a function to atomically deduct allowance with clamping to 0
 CREATE OR REPLACE FUNCTION deduct_allowance(
   p_clerk_user_id TEXT,
-  p_cost_cents INTEGER
+  p_cost NUMERIC(16,10)
 )
-RETURNS INTEGER AS $$
+RETURNS NUMERIC(16,10) AS $$
 DECLARE
-  v_new_allowance INTEGER;
+  v_new_allowance NUMERIC(16,10);
 BEGIN
   -- Update the allowance atomically with row-level lock
   UPDATE periodic_allowance
-  SET remaining_allowance = GREATEST(remaining_allowance - p_cost_cents, 0)
+  SET remaining_allowance = GREATEST(remaining_allowance - p_cost, 0)
   WHERE clerk_user_id = p_clerk_user_id
   RETURNING remaining_allowance INTO v_new_allowance;
   
@@ -144,7 +145,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Grant execute permission to the service role
-GRANT EXECUTE ON FUNCTION deduct_allowance(TEXT, INTEGER) TO service_role;
+GRANT EXECUTE ON FUNCTION deduct_allowance(TEXT, NUMERIC) TO service_role;
 
 -- ============================================================================
 -- WEBHOOK EVENT LOG TABLE

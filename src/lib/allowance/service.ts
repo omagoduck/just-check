@@ -113,17 +113,17 @@ export async function getRemainingAllowance(clerkUserId: string): Promise<number
 }
 
 /**
- * Atomically deducts the specified amount of cents from the user's remaining allowance.
+ * Atomically deducts the specified cost from the user's remaining allowance.
  * Uses a Postgres row-level lock via UPDATE to ensure safe concurrent modifications.
  * The allowance is clamped to a minimum of 0 (no negative balances).
  *
  * @param clerkUserId - The user's Clerk ID
- * @param costCents - The amount to deduct (must be >= 0)
+ * @param cost - The amount to deduct (must be >= 0), with sub-cent precision
  * @returns The new remaining allowance after deduction
  * @throws If the database update fails
  */
-export async function deductAllowance(clerkUserId: string, costCents: number): Promise<number> {
-  if (costCents <= 0) {
+export async function deductAllowance(clerkUserId: string, cost: number): Promise<number> {
+  if (cost <= 0) {
     // No deduction needed; just return current
     return getRemainingAllowance(clerkUserId);
   }
@@ -133,7 +133,7 @@ export async function deductAllowance(clerkUserId: string, costCents: number): P
   // Use RPC to call the database function for atomic deduction
   const { data, error } = await supabase.rpc('deduct_allowance', {
     p_clerk_user_id: clerkUserId,
-    p_cost_cents: costCents,
+    p_cost: cost,
   });
 
   if (error) {

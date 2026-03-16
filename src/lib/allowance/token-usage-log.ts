@@ -1,7 +1,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getModelPricing, type ModelPricing } from './pricing';
-import { calculateCostCents } from './calculations';
+import { calculateCost } from './calculations';
 import type { TotalUsage } from '@/lib/conversation-history/types';
 
 /**
@@ -15,7 +15,7 @@ export interface TokenUsageLogParams {
     UIModelId: string;
     internalModelId: string;
   };
-  totalCostCents: number;
+  totalCost: number;
   pricingUsed: ModelPricing;
 }
 
@@ -31,9 +31,9 @@ export async function logMessageTokenUsage(params: TokenUsageLogParams): Promise
 
     // Build the cost breakdown detail
     const estimatedCostDetail = {
-      inputCostCents: Math.round((params.tokenUsage.totalInputTokens * params.pricingUsed.input) / 10000),
-      outputCostCents: Math.round((params.tokenUsage.totalOutputTokens * params.pricingUsed.output) / 10000),
-      totalCostCents: params.totalCostCents,
+      inputCost: (params.tokenUsage.totalInputTokens * params.pricingUsed.input) / 10000,
+      outputCost: (params.tokenUsage.totalOutputTokens * params.pricingUsed.output) / 10000,
+      totalCost: params.totalCost,
       pricingPerMillion: params.pricingUsed,
     };
 
@@ -61,7 +61,7 @@ export async function logMessageTokenUsage(params: TokenUsageLogParams): Promise
         token_usage: tokenUsageObj,
         model_info: modelInfoObj,
         estimated_cost_detail: estimatedCostDetail,
-        estimated_total_cost: params.totalCostCents,
+        estimated_total_cost: params.totalCost,
       });
 
     if (error) {

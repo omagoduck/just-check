@@ -93,10 +93,10 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 // Values are proportional to the former monthly allowances (divided by 120).
 //
 // Example:
-// - "free_monthly" plan: 0 cents of equivalent cost
-// - "plus_monthly" plan: 3 cents of equivalent cost per 6 hours
-// - "pro_monthly" plan: 13 cents of equivalent cost per 6 hours
-// - "max_monthly" plan: 67 cents of equivalent cost per 6 hours
+// - "free_monthly" plan: 0 of equivalent cost
+// - "plus_monthly" plan: 3 of equivalent cost per 6 hours
+// - "pro_monthly" plan: 13 of equivalent cost per 6 hours
+// - "max_monthly" plan: 67 of equivalent cost per 6 hours
 const PLAN_ALLOWANCES: Record<string, number> = {
   free_monthly: 0,
   plus_monthly: 3,

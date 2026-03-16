@@ -75,13 +75,13 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
       // Charge allowance and log usage (only on success)
       if (clerkUserId) {
-        const costCents = 1; // Fixed cost per extraction
+        const cost = 1; // Fixed cost per extraction
 
         await chargeAndLogToolAllowance({
           toolName: 'viewWebsite',
           args: query,
           result: data,
-          costCents,
+          cost,
           clerkUserId,
           messageId,
           metadata: {

@@ -46,13 +46,13 @@ export class TavilyProvider implements ISearchProvider {
 
       // 3. Charge allowance and log usage (only on success)
       if (clerkUserId) {
-        const costCents = this.calculateCost(query);
+        const cost = this.calculateCost(query);
 
         await chargeAndLogToolAllowance({
           toolName: 'webSearch',
           args: query,
           result: data,
-          costCents,
+          cost,
           clerkUserId,
           messageId,
           metadata: {

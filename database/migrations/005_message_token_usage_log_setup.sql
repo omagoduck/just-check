@@ -3,6 +3,7 @@
 -- Lumy Alpha - Token Usage Tracking System
 -- Version: 005
 -- Created: 2026-01-31
+-- Updated: 2026-03-16 - Changed estimated_total_cost to NUMERIC(16,10) for sub-cent precision
 -- ============================================================================
 
 -- Create message_token_usage_log table
@@ -12,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.message_token_usage_log (
     token_usage JSONB NOT NULL DEFAULT '{}',
     model_info JSONB NOT NULL DEFAULT '{}',
     estimated_cost_detail JSONB NOT NULL DEFAULT '{}',
-    estimated_total_cost INTEGER NOT NULL DEFAULT 0,
+    estimated_total_cost NUMERIC(16,10) NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );
 

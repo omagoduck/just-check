@@ -5,7 +5,7 @@ export interface ToolChargeAndLogParams {
   toolName: string;
   args: any;
   result: any;
-  costCents: number;
+  cost: number;
   clerkUserId: string;
   messageId?: string;
   metadata?: Record<string, any>;
@@ -22,16 +22,16 @@ export async function chargeAndLogToolAllowance({
   toolName,
   args,
   result,
-  costCents,
+  cost,
   clerkUserId,
   messageId,
   metadata,
 }: ToolChargeAndLogParams): Promise<void> {
-  if (costCents <= 0) return;
+  if (cost <= 0) return;
 
   // Deduct allowance (atomic)
   try {
-    await deductAllowance(clerkUserId, costCents);
+    await deductAllowance(clerkUserId, cost);
   } catch (err) {
     console.error(`Failed to deduct allowance for tool ${toolName}:`, err);
     // Continue to log usage even if deduction fails
@@ -49,7 +49,7 @@ export async function chargeAndLogToolAllowance({
         tool_name: toolName,
         args: args,
         result: result,
-        estimated_cost_cents: costCents,
+        estimated_cost_cents: cost,
         metadata: metadata || {},
       });
   } catch (logErr) {

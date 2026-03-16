@@ -1,4 +1,12 @@
 -- ============================================================================
+-- TOOL USAGE LOG SETUP
+-- Lumy Alpha - Tool Usage Tracking & Cost Auditing
+-- Version: 007
+-- Created: 2026-03-16
+-- Updated: 2026-03-16 - Changed estimated_cost_cents to NUMERIC(16,10) for sub-cent precision
+-- ============================================================================
+
+-- ============================================================================
 -- TOOL USAGE LOG TABLE
 -- Tracks all external tool usage and associated costs for auditing and analytics
 -- ============================================================================
@@ -11,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.tool_usage_log (
     tool_name TEXT NOT NULL,
     args JSONB NOT NULL DEFAULT '{}',
     result JSONB,
-    estimated_cost_cents INTEGER NOT NULL,
+    estimated_cost_cents NUMERIC(16,10) NOT NULL,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
 );

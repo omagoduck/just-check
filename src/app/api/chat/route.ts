@@ -17,7 +17,7 @@ import { resolveModelRoute, getLanguageModel } from '@/lib/models';
 import { logMessageTokenUsage } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { auth } from '@clerk/nextjs/server';
-import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCostCents } from '@/lib/allowance';
+import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCost } from '@/lib/allowance';
 import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
@@ -382,7 +382,7 @@ export async function POST(req: Request) {
             if (!pricing) {
               console.error(`Pricing not found for model ${route.provider}/${route.id}`);
             } else {
-              cost = calculateCostCents(
+              cost = calculateCost(
                 streamOnFinishUsage.inputTokens || 0,
                 streamOnFinishUsage.outputTokens || 0,
                 pricing
@@ -405,7 +405,7 @@ export async function POST(req: Request) {
                 messageId: assistantMessage.id,
                 tokenUsage: currentUsageTotal,
                 modelInfo: { provider, UIModelId, internalModelId },
-                totalCostCents: cost,
+                totalCost: cost,
                 pricingUsed: pricing ?? { input: 0, output: 0 },
               });
             } catch (logErr) {
