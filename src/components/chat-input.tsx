@@ -11,6 +11,7 @@ import {
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isWebSpeechRecognitionSupported } from "@/lib/input-speech-recognition/providers/web-speech-api";
@@ -263,7 +264,10 @@ export function ChatInput({
     );
 
     if (uniqueNewFiles.length < files.length) {
-      console.warn('Duplicate files were detected and not added.');
+      const duplicateCount = files.length - uniqueNewFiles.length;
+      toast.warning('Duplicate files skipped', {
+        description: `${duplicateCount} file${duplicateCount > 1 ? 's were' : ' was'} already attached.`,
+      });
     }
 
     const filesWithIds: AttachedFile[] = uniqueNewFiles.map(file => ({
@@ -529,7 +533,9 @@ export function ChatInput({
       await processFiles(newFiles);
     } catch (error) {
       console.error('Error processing files:', error);
-      // Optionally, you could show an error message to the user
+      toast.error('Failed to process files', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
     }
   };
 
@@ -568,13 +574,17 @@ export function ChatInput({
       ));
     } catch (error) {
       console.error('Upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       setAttachedFiles(prev => prev.map(f => 
         f.id === fileWithId.id ? { 
           ...f, 
           uploadStatus: 'error' as const,
-          error: error instanceof Error ? error.message : 'Upload failed'
+          error: errorMessage
         } : f
       ));
+      toast.error('File upload failed', {
+        description: `${fileWithId.file.name}: ${errorMessage}`,
+      });
     }
   };
 
