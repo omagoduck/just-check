@@ -47,6 +47,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+// The MAX_FILES constant is hardcoded rn. Different use cases or user tiers may require different limits.
+// TODO || P8: Suggestion: Consider making this configurable via props or environment 
+const MAX_FILES = 5;
+
 interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSubmit'> {
   onSubmit?: (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => void;
   isLoading?: boolean;
@@ -184,6 +188,7 @@ export function ChatInput({
   // Compute upload states (used in processFiles and canSubmit)
   const hasUploadsInProgress = attachedFiles.some(f => f.uploadStatus === 'pending' || f.uploadStatus === 'uploading');
   const hasFailedUploads = attachedFiles.some(f => f.uploadStatus === 'error');
+  const isAtFileLimit = attachedFiles.length >= MAX_FILES;
 
   // Handle drag and drop with counter pattern for robustness
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -270,7 +275,27 @@ export function ChatInput({
       });
     }
 
-    const filesWithIds: AttachedFile[] = uniqueNewFiles.map(file => ({
+    // Enforce maximum file count limit
+    const currentCount = attachedFiles.length;
+    const availableSlots = MAX_FILES - currentCount;
+    
+    if (availableSlots <= 0) {
+      toast.error('Maximum files reached', {
+        description: `You can attach up to ${MAX_FILES} files. Remove some files to add more.`,
+      });
+      return;
+    }
+
+    const filesToAdd = uniqueNewFiles.slice(0, availableSlots);
+    
+    if (filesToAdd.length < uniqueNewFiles.length) {
+      const rejectedCount = uniqueNewFiles.length - filesToAdd.length;
+      toast.error('File limit exceeded', {
+        description: `Only ${filesToAdd.length} file${filesToAdd.length > 1 ? 's were' : ' was'} added. Maximum ${MAX_FILES} files allowed. ${rejectedCount} file${rejectedCount > 1 ? 's were' : ' was'} skipped.`,
+      });
+    }
+
+    const filesWithIds: AttachedFile[] = filesToAdd.map(file => ({
       id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
       file,
       uploadStatus: 'pending',
@@ -899,7 +924,10 @@ export function ChatInput({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 px-3"
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 px-3",
+                      isAtFileLimit && "opacity-50"
+                    )}
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
                     <Plus className="h-4 w-4" />
@@ -909,19 +937,36 @@ export function ChatInput({
                   {showAttachments && (
                     <div className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-xl z-10 p-2 min-w-40">
                       <button
-                        onClick={() => imageFileInputRef.current?.click()}
-                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                        onClick={() => !isAtFileLimit && imageFileInputRef.current?.click()}
+                        disabled={isAtFileLimit}
+                        className={cn(
+                          "flex items-center space-x-2 w-full px-3 py-2 text-sm rounded-lg transition-colors",
+                          isAtFileLimit
+                            ? "text-muted-foreground/50 cursor-not-allowed"
+                            : "text-foreground hover:bg-muted/50"
+                        )}
                       >
-                        <Image className="h-4 w-4 text-blue-400" />
+                        <Image className={cn("h-4 w-4", isAtFileLimit ? "text-muted-foreground/50" : "text-blue-400")} />
                         <span>Upload Image</span>
                       </button>
                       <button
-                        onClick={() => generalFileInputRef.current?.click()}
-                        className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                        onClick={() => !isAtFileLimit && generalFileInputRef.current?.click()}
+                        disabled={isAtFileLimit}
+                        className={cn(
+                          "flex items-center space-x-2 w-full px-3 py-2 text-sm rounded-lg transition-colors",
+                          isAtFileLimit
+                            ? "text-muted-foreground/50 cursor-not-allowed"
+                            : "text-foreground hover:bg-muted/50"
+                        )}
                       >
-                        <FileText className="h-4 w-4 text-green-400" />
+                        <FileText className={cn("h-4 w-4", isAtFileLimit ? "text-muted-foreground/50" : "text-green-400")} />
                         <span>Upload File</span>
                       </button>
+                      {isAtFileLimit && (
+                        <p className="text-xs text-muted-foreground px-3 py-1 mt-1 border-t border-border">
+                          Maximum {MAX_FILES} files reached
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
