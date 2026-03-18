@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Archive,
   ArchiveRestore,
@@ -60,7 +60,7 @@ export default function ArchivedPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/")}
+              onClick={() => router.back()}
               className="shrink-0"
             >
               <ArrowLeft size={20} />
@@ -126,19 +126,17 @@ export default function ArchivedPage() {
 
               {/* Conversation List */}
               <div className="space-y-2">
-                <AnimatePresence mode="popLayout">
-                  {filteredConversations.map((conversation) => (
-                    <ArchivedConversationCard
-                      key={conversation.id}
-                      conversation={conversation}
-                      isUnarchiving={unarchivingId === conversation.id}
-                      onUnarchive={() => handleUnarchive(conversation.id)}
-                      onOpen={() => {
-                        router.push(`/chats/${conversation.id}`);
-                      }}
-                    />
-                  ))}
-                </AnimatePresence>
+                {filteredConversations.map((conversation) => (
+                  <ArchivedConversationCard
+                    key={conversation.id}
+                    conversation={conversation}
+                    isUnarchiving={unarchivingId === conversation.id}
+                    onUnarchive={() => handleUnarchive(conversation.id)}
+                    onOpen={() => {
+                      router.push(`/chats/${conversation.id}`);
+                    }}
+                  />
+                ))}
               </div>
 
               {filteredConversations.length === 0 && searchQuery && (
@@ -171,12 +169,7 @@ function ArchivedConversationCard({
   onOpen,
 }: ArchivedConversationCardProps) {
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
+    <div
       className={cn(
         "group relative flex items-center gap-4 p-4 rounded-xl border border-border",
         "bg-card hover:bg-accent/50 transition-all duration-200",
@@ -212,13 +205,13 @@ function ArchivedConversationCard({
         title="Unarchive"
       >
         {isUnarchiving ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          <ArchiveRestore className="h-4 w-4 mr-1.5" />
+          <ArchiveRestore className="h-4 w-4" />
         )}
         <span className="hidden sm:inline">Unarchive</span>
       </Button>
-    </motion.div>
+    </div>
   );
 }
 

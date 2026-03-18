@@ -64,7 +64,7 @@ export default function FoldersPage() {
               </p>
             </div>
             <Button onClick={() => { setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}>
-              <Plus size={18} className="mr-1.5" />
+              <Plus size={18} />
               New Folder
             </Button>
           </div>
@@ -93,7 +93,7 @@ export default function FoldersPage() {
                 Create folders to organize your conversations by topic, project, or any way you like.
               </p>
               <Button onClick={() => { setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}>
-                <Plus size={18} className="mr-1.5" />
+                <Plus size={18} />
                 Create your first folder
               </Button>
             </motion.div>

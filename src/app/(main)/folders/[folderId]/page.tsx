@@ -110,7 +110,7 @@ export default function FolderDetailPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/folders")}
+              onClick={() => router.back()}
               className="shrink-0"
             >
               <ArrowLeft size={20} />
@@ -130,7 +130,7 @@ export default function FolderDetailPage() {
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setFolderDialogOpen(true)}>
-              <PencilLine size={16} className="mr-1.5" />
+              <PencilLine size={16} />
               Edit
             </Button>
           </div>
