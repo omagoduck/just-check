@@ -859,8 +859,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                 <DropdownItem
                   icon={<HelpCircle size={24} />}
                   className="flex items-center gap-3 px-4 py-3 text-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200 font-medium"
+                  onSelect={() => router.push('/feedback')}
                 >
-                  Help & Support
+                  Feedback
                 </DropdownItem>
                 <div className="h-px bg-border w-full" />
                 <DropdownItem

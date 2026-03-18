@@ -4,10 +4,22 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { MessageCircle, Send } from "lucide-react";
+
+const FEEDBACK_CATEGORIES = [
+  { value: "bug-report", label: "Bug Report" },
+  { value: "feature-request", label: "Feature Request" },
+  { value: "general-feedback", label: "General Feedback" },
+  { value: "ux-ui-issue", label: "UX/UI Issue" },
+  { value: "performance-issue", label: "Performance Issue" },
+  { value: "other", label: "Other" },
+] as const;
 
 export default function FeedbackPage() {
   const [feedback, setFeedback] = useState("");
+  const [category, setCategory] = useState<string>("");
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -17,6 +29,7 @@ export default function FeedbackPage() {
     setTimeout(() => {
       setSubmitted(false);
       setFeedback("");
+      setCategory("");
     }, 3000);
   };
 
@@ -47,9 +60,23 @@ export default function FeedbackPage() {
               </p>
 
               <div className="space-y-2">
-                <label htmlFor="feedback" className="text-sm font-medium">
-                  Your feedback
-                </label>
+                <Label htmlFor="category">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger id="category" className="w-full">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEEDBACK_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="feedback">Your feedback</Label>
                 <Textarea
                   id="feedback"
                   placeholder="Tell us what you think..."
@@ -60,7 +87,7 @@ export default function FeedbackPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={!feedback.trim()}>
+              <Button type="submit" className="w-full" disabled={!feedback.trim() || !category}>
                 <Send className="h-4 w-4 mr-2" />
                 Submit feedback
               </Button>
