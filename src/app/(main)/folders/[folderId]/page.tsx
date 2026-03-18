@@ -169,32 +169,30 @@ export default function FolderDetailPage() {
               )}
 
               <div className="space-y-2">
-                <AnimatePresence mode="popLayout">
-                  {filteredConversations.map((conversation) => (
-                    <FolderConversationCard
-                      key={conversation.id}
-                      conversation={conversation}
-                      folders={otherFolders}
-                      onOpen={() => router.push(`/chats/${conversation.id}`)}
-                      onRename={() => {
-                        setConversationToRename(conversation);
-                        setNewTitle(conversation.title || "");
-                        setRenameDialogOpen(true);
-                      }}
-                      onPin={() => pinConversation.mutate({ conversationId: conversation.id, pinned: !conversation.pinned_at })}
-                      onArchive={() => archiveConversation.mutate({ conversationId: conversation.id, archived: true })}
-                      onRemoveFromFolder={() => moveToFolder.mutate({ conversationId: conversation.id, folderId: null })}
-                      onDelete={() => {
-                        setConversationToDelete(conversation.id);
-                        setDeleteDialogOpen(true);
-                      }}
-                      onMoveToFolder={() => {
-                        setConversationToMove(conversation.id);
-                        setMoveDialogOpen(true);
-                      }}
-                    />
-                  ))}
-                </AnimatePresence>
+                {filteredConversations.map((conversation) => (
+                  <FolderConversationCard
+                    key={conversation.id}
+                    conversation={conversation}
+                    folders={otherFolders}
+                    onOpen={() => router.push(`/chats/${conversation.id}`)}
+                    onRename={() => {
+                      setConversationToRename(conversation);
+                      setNewTitle(conversation.title || "");
+                      setRenameDialogOpen(true);
+                    }}
+                    onPin={() => pinConversation.mutate({ conversationId: conversation.id, pinned: !conversation.pinned_at })}
+                    onArchive={() => archiveConversation.mutate({ conversationId: conversation.id, archived: true })}
+                    onRemoveFromFolder={() => moveToFolder.mutate({ conversationId: conversation.id, folderId: null })}
+                    onDelete={() => {
+                      setConversationToDelete(conversation.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    onMoveToFolder={() => {
+                      setConversationToMove(conversation.id);
+                      setMoveDialogOpen(true);
+                    }}
+                  />
+                ))}
               </div>
 
               {filteredConversations.length === 0 && searchQuery && (
@@ -337,12 +335,7 @@ function FolderConversationCard({
   const isPinned = !!conversation.pinned_at;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
+    <div
       className={cn(
         "group relative flex items-center gap-4 p-4 rounded-xl border border-border",
         "bg-card hover:bg-accent/50 transition-all duration-200",
@@ -421,7 +414,7 @@ function FolderConversationCard({
           </DropdownItem>
         </DropdownSurface>
       </Dropdown>
-    </motion.div>
+    </div>
   );
 }
 
