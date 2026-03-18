@@ -10,7 +10,34 @@ export type {
   StoredConversation,
   ListConversationsParams,
   ListConversationsResult,
+  ListConversationsWithFiltersParams,
+  ConversationView,
+  ConversationFolder,
+  CreateFolderParams,
+  UpdateFolderParams,
+  ListFoldersParams,
+  MoveToFolderParams,
 } from './types';
 
+export { PIN_LIMIT } from './types';
+
 // Export conversation service functions
-export { listConversations } from './conversations';
+export {
+  listConversations,
+  listConversationsWithFilters,
+  pinConversation,
+  unpinConversation,
+  archiveConversation,
+  unarchiveConversation,
+  getPinnedCount,
+} from './conversations';
+
+// Export folder service functions
+export {
+  createFolder,
+  updateFolder,
+  deleteFolder,
+  listFolders,
+  moveConversationToFolder,
+  getFolder,
+} from './folders';

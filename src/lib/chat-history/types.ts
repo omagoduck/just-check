@@ -10,6 +10,9 @@ export interface StoredConversation {
   clerk_user_id: string;
   title?: string | null;
   metadata?: Record<string, unknown>;
+  pinned_at?: string | null;
+  archived_at?: string | null;
+  folder_id?: string | null;
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
@@ -53,3 +56,81 @@ export interface ListConversationsResult {
   /** Total count of conversations (optional, for UI display) */
   totalCount?: number;
 }
+
+// ============================================================================
+// CONVERSATION VIEW TYPES
+// ============================================================================
+
+/**
+ * View mode for filtering conversations
+ */
+export type ConversationView = 'all' | 'pinned' | 'archived';
+
+/**
+ * Extended parameters for listing conversations with organization filters
+ */
+export interface ListConversationsWithFiltersParams extends ListConversationsParams {
+  /** Filter by view mode */
+  view?: ConversationView;
+  /** Filter by folder ID */
+  folderId?: string | null;
+}
+
+// ============================================================================
+// FOLDER TYPES
+// ============================================================================
+
+/**
+ * A conversation folder as stored in the database
+ */
+export interface ConversationFolder {
+  id: string;
+  clerk_user_id: string;
+  name: string;
+  color?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+  /** Number of conversations in this folder (populated by query) */
+  conversation_count?: number;
+}
+
+/**
+ * Parameters for creating a folder
+ */
+export interface CreateFolderParams {
+  clerkUserId: string;
+  name: string;
+  color?: string;
+}
+
+/**
+ * Parameters for updating a folder
+ */
+export interface UpdateFolderParams {
+  folderId: string;
+  clerkUserId: string;
+  name?: string;
+  color?: string | null;
+}
+
+/**
+ * Parameters for listing folders
+ */
+export interface ListFoldersParams {
+  clerkUserId: string;
+}
+
+/**
+ * Parameters for moving a conversation to a folder
+ */
+export interface MoveToFolderParams {
+  conversationId: string;
+  folderId: string | null;
+  clerkUserId: string;
+}
+
+/**
+ * Pin limit configuration
+ */
+export const PIN_LIMIT = 5;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { listConversations } from '@/lib/chat-history/conversations';
+import { listConversationsWithFilters } from '@/lib/chat-history/conversations';
+import type { ConversationView } from '@/lib/chat-history/types';
 
 /**
  * GET /api/conversations/list
@@ -36,6 +37,8 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const limitParam = searchParams.get('limit');
     const cursor = searchParams.get('cursor');
+    const viewParam = searchParams.get('view');
+    const folderId = searchParams.get('folder_id');
 
     const limit = limitParam
       ? Math.min(parseInt(limitParam, 10), 50) // Cap at 50
@@ -46,10 +49,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid limit parameter' }, { status: 400 });
     }
 
-    const result = await listConversations({
+    // Validate view parameter
+    const validViews: ConversationView[] = ['all', 'pinned', 'archived'];
+    const view = validViews.includes(viewParam as ConversationView)
+      ? (viewParam as ConversationView)
+      : 'all';
+
+    const result = await listConversationsWithFilters({
       clerkUserId,
       limit,
       cursor,
+      view,
+      folderId,
     });
 
     return NextResponse.json(result);

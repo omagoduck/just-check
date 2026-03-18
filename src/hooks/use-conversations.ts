@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'next/navigation';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { StoredConversation, ListConversationsResult } from '@/lib/chat-history';
@@ -23,6 +23,56 @@ export function useConversations() {
     queryFn: fetchConversations,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: null as string | null,
+  });
+}
+
+// ============================================================================
+// FETCH ARCHIVED
+// ============================================================================
+
+async function fetchArchivedConversations({ pageParam }: { pageParam: string | null }): Promise<ListConversationsResult> {
+  const url = pageParam
+    ? `/api/conversations/list?view=archived&limit=20&cursor=${encodeURIComponent(pageParam)}`
+    : '/api/conversations/list?view=archived&limit=20';
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch archived conversations');
+  return response.json();
+}
+
+export function useArchivedConversations() {
+  return useInfiniteQuery({
+    queryKey: ['conversations', 'archived'],
+    queryFn: fetchArchivedConversations,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: null as string | null,
+  });
+}
+
+// ============================================================================
+// FETCH BY FOLDER
+// ============================================================================
+
+async function fetchConversationsInFolder(
+  folderId: string,
+  { pageParam }: { pageParam: string | null }
+): Promise<ListConversationsResult> {
+  const url = pageParam
+    ? `/api/conversations/list?folder_id=${folderId}&limit=20&cursor=${encodeURIComponent(pageParam)}`
+    : `/api/conversations/list?folder_id=${folderId}&limit=20`;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch folder conversations');
+  return response.json();
+}
+
+export function useConversationsInFolder(folderId: string) {
+  return useInfiniteQuery({
+    queryKey: ['conversations', 'folder', folderId],
+    queryFn: (context) => fetchConversationsInFolder(folderId, context),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: null as string | null,
+    enabled: !!folderId,
   });
 }
 
@@ -185,6 +235,162 @@ export function useRenameConversation() {
       // Refetch to ensure server state
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
+  });
+}
+
+// ============================================================================
+// PIN
+// ============================================================================
+
+async function pinConversation(conversationId: string): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}/pin`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || 'Failed to pin conversation');
+  }
+}
+
+async function unpinConversation(conversationId: string): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}/pin`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to unpin conversation');
+}
+
+export function usePinConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ conversationId, pinned }: { conversationId: string; pinned: boolean }) =>
+      pinned ? pinConversation(conversationId) : unpinConversation(conversationId),
+    onMutate: async ({ conversationId, pinned }) => {
+      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+      const now = new Date().toISOString();
+
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
+        ['conversations'],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              conversations: page.conversations.map((c) =>
+                c.id === conversationId
+                  ? { ...c, pinned_at: pinned ? now : null, updated_at: now }
+                  : c
+              ),
+            })),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['conversations'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
+    },
+  });
+}
+
+// ============================================================================
+// ARCHIVE
+// ============================================================================
+
+async function archiveConversation(conversationId: string): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}/archive`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to archive conversation');
+}
+
+async function unarchiveConversation(conversationId: string): Promise<void> {
+  const response = await fetch(`/api/conversations/${conversationId}/archive`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to unarchive conversation');
+}
+
+export function useArchiveConversation() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ conversationId, archived }: { conversationId: string; archived: boolean }) =>
+      archived ? archiveConversation(conversationId) : unarchiveConversation(conversationId),
+    onMutate: async ({ conversationId, archived }) => {
+      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+
+      // When archiving, remove from main list. When unarchiving, the item will appear on refetch.
+      if (archived) {
+        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
+          ['conversations'],
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                conversations: page.conversations.filter((c) => c.id !== conversationId),
+              })),
+            };
+          }
+        );
+      }
+
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['conversations'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'archived'] });
+      queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
+    },
+    onSuccess: (_, { conversationId, archived }) => {
+      // Navigate home if archived conversation was active
+      if (archived && pathname === `/chats/${conversationId}`) {
+        router.push('/');
+      }
+    },
+  });
+}
+
+// ============================================================================
+// PINNED COUNT
+// ============================================================================
+
+interface PinnedCountResult {
+  count: number;
+  limit: number;
+  canPin: boolean;
+}
+
+async function fetchPinnedCount(): Promise<PinnedCountResult> {
+  const response = await fetch('/api/conversations/pinned-count');
+  if (!response.ok) throw new Error('Failed to fetch pinned count');
+  return response.json();
+}
+
+export function usePinnedCount() {
+  return useQuery({
+    queryKey: ['pinnedCount'],
+    queryFn: fetchPinnedCount,
+    staleTime: 30000, // 30 seconds
   });
 }
 

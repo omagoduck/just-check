@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
-import { useConversations, useDeleteConversation, useRenameConversation } from '@/hooks/use-conversations';
+import { useConversations, useDeleteConversation, useRenameConversation, usePinConversation, useArchiveConversation, usePinnedCount } from '@/hooks/use-conversations';
+import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder, useMoveToFolder } from '@/hooks/use-folders';
 import { useSubscription } from '@/hooks/use-subscription';
 import { getPlanDisplayName } from '@/lib/subscription-utils';
 import { useUser, useAuth } from '@clerk/nextjs';
@@ -23,6 +24,15 @@ import {
   PanelLeftClose,
   Loader2,
   Crown,
+  Pin,
+  PinOff,
+  Archive,
+  FolderPlus,
+  FolderInput,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  CircleEllipsis,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,7 +52,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { StoredConversation } from '@/lib/chat-history';
+import { FolderDialog } from '@/components/folder-dialog';
+import type { StoredConversation, ConversationFolder } from '@/lib/chat-history';
 
 interface ChatSidebarProps {
   isMobileSidebarOpen: boolean;
@@ -78,7 +89,36 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
   const { data, fetchNextPage, hasNextPage, isPending, isFetchingNextPage } = useConversations();
   const deleteConversation = useDeleteConversation();
   const renameConversation = useRenameConversation();
+  const pinConversation = usePinConversation();
+  const archiveConversation = useArchiveConversation();
+  const { data: pinnedCountData } = usePinnedCount();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Folder state
+  const { data: foldersData } = useFolders();
+  const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
+  const moveToFolder = useMoveToFolder();
+  const [foldersExpanded, setFoldersExpanded] = useState(true);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+
+  // Folder dialog state
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [folderToEdit, setFolderToEdit] = useState<ConversationFolder | null>(null);
+  const [folderDialogError, setFolderDialogError] = useState<string | null>(null);
+
+  // Folder delete confirmation
+  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+
+  // Move to folder dialog state
+  const [moveToFolderDialogOpen, setMoveToFolderDialogOpen] = useState(false);
+  const [conversationToMove, setConversationToMove] = useState<string | null>(null);
+
+  const folders = foldersData?.folders || [];
+  const canPin = pinnedCountData?.canPin ?? true;
+  const pinnedCount = pinnedCountData?.count ?? 0;
 
   // Subscription data for dynamic upgrade button
   const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
@@ -101,6 +141,19 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
     if (!data) return [];
     return data.pages.flatMap((page) => page.conversations);
   }, [data]);
+
+  // Separate pinned and regular conversations
+  const pinnedConversations = useMemo(() => {
+    return chatHistory
+      .filter((c) => c.pinned_at)
+      .sort((a, b) => new Date(b.pinned_at!).getTime() - new Date(a.pinned_at!).getTime());
+  }, [chatHistory]);
+
+  const regularConversations = useMemo(() => {
+    return chatHistory
+      .filter((c) => !c.pinned_at)
+      .sort((a, b) => new Date(b.updated_at!).getTime() - new Date(a.updated_at!).getTime());
+  }, [chatHistory]);
 
   // Infinite scroll logic using Intersection Observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -321,6 +374,248 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
         }}
       >
         <div className="p-4 space-y-6">
+          {/* Folders */}
+          <div className="space-y-1">
+            <button
+              className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 hover:text-foreground transition-colors w-full"
+              onClick={() => setFoldersExpanded(!foldersExpanded)}
+            >
+              <ChevronRight
+                size={14}
+                className={cn(
+                  "transition-transform duration-200",
+                  foldersExpanded && "rotate-90"
+                )}
+              />
+              Folders
+            </button>
+            {foldersExpanded && (
+              <div className="space-y-1">
+                {folders.slice(0, 3).map((folder) => {
+                  const folderColor = folder.color || undefined;
+                  const isActive = pathname === `/folders/${folder.id}`;
+
+                  return (
+                    <div
+                      key={folder.id}
+                      className={cn(
+                        "group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-foreground"
+                          : "hover:bg-sidebar-accent"
+                      )}
+                      style={{
+                        width: isCollapsed ? '40px' : '100%',
+                        paddingLeft: isCollapsed ? '0' : '8px',
+                        paddingRight: isCollapsed ? '0' : '8px',
+                        justifyContent: isCollapsed ? 'center' : 'space-between',
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/folders/${folder.id}`);
+                          if (isMobile) onMobileSidebarToggle();
+                        }
+                      }}
+                      onClick={() => {
+                        router.push(`/folders/${folder.id}`);
+                        if (isMobile) onMobileSidebarToggle();
+                      }}
+                      title={isCollapsed ? folder.name : undefined}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isActive ? (
+                          <FolderOpen
+                            size={18}
+                            className="shrink-0"
+                            style={{ color: folderColor }}
+                          />
+                        ) : (
+                          <Folder
+                            size={18}
+                            className="shrink-0"
+                            style={{ color: folderColor }}
+                          />
+                        )}
+                        <span
+                          className={cn(
+                            "truncate text-sm transition-all duration-300",
+                            isCollapsed ? "opacity-0 w-0" : "opacity-100"
+                          )}
+                        >
+                          {folder.name}
+                        </span>
+                        {!isCollapsed && folder.conversation_count !== undefined && folder.conversation_count > 0 && (
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {folder.conversation_count}
+                          </span>
+                        )}
+                      </div>
+
+                      {!isCollapsed && (
+                        <Dropdown align="left">
+                          <DropdownTrigger asChild>
+                            <button
+                              className={cn(
+                                isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                                'p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200'
+                              )}
+                              tabIndex={0}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label="Folder options"
+                            >
+                              <MoreHorizontal size={16} className="text-sidebar-foreground" />
+                            </button>
+                          </DropdownTrigger>
+                          <DropdownSurface className="bg-popover border border-border text-popover-foreground min-w-[180px] shadow-lg">
+                            <DropdownItem
+                              icon={<PencilLine size={16} />}
+                              className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+                              onSelect={() => {
+                                setFolderToEdit(folder);
+                                setFolderDialogError(null);
+                                setFolderDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </DropdownItem>
+                            <DropdownItem
+                              icon={<Trash2 size={16} />}
+                              className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
+                              onSelect={() => {
+                                setFolderToDelete(folder.id);
+                                setDeleteFolderDialogOpen(true);
+                              }}
+                            >
+                              Delete
+                            </DropdownItem>
+                          </DropdownSurface>
+                        </Dropdown>
+                      )}
+                    </div>
+                  );
+                })}
+                <div
+                  className={cn(
+                    "group flex items-center justify-between h-10 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
+                    "hover:bg-sidebar-accent"
+                  )}
+                  style={{
+                    width: isCollapsed ? '40px' : '100%',
+                    paddingLeft: isCollapsed ? '0' : '8px',
+                    paddingRight: isCollapsed ? '0' : '8px',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => {
+                    router.push('/folders');
+                    if (isMobile) onMobileSidebarToggle();
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CircleEllipsis
+                      size={18}
+                      className="shrink-0 text-muted-foreground"
+                    />
+                    <span
+                      className={cn(
+                        "truncate text-sm transition-all duration-300",
+                        isCollapsed ? "opacity-0 w-0" : "opacity-100"
+                      )}
+                    >
+                      All Folders
+                    </span>
+                  </div>
+                </div>
+
+                {/* New Folder Button */}
+                <div
+                  className={cn(
+                    "group flex items-center justify-between h-10 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
+                    "hover:bg-sidebar-accent"
+                  )}
+                  style={{
+                    width: isCollapsed ? '40px' : '100%',
+                    paddingLeft: isCollapsed ? '0' : '8px',
+                    paddingRight: isCollapsed ? '0' : '8px',
+                    justifyContent: isCollapsed ? 'center' : 'space-between',
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => {
+                    setFolderToEdit(null);
+                    setFolderDialogError(null);
+                    setFolderDialogOpen(true);
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FolderPlus
+                      size={18}
+                      className="shrink-0 text-muted-foreground"
+                    />
+                    <span
+                      className={cn(
+                        "truncate text-sm transition-all duration-300",
+                        isCollapsed ? "opacity-0 w-0" : "opacity-100"
+                      )}
+                    >
+                      New Folder
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Pinned Conversations */}
+          {pinnedConversations.length > 0 && (
+            <div className="space-y-1">
+              <h3
+                className={cn(
+                  "text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
+                  isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
+                )}
+                style={{ maxWidth: isCollapsed ? '0' : '200px' }}
+              >
+                Pinned
+              </h3>
+              <div className="space-y-1">
+                {pinnedConversations.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isActive={conversation.id === activeConversationId}
+                    isTouchDevice={isTouchDevice}
+                    isMobile={isMobile}
+                    canPin={canPin}
+                    onNavigate={() => {
+                      router.push(`/chats/${conversation.id}`);
+                      if (isMobile) onMobileSidebarToggle();
+                    }}
+                    onRename={() => {
+                      setConversationToRename(conversation);
+                      setNewTitle(conversation.title || '');
+                      setRenameDialogOpen(true);
+                    }}
+                    onDelete={() => {
+                      setConversationToDelete(conversation.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    onPin={() => pinConversation.mutate({ conversationId: conversation.id, pinned: false })}
+                    onArchive={() => archiveConversation.mutate({ conversationId: conversation.id, archived: true })}
+                    onMoveToFolder={() => {
+                      setConversationToMove(conversation.id);
+                      setMoveToFolderDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Chat History */}
           <div className="space-y-1">
             <h3
@@ -340,75 +635,40 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                   <Skeleton key={i} className="h-8 rounded-md" />
                 ))}
               </div>
-            ) : chatHistory.length === 0 ? (
+            ) : regularConversations.length === 0 && pinnedConversations.length === 0 ? (
               <p className="text-muted-foreground text-sm py-2 text-center">No chat history</p>
+            ) : regularConversations.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-2 text-center">No more chats</p>
             ) : (
               <div className="space-y-1">
-                {chatHistory.map((conversation) => (
-                  <div
+                {regularConversations.map((conversation) => (
+                  <ConversationItem
                     key={conversation.id}
-                    className={cn(
-                      "group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
-                      conversation.id === activeConversationId
-                        ? "bg-sidebar-accent text-sidebar-foreground"
-                        : "hover:bg-sidebar-accent"
-                    )}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        router.push(`/chats/${conversation.id}`);
-                        if (isMobile) onMobileSidebarToggle();
-                      }
-                    }}
-                    onClick={() => {
+                    conversation={conversation}
+                    isActive={conversation.id === activeConversationId}
+                    isTouchDevice={isTouchDevice}
+                    isMobile={isMobile}
+                    canPin={canPin}
+                    onNavigate={() => {
                       router.push(`/chats/${conversation.id}`);
                       if (isMobile) onMobileSidebarToggle();
                     }}
-                  >
-                    <span className="truncate text-sidebar-foreground transition-colors duration-200">
-                      {conversation.title || 'Untitled Conversation'}
-                    </span>
-                    <Dropdown align="left">
-                      <DropdownTrigger asChild>
-                        <button
-                          className={cn(
-                            isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-                            'p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200'
-                          )}
-                          tabIndex={0}
-                          aria-label="Chat options"
-                        >
-                          <MoreHorizontal size={16} className="text-sidebar-foreground" />
-                        </button>
-                      </DropdownTrigger>
-                      <DropdownSurface className="bg-popover border border-border text-popover-foreground min-w-[180px] shadow-lg">
-                        <DropdownItem
-                          icon={<PencilLine size={16} />}
-                          className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
-                          onSelect={() => {
-                            setConversationToRename(conversation);
-                            // Keep input empty if conversation has no title in DB
-                            setNewTitle(conversation.title || '');
-                            setRenameDialogOpen(true);
-                          }}
-                        >
-                          Rename
-                        </DropdownItem>
-                        {/* TODO || IDEA: Add share button to share a chat  */}
-                        <DropdownItem
-                          icon={<Trash2 size={16} />}
-                          className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
-                          onSelect={() => {
-                            setConversationToDelete(conversation.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          Delete
-                        </DropdownItem>
-                      </DropdownSurface>
-                    </Dropdown>
-                  </div>
+                    onRename={() => {
+                      setConversationToRename(conversation);
+                      setNewTitle(conversation.title || '');
+                      setRenameDialogOpen(true);
+                    }}
+                    onDelete={() => {
+                      setConversationToDelete(conversation.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    onPin={() => pinConversation.mutate({ conversationId: conversation.id, pinned: true })}
+                    onArchive={() => archiveConversation.mutate({ conversationId: conversation.id, archived: true })}
+                    onMoveToFolder={() => {
+                      setConversationToMove(conversation.id);
+                      setMoveToFolderDialogOpen(true);
+                    }}
+                  />
                 ))}
 
                 {hasNextPage && (
@@ -424,41 +684,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
               </div>
             )}
           </div>
-
-          {/* Bespoke Lumy */}
-          {/* TODO: This section is disabled for now as it was just for UI testing purposes which came in my mind.
-               Will be enabled after actual implementation is completed. */}
-          {/* <div className="space-y-1">
-            <h3
-              className={cn(
-                "text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)] px-1",
-                isCollapsed ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100 h-4"
-              )}
-              style={{
-                maxWidth: isCollapsed ? '0' : '200px'
-              }}
-            >
-              Bespoke Lumy
-            </h3>
-            <NavItem
-              icon={MessageSquareText}
-              label="Translate this"
-              onClick={() => { }}
-              isCollapsed={isCollapsed}
-            />
-            <NavItem
-              icon={Image}
-              label="Image Generator"
-              onClick={() => { }}
-              isCollapsed={isCollapsed}
-            />
-            <NavItem
-              icon={Code}
-              label="Code Helper"
-              onClick={() => { }}
-              isCollapsed={isCollapsed}
-            />
-          </div> */}
         </div>
       </div>
 
@@ -470,6 +695,41 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
           transition: 'padding 300ms cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
+
+        {/* Archived Button */}
+        <button
+          className={cn(
+            "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+            "text-sidebar-foreground hover:bg-accent mb-1"
+          )}
+          style={{
+            width: isCollapsed ? '40px' : '100%',
+            paddingLeft: isCollapsed ? '0' : '12px',
+            paddingRight: isCollapsed ? '0' : '12px',
+            justifyContent: isCollapsed ? 'center' : 'flex-start'
+          }}
+          onClick={() => {
+            router.push('/archived');
+            if (isMobile) onMobileSidebarToggle();
+          }}
+          aria-label={isCollapsed ? "Archived" : undefined}
+        >
+          <Archive size={20} className="shrink-0" />
+          <span
+            className={cn(
+              "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
+              isCollapsed ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              marginLeft: isCollapsed ? '0px' : '12px',
+              width: isCollapsed ? '0px' : 'auto',
+              overflow: 'hidden'
+            }}
+          >
+            Archived
+          </span>
+        </button>
+
         {/* Subscription Button - Dynamic based on subscription status */}
         <button
           className={cn(
@@ -513,7 +773,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
         </button>
 
         {/* Account Section */}
-        <div className="relative mt-3">
+        <div className="relative mt-1">
           {!isLoaded ? (
             <div
               className={cn(
@@ -712,8 +972,247 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Folder Dialog (Create/Edit) */}
+      <FolderDialog
+        open={folderDialogOpen}
+        onOpenChange={(open) => {
+          setFolderDialogOpen(open);
+          if (!open) {
+            setFolderToEdit(null);
+            setFolderDialogError(null);
+          }
+        }}
+        folder={folderToEdit}
+        isLoading={createFolder.isPending || updateFolder.isPending}
+        error={folderDialogError}
+        onSubmit={(name, color) => {
+          setFolderDialogError(null);
+          if (folderToEdit) {
+            updateFolder.mutate(
+              { folderId: folderToEdit.id, name, color: color || null },
+              {
+                onSuccess: () => {
+                  setFolderDialogOpen(false);
+                  setFolderToEdit(null);
+                },
+                onError: (err) => setFolderDialogError(err.message),
+              }
+            );
+          } else {
+            createFolder.mutate(
+              { name, color },
+              {
+                onSuccess: () => {
+                  setFolderDialogOpen(false);
+                },
+                onError: (err) => setFolderDialogError(err.message),
+              }
+            );
+          }
+        }}
+      />
+
+      {/* Delete Folder Confirmation Dialog */}
+      <Dialog open={deleteFolderDialogOpen} onOpenChange={(open) => {
+        setDeleteFolderDialogOpen(open);
+        if (!open) setFolderToDelete(null);
+      }}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Folder?</DialogTitle>
+            <DialogDescription>
+              This will delete the folder. Conversations inside will be moved back to your main chat list.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end gap-3">
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={() => setDeleteFolderDialogOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (folderToDelete) {
+                  deleteFolder.mutate(folderToDelete);
+                  if (activeFolderId === folderToDelete) {
+                    setActiveFolderId(null);
+                  }
+                }
+                setDeleteFolderDialogOpen(false);
+                setFolderToDelete(null);
+              }}
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to Folder Dialog */}
+      <Dialog open={moveToFolderDialogOpen} onOpenChange={(open) => {
+        setMoveToFolderDialogOpen(open);
+        if (!open) setConversationToMove(null);
+      }}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Move to Folder</DialogTitle>
+            <DialogDescription>
+              Select a folder to move this conversation to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4 max-h-[300px] overflow-y-auto">
+            {folders.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No folders yet. Create one first.
+              </p>
+            ) : (
+              folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left text-sm"
+                  onClick={() => {
+                    if (conversationToMove) {
+                      moveToFolder.mutate({ conversationId: conversationToMove, folderId: folder.id });
+                    }
+                    setMoveToFolderDialogOpen(false);
+                    setConversationToMove(null);
+                  }}
+                >
+                  <FolderInput size={16} style={{ color: folder.color || undefined }} />
+                  <span>{folder.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <button
+              className="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={() => setMoveToFolderDialogOpen(false)}
+            >
+              Cancel
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
+
+// ============================================================================
+// CONVERSATION ITEM COMPONENT
+// ============================================================================
+
+interface ConversationItemProps {
+  conversation: StoredConversation;
+  isActive: boolean;
+  isTouchDevice: boolean;
+  isMobile: boolean;
+  canPin: boolean;
+  onNavigate: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onPin: () => void;
+  onArchive: () => void;
+  onMoveToFolder: () => void;
+}
+
+function ConversationItem({
+  conversation,
+  isActive,
+  isTouchDevice,
+  canPin,
+  onNavigate,
+  onRename,
+  onDelete,
+  onPin,
+  onArchive,
+  onMoveToFolder,
+}: ConversationItemProps) {
+  const isPinned = !!conversation.pinned_at;
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
+        isActive
+          ? "bg-sidebar-accent text-sidebar-foreground"
+          : "hover:bg-sidebar-accent"
+      )}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onNavigate();
+        }
+      }}
+      onClick={onNavigate}
+    >
+      <div className="flex items-center gap-1.5 min-w-0">
+        {isPinned && <Pin size={14} className="shrink-0 text-muted-foreground" />}
+        <span className="truncate text-sidebar-foreground transition-colors duration-200">
+          {conversation.title || 'Untitled Conversation'}
+        </span>
+      </div>
+      <Dropdown align="left">
+        <DropdownTrigger asChild>
+          <button
+            className={cn(
+              isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+              'p-1 -mr-1 rounded-md hover:bg-sidebar transition-all duration-200'
+            )}
+            tabIndex={0}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Chat options"
+          >
+            <MoreHorizontal size={16} className="text-sidebar-foreground" />
+          </button>
+        </DropdownTrigger>
+        <DropdownSurface className="bg-popover border border-border text-popover-foreground min-w-[180px] shadow-lg">
+          <DropdownItem
+            icon={<PencilLine size={16} />}
+            className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onSelect={onRename}
+          >
+            Rename
+          </DropdownItem>
+          <DropdownItem
+            icon={isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+            className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onSelect={onPin}
+            disabled={!isPinned && !canPin}
+            title={!isPinned && !canPin ? 'Max 5 pinned chats' : undefined}
+          >
+            {isPinned ? 'Unpin' : 'Pin'}
+          </DropdownItem>
+          <DropdownItem
+            icon={<Archive size={16} />}
+            className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onSelect={onArchive}
+          >
+            Archive
+          </DropdownItem>
+          <DropdownItem
+            icon={<FolderInput size={16} />}
+            className="flex items-center gap-2 p-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onSelect={onMoveToFolder}
+          >
+            Move to folder
+          </DropdownItem>
+          <DropdownItem
+            icon={<Trash2 size={16} />}
+            className="flex items-center gap-2 p-2 text-destructive focus:bg-destructive/10! transition-colors duration-200"
+            onSelect={onDelete}
+          >
+            Delete
+          </DropdownItem>
+        </DropdownSurface>
+      </Dropdown>
+    </div>
+  );
+}
 
 export default ChatSidebar;

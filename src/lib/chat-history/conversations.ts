@@ -8,9 +8,11 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type {
   ListConversationsParams,
   ListConversationsResult,
+  ListConversationsWithFiltersParams,
   StoredConversation,
   PaginationCursor,
 } from './types';
+import { PIN_LIMIT } from './types';
 
 const DEFAULT_LIMIT = 10;
 
@@ -77,5 +79,242 @@ export async function listConversations(
     hasMore,
     nextCursor,
     totalCount: count || 0,
+  };
+}
+
+/**
+ * Lists conversations with organization filters (pinned, archived, folder)
+ *
+ * @param params - Parameters including view mode and folder filter
+ * @returns Paginated result with conversations
+ * @throws Error if database query fails
+ */
+export async function listConversationsWithFilters(
+  params: ListConversationsWithFiltersParams
+): Promise<ListConversationsResult> {
+  const { clerkUserId, limit = DEFAULT_LIMIT, cursor, view = 'all', folderId } = params;
+
+  const supabase = getSupabaseAdminClient();
+
+  let query = supabase
+    .from('conversations')
+    .select('*', { count: 'exact' })
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  // Apply view filter
+  if (view === 'pinned') {
+    query = query.not('pinned_at', 'is', null).order('pinned_at', { ascending: false });
+  } else if (view === 'archived') {
+    query = query.not('archived_at', 'is', null).order('archived_at', { ascending: false });
+  } else {
+    // Default: exclude archived conversations
+    // Also exclude foldered conversations UNLESS they are pinned
+    // (pinned section needs to show all pinned chats including foldered ones)
+    query = query.is('archived_at', null).order('updated_at', { ascending: false });
+    if (!folderId) {
+      query = query.or('folder_id.is.null,pinned_at.not.is.null');
+    }
+  }
+
+  // Apply folder filter (explicit folder view)
+  if (folderId) {
+    query = query.eq('folder_id', folderId);
+  }
+
+  // Add secondary ordering by id for consistent pagination
+  query = query.order('id', { ascending: false }).limit(limit + 1);
+
+  // Apply cursor filter if provided
+  if (cursor) {
+    try {
+      const cursorData = JSON.parse(cursor) as PaginationCursor;
+      const orderField = view === 'pinned' ? 'pinned_at' : view === 'archived' ? 'archived_at' : 'updated_at';
+      query = query.or(
+        `${orderField}.lt."${cursorData.updated_at}",and(${orderField}.eq."${cursorData.updated_at}",id.lt.${cursorData.id})`
+      );
+    } catch (error) {
+      console.error('Invalid cursor format:', error);
+      throw new Error('Invalid cursor format');
+    }
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch conversations: ${error.message}`);
+  }
+
+  const allConversations = (data || []) as StoredConversation[];
+
+  const hasMore = allConversations.length > limit;
+  const conversations = hasMore ? allConversations.slice(0, limit) : allConversations;
+
+  let nextCursor: string | null = null;
+  if (hasMore && conversations.length > 0) {
+    const lastConversation = conversations[conversations.length - 1];
+    const orderField = view === 'pinned' ? 'pinned_at' : view === 'archived' ? 'archived_at' : 'updated_at';
+    nextCursor = JSON.stringify({
+      updated_at: lastConversation[orderField as keyof StoredConversation] as string,
+      id: lastConversation.id,
+    } as PaginationCursor);
+  }
+
+  return {
+    conversations,
+    hasMore,
+    nextCursor,
+    totalCount: count || 0,
+  };
+}
+
+/**
+ * Pins a conversation (sets pinned_at to NOW)
+ *
+ * @param conversationId - ID of the conversation to pin
+ * @param clerkUserId - Owner's Clerk user ID
+ * @throws Error if pin limit reached or database query fails
+ */
+export async function pinConversation(
+  conversationId: string,
+  clerkUserId: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  // Check current pin count
+  const { count, error: countError } = await supabase
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .eq('clerk_user_id', clerkUserId)
+    .not('pinned_at', 'is', null)
+    .is('deleted_at', null);
+
+  if (countError) {
+    throw new Error(`Failed to check pin count: ${countError.message}`);
+  }
+
+  if ((count || 0) >= PIN_LIMIT) {
+    throw new Error(`Pin limit reached (max ${PIN_LIMIT}). Unpin a conversation first.`);
+  }
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ pinned_at: new Date().toISOString() })
+    .eq('id', conversationId)
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to pin conversation: ${error.message}`);
+  }
+}
+
+/**
+ * Unpins a conversation (sets pinned_at to NULL)
+ *
+ * @param conversationId - ID of the conversation to unpin
+ * @param clerkUserId - Owner's Clerk user ID
+ * @throws Error if database query fails
+ */
+export async function unpinConversation(
+  conversationId: string,
+  clerkUserId: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ pinned_at: null })
+    .eq('id', conversationId)
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to unpin conversation: ${error.message}`);
+  }
+}
+
+/**
+ * Archives a conversation (sets archived_at to NOW, clears pinned_at)
+ *
+ * @param conversationId - ID of the conversation to archive
+ * @param clerkUserId - Owner's Clerk user ID
+ * @throws Error if database query fails
+ */
+export async function archiveConversation(
+  conversationId: string,
+  clerkUserId: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({
+      archived_at: new Date().toISOString(),
+      pinned_at: null,
+    })
+    .eq('id', conversationId)
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to archive conversation: ${error.message}`);
+  }
+}
+
+/**
+ * Unarchives a conversation (sets archived_at to NULL)
+ *
+ * @param conversationId - ID of the conversation to unarchive
+ * @param clerkUserId - Owner's Clerk user ID
+ * @throws Error if database query fails
+ */
+export async function unarchiveConversation(
+  conversationId: string,
+  clerkUserId: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ archived_at: null })
+    .eq('id', conversationId)
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to unarchive conversation: ${error.message}`);
+  }
+}
+
+/**
+ * Gets the count of pinned conversations for a user
+ *
+ * @param clerkUserId - Owner's Clerk user ID
+ * @returns Object with count, limit, and canPin boolean
+ */
+export async function getPinnedCount(clerkUserId: string): Promise<{
+  count: number;
+  limit: number;
+  canPin: boolean;
+}> {
+  const supabase = getSupabaseAdminClient();
+
+  const { count, error } = await supabase
+    .from('conversations')
+    .select('id', { count: 'exact', head: true })
+    .eq('clerk_user_id', clerkUserId)
+    .not('pinned_at', 'is', null)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to get pinned count: ${error.message}`);
+  }
+
+  const pinnedCount = count || 0;
+  return {
+    count: pinnedCount,
+    limit: PIN_LIMIT,
+    canPin: pinnedCount < PIN_LIMIT,
   };
 }
