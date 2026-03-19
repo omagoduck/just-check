@@ -50,10 +50,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Validate view parameter
-    const validViews: ConversationView[] = ['all', 'pinned', 'archived'];
+    const validViews: ConversationView[] = ['regular', 'pinned', 'archived'];
     const view = validViews.includes(viewParam as ConversationView)
       ? (viewParam as ConversationView)
-      : 'all';
+      : 'regular';
 
     const result = await listConversationsWithFilters({
       clerkUserId,

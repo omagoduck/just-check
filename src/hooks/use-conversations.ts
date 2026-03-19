@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'next/navigation';
 import type { InfiniteData } from '@tanstack/react-query';
-import type { ListConversationsResult } from '@/lib/chat-history';
+import type { ListConversationsResult, StoredConversation } from '@/lib/chat-history';
 
 // ============================================================================
 // FETCH (List)
@@ -9,8 +9,8 @@ import type { ListConversationsResult } from '@/lib/chat-history';
 
 async function fetchConversations({ pageParam }: { pageParam: string | null }): Promise<ListConversationsResult> {
   const url = pageParam
-    ? `/api/conversations/list?limit=20&cursor=${encodeURIComponent(pageParam)}`
-    : '/api/conversations/list?limit=20';
+    ? `/api/conversations/list?view=regular&limit=20&cursor=${encodeURIComponent(pageParam)}`
+    : '/api/conversations/list?view=regular&limit=20';
 
   const response = await fetch(url);
   if (!response.ok) throw new Error('Failed to fetch conversations');
@@ -19,8 +19,31 @@ async function fetchConversations({ pageParam }: { pageParam: string | null }): 
 
 export function useConversations() {
   return useInfiniteQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', 'regular'],
     queryFn: fetchConversations,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: null as string | null,
+  });
+}
+
+// ============================================================================
+// FETCH PINNED
+// ============================================================================
+
+async function fetchPinnedConversations({ pageParam }: { pageParam: string | null }): Promise<ListConversationsResult> {
+  const url = pageParam
+    ? `/api/conversations/list?view=pinned&limit=20&cursor=${encodeURIComponent(pageParam)}`
+    : '/api/conversations/list?view=pinned&limit=20';
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch pinned conversations');
+  return response.json();
+}
+
+export function usePinnedConversations() {
+  return useInfiniteQuery({
+    queryKey: ['conversations', 'pinned'],
+    queryFn: fetchPinnedConversations,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: null as string | null,
   });
@@ -106,7 +129,7 @@ export function useCreateConversation() {
     mutationFn: (params?: CreateConversationParams) => createConversation(params),
     onSuccess: (data) => {
       // Invalidate conversations list to include new conversation
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
       // Navigate to new conversation
       router.push(`/chats/${data.id}`);
     },
@@ -132,39 +155,48 @@ export function useDeleteConversation() {
   return useMutation({
     mutationFn: deleteConversation,
     onMutate: async (conversationId) => {
+      const regularKey = ['conversations', 'regular'] as const;
+      const pinnedKey = ['conversations', 'pinned'] as const;
+
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+      await queryClient.cancelQueries({ queryKey: regularKey });
+      await queryClient.cancelQueries({ queryKey: pinnedKey });
 
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+      // Snapshot previous values
+      const previousRegular = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(regularKey);
+      const previousPinned = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(pinnedKey);
 
-      // Optimistically update: remove from cache
-      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
-        ['conversations'],
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              conversations: page.conversations.filter((c) => c.id !== conversationId),
-            })),
-          };
-        }
-      );
+      // Optimistically update: remove from both caches
+      const removeFromCache = (old: InfiniteData<ListConversationsResult> | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            conversations: page.conversations.filter((c) => c.id !== conversationId),
+          })),
+        };
+      };
+
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(regularKey, removeFromCache);
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(pinnedKey, removeFromCache);
 
       // Return context with previous data for rollback
-      return { previousData };
+      return { previousRegular, previousPinned };
     },
     onError: (_err, _variables, context) => {
       // Rollback on error
-      if (context?.previousData) {
-        queryClient.setQueryData(['conversations'], context.previousData);
+      if (context?.previousRegular) {
+        queryClient.setQueryData(['conversations', 'regular'], context.previousRegular);
+      }
+      if (context?.previousPinned) {
+        queryClient.setQueryData(['conversations', 'pinned'], context.previousPinned);
       }
     },
     onSettled: () => {
       // Refetch to ensure server state
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
     },
     onSuccess: (_, conversationId) => {
       // Navigate home if deleted conversation was active
@@ -199,41 +231,50 @@ export function useRenameConversation() {
   return useMutation({
     mutationFn: renameConversation,
     onMutate: async ({ conversationId, newTitle }) => {
+      const regularKey = ['conversations', 'regular'] as const;
+      const pinnedKey = ['conversations', 'pinned'] as const;
+
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['conversations'] });
+      await queryClient.cancelQueries({ queryKey: regularKey });
+      await queryClient.cancelQueries({ queryKey: pinnedKey });
 
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+      // Snapshot previous values
+      const previousRegular = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(regularKey);
+      const previousPinned = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(pinnedKey);
 
-      // Optimistically update: rename in cache
-      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
-        ['conversations'],
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              conversations: page.conversations.map((c) =>
-                c.id === conversationId ? { ...c, title: newTitle } : c
-              ),
-            })),
-          };
-        }
-      );
+      // Optimistically update: rename in both caches
+      const renameInCache = (old: InfiniteData<ListConversationsResult> | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            conversations: page.conversations.map((c) =>
+              c.id === conversationId ? { ...c, title: newTitle } : c
+            ),
+          })),
+        };
+      };
+
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(regularKey, renameInCache);
+      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(pinnedKey, renameInCache);
 
       // Return context with previous data for rollback
-      return { previousData };
+      return { previousRegular, previousPinned };
     },
     onError: (_err, _variables, context) => {
       // Rollback on error
-      if (context?.previousData) {
-        queryClient.setQueryData(['conversations'], context.previousData);
+      if (context?.previousRegular) {
+        queryClient.setQueryData(['conversations', 'regular'], context.previousRegular);
+      }
+      if (context?.previousPinned) {
+        queryClient.setQueryData(['conversations', 'pinned'], context.previousPinned);
       }
     },
     onSettled: () => {
       // Refetch to ensure server state
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
     },
   });
 }
@@ -266,37 +307,111 @@ export function usePinConversation() {
     mutationFn: ({ conversationId, pinned }: { conversationId: string; pinned: boolean }) =>
       pinned ? pinConversation(conversationId) : unpinConversation(conversationId),
     onMutate: async ({ conversationId, pinned }) => {
-      await queryClient.cancelQueries({ queryKey: ['conversations'] });
-      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+      const regularKey = ['conversations', 'regular'] as const;
+      const pinnedKey = ['conversations', 'pinned'] as const;
+
+      await queryClient.cancelQueries({ queryKey: regularKey });
+      await queryClient.cancelQueries({ queryKey: pinnedKey });
+
+      const previousRegular = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(regularKey);
+      const previousPinned = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(pinnedKey);
       const now = new Date().toISOString();
 
-      queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
-        ['conversations'],
-        (old) => {
+      if (pinned) {
+        // Pinning: remove from regular, add to pinned
+        let movedConversation: StoredConversation | null = null;
+
+        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(regularKey, (old) => {
           if (!old) return old;
           return {
             ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              conversations: page.conversations.map((c) =>
-                c.id === conversationId
-                  ? { ...c, pinned_at: pinned ? now : null, updated_at: now }
-                  : c
-              ),
-            })),
+            pages: old.pages.map((page) => {
+              const filtered = page.conversations.filter((c) => {
+                if (c.id === conversationId) {
+                  movedConversation = c;
+                  return false;
+                }
+                return true;
+              });
+              return { ...page, conversations: filtered };
+            }),
           };
-        }
-      );
+        });
 
-      return { previousData };
+        if (movedConversation) {
+          const conv = movedConversation as StoredConversation;
+          const updated: StoredConversation = { ...conv, pinned_at: now, updated_at: now };
+          queryClient.setQueryData<InfiniteData<ListConversationsResult>>(pinnedKey, (old) => {
+            if (!old || old.pages.length === 0) {
+              return {
+                pages: [{ conversations: [updated], hasMore: false, nextCursor: null, totalCount: 1 }],
+                pageParams: [null],
+              };
+            }
+            return {
+              ...old,
+              pages: [
+                { ...old.pages[0], conversations: [updated, ...old.pages[0].conversations] },
+                ...old.pages.slice(1),
+              ],
+            };
+          });
+        }
+      } else {
+        // Unpinning: remove from pinned, add to regular
+        let movedConversation: StoredConversation | null = null;
+
+        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(pinnedKey, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => {
+              const filtered = page.conversations.filter((c) => {
+                if (c.id === conversationId) {
+                  movedConversation = c;
+                  return false;
+                }
+                return true;
+              });
+              return { ...page, conversations: filtered };
+            }),
+          };
+        });
+
+        if (movedConversation) {
+          const conv = movedConversation as StoredConversation;
+          const updated: StoredConversation = { ...conv, pinned_at: null, updated_at: now };
+          queryClient.setQueryData<InfiniteData<ListConversationsResult>>(regularKey, (old) => {
+            if (!old || old.pages.length === 0) {
+              return {
+                pages: [{ conversations: [updated], hasMore: false, nextCursor: null, totalCount: 1 }],
+                pageParams: [null],
+              };
+            }
+            return {
+              ...old,
+              pages: [
+                { ...old.pages[0], conversations: [updated, ...old.pages[0].conversations] },
+                ...old.pages.slice(1),
+              ],
+            };
+          });
+        }
+      }
+
+      return { previousRegular, previousPinned };
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['conversations'], context.previousData);
+      if (context?.previousRegular) {
+        queryClient.setQueryData(['conversations', 'regular'], context.previousRegular);
+      }
+      if (context?.previousPinned) {
+        queryClient.setQueryData(['conversations', 'pinned'], context.previousPinned);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
       queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
     },
   });
@@ -329,35 +444,52 @@ export function useArchiveConversation() {
     mutationFn: ({ conversationId, archived }: { conversationId: string; archived: boolean }) =>
       archived ? archiveConversation(conversationId) : unarchiveConversation(conversationId),
     onMutate: async ({ conversationId, archived }) => {
-      await queryClient.cancelQueries({ queryKey: ['conversations'] });
-      const previousData = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(['conversations']);
+      const regularKey = ['conversations', 'regular'] as const;
+      const pinnedKey = ['conversations', 'pinned'] as const;
 
-      // When archiving, remove from main list. When unarchiving, the item will appear on refetch.
+      await queryClient.cancelQueries({ queryKey: regularKey });
+      await queryClient.cancelQueries({ queryKey: pinnedKey });
+
+      const previousRegular = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(regularKey);
+      const previousPinned = queryClient.getQueryData<InfiniteData<ListConversationsResult>>(pinnedKey);
+
+      // When archiving, remove from both regular and pinned lists
       if (archived) {
-        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(
-          ['conversations'],
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              pages: old.pages.map((page) => ({
-                ...page,
-                conversations: page.conversations.filter((c) => c.id !== conversationId),
-              })),
-            };
-          }
-        );
+        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(regularKey, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              conversations: page.conversations.filter((c) => c.id !== conversationId),
+            })),
+          };
+        });
+        queryClient.setQueryData<InfiniteData<ListConversationsResult>>(pinnedKey, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              conversations: page.conversations.filter((c) => c.id !== conversationId),
+            })),
+          };
+        });
       }
 
-      return { previousData };
+      return { previousRegular, previousPinned };
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['conversations'], context.previousData);
+      if (context?.previousRegular) {
+        queryClient.setQueryData(['conversations', 'regular'], context.previousRegular);
+      }
+      if (context?.previousPinned) {
+        queryClient.setQueryData(['conversations', 'pinned'], context.previousPinned);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'archived'] });
       queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
     },
@@ -417,7 +549,8 @@ export function useArchiveAllConversations() {
   return useMutation({
     mutationFn: archiveAllConversations,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'archived'] });
       queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
     },
@@ -447,7 +580,8 @@ export function useDeleteAllConversations() {
   return useMutation({
     mutationFn: deleteAllConversations,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
     },
   });
 }

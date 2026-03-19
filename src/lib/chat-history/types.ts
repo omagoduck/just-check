@@ -64,7 +64,7 @@ export interface ListConversationsResult {
 /**
  * View mode for filtering conversations
  */
-export type ConversationView = 'all' | 'pinned' | 'archived';
+export type ConversationView = 'regular' | 'pinned' | 'archived';
 
 /**
  * Extended parameters for listing conversations with organization filters

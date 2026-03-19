@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
-import { useConversations, useDeleteConversation, useRenameConversation, usePinConversation, useArchiveConversation, usePinnedCount } from '@/hooks/use-conversations';
+import { useConversations, usePinnedConversations, useDeleteConversation, useRenameConversation, usePinConversation, useArchiveConversation, usePinnedCount } from '@/hooks/use-conversations';
 import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder, useMoveToFolder } from '@/hooks/use-folders';
 import { useSubscription } from '@/hooks/use-subscription';
 import { getPlanDisplayName } from '@/lib/subscription-utils';
@@ -87,6 +87,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
 
   // Chat history state - managed by TanStack Query
   const { data, fetchNextPage, hasNextPage, isPending, isFetchingNextPage } = useConversations();
+  const { data: pinnedData } = usePinnedConversations();
   const deleteConversation = useDeleteConversation();
   const renameConversation = useRenameConversation();
   const pinConversation = usePinConversation();
@@ -137,23 +138,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
     : '/upgrade';
 
   // Flatten infinite query data for display
-  const chatHistory = useMemo(() => {
+  const regularConversations = useMemo(() => {
     if (!data) return [];
     return data.pages.flatMap((page) => page.conversations);
   }, [data]);
 
-  // Separate pinned and regular conversations
   const pinnedConversations = useMemo(() => {
-    return chatHistory
-      .filter((c) => c.pinned_at)
-      .sort((a, b) => new Date(b.pinned_at!).getTime() - new Date(a.pinned_at!).getTime());
-  }, [chatHistory]);
-
-  const regularConversations = useMemo(() => {
-    return chatHistory
-      .filter((c) => !c.pinned_at)
-      .sort((a, b) => new Date(b.updated_at!).getTime() - new Date(a.updated_at!).getTime());
-  }, [chatHistory]);
+    if (!pinnedData) return [];
+    return pinnedData.pages.flatMap((page) => page.conversations);
+  }, [pinnedData]);
 
   // Infinite scroll logic using Intersection Observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -678,7 +671,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                     ))}
                   </div>
                 )}
-                {!hasNextPage && !isPending && chatHistory.length > 0 && (
+                {!hasNextPage && !isPending && regularConversations.length > 0 && (
                   <p className="text-muted-foreground text-xs text-center pt-2">End of history</p>
                 )}
               </div>

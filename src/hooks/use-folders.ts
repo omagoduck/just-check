@@ -122,7 +122,8 @@ export function useDeleteFolder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       // Also invalidate conversations since folder_id will be cleared
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
     },
   });
 }
@@ -154,7 +155,8 @@ export function useMoveToFolder() {
   return useMutation({
     mutationFn: moveToFolder,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
     },
   });

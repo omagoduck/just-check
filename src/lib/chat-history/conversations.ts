@@ -92,7 +92,7 @@ export async function listConversations(
 export async function listConversationsWithFilters(
   params: ListConversationsWithFiltersParams
 ): Promise<ListConversationsResult> {
-  const { clerkUserId, limit = DEFAULT_LIMIT, cursor, view = 'all', folderId } = params;
+  const { clerkUserId, limit = DEFAULT_LIMIT, cursor, view = 'regular', folderId } = params;
 
   const supabase = getSupabaseAdminClient();
 
@@ -108,12 +108,13 @@ export async function listConversationsWithFilters(
   } else if (view === 'archived') {
     query = query.not('archived_at', 'is', null).order('archived_at', { ascending: false });
   } else {
-    // Default: exclude archived conversations
-    // Also exclude foldered conversations UNLESS they are pinned
-    // (pinned section needs to show all pinned chats including foldered ones)
-    query = query.is('archived_at', null).order('updated_at', { ascending: false });
+    // Regular: exclude archived and pinned conversations
+    query = query
+      .is('archived_at', null)
+      .is('pinned_at', null)
+      .order('updated_at', { ascending: false });
     if (!folderId) {
-      query = query.or('folder_id.is.null,pinned_at.not.is.null');
+      query = query.is('folder_id', null);
     }
   }
 
