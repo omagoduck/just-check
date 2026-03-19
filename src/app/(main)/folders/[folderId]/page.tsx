@@ -30,6 +30,7 @@ import {
 import { FolderDialog } from "@/components/folder-dialog";
 import { useFolder, useFolders, useUpdateFolder, useMoveToFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useConversationsInFolder, usePinConversation, useArchiveConversation, useDeleteConversation, useRenameConversation } from "@/hooks/use-conversations";
+import { useIsTouchDevice } from "@/hooks/use-touch-device";
 import type { StoredConversation, ConversationFolder } from "@/lib/chat-history";
 
 export default function FolderDetailPage() {
@@ -333,6 +334,7 @@ function FolderConversationCard({
   onMoveToFolder,
 }: FolderConversationCardProps) {
   const isPinned = !!conversation.pinned_at;
+  const isTouchDevice = useIsTouchDevice();
 
   return (
     <div
@@ -362,7 +364,10 @@ function FolderConversationCard({
       <Dropdown align="right">
         <DropdownTrigger asChild>
           <button
-            className="shrink-0 p-2 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent transition-all"
+            className={cn(
+              "shrink-0 p-2 rounded-md hover:bg-accent transition-all",
+              !isTouchDevice && "hidden group-hover:inline-flex"
+            )}
             onClick={(e) => e.stopPropagation()}
             aria-label="Chat options"
           >
