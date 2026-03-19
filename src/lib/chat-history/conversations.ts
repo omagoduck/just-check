@@ -288,6 +288,58 @@ export async function unarchiveConversation(
 }
 
 /**
+ * Archives all conversations for a user (sets archived_at to NOW, clears pinned_at)
+ * Only archives conversations that are not already archived and not deleted
+ *
+ * @param clerkUserId - Owner's Clerk user ID
+ * @returns Object with count of archived conversations
+ * @throws Error if database query fails
+ */
+export async function archiveAllConversations(clerkUserId: string): Promise<{ count: number }> {
+  const supabase = getSupabaseAdminClient();
+
+  const { count, error } = await supabase
+    .from('conversations')
+    .update({
+      archived_at: new Date().toISOString(),
+      pinned_at: null,
+    })
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null)
+    .is('archived_at', null);
+
+  if (error) {
+    throw new Error(`Failed to archive all conversations: ${error.message}`);
+  }
+
+  return { count: count || 0 };
+}
+
+/**
+ * Soft deletes all conversations for a user (sets deleted_at to NOW)
+ * Only deletes conversations that are not already deleted
+ *
+ * @param clerkUserId - Owner's Clerk user ID
+ * @returns Object with count of deleted conversations
+ * @throws Error if database query fails
+ */
+export async function deleteAllConversations(clerkUserId: string): Promise<{ count: number }> {
+  const supabase = getSupabaseAdminClient();
+
+  const { count, error } = await supabase
+    .from('conversations')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to delete all conversations: ${error.message}`);
+  }
+
+  return { count: count || 0 };
+}
+
+/**
  * Gets the count of pinned conversations for a user
  *
  * @param clerkUserId - Owner's Clerk user ID

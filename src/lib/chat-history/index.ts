@@ -29,6 +29,8 @@ export {
   unpinConversation,
   archiveConversation,
   unarchiveConversation,
+  archiveAllConversations,
+  deleteAllConversations,
   getPinnedCount,
 } from './conversations';
 

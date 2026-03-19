@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, usePathname } from 'next/navigation';
 import type { InfiniteData } from '@tanstack/react-query';
-import type { StoredConversation, ListConversationsResult } from '@/lib/chat-history';
+import type { ListConversationsResult } from '@/lib/chat-history';
 
 // ============================================================================
 // FETCH (List)
@@ -391,6 +391,64 @@ export function usePinnedCount() {
     queryKey: ['pinnedCount'],
     queryFn: fetchPinnedCount,
     staleTime: 30000, // 30 seconds
+  });
+}
+
+// ============================================================================
+// ARCHIVE ALL
+// ============================================================================
+
+interface ArchiveAllResult {
+  success: boolean;
+  count: number;
+}
+
+async function archiveAllConversations(): Promise<ArchiveAllResult> {
+  const response = await fetch('/api/conversations/archive-all', {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to archive all conversations');
+  return response.json();
+}
+
+export function useArchiveAllConversations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: archiveAllConversations,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', 'archived'] });
+      queryClient.invalidateQueries({ queryKey: ['pinnedCount'] });
+    },
+  });
+}
+
+// ============================================================================
+// DELETE ALL
+// ============================================================================
+
+interface DeleteAllResult {
+  success: boolean;
+  count: number;
+}
+
+async function deleteAllConversations(): Promise<DeleteAllResult> {
+  const response = await fetch('/api/conversations/delete-all', {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to delete all conversations');
+  return response.json();
+}
+
+export function useDeleteAllConversations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteAllConversations,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
   });
 }
 

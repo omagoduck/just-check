@@ -9,7 +9,8 @@ import {
   Plug,
   User,
   Brain,
-  ArrowLeft
+  ArrowLeft,
+  Database
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,12 @@ const settingsSections = [
     label: "Privacy",
     icon: Shield,
     href: "/settings/privacy"
+  },
+  {
+    key: "data-control",
+    label: "Data Control",
+    icon: Database,
+    href: "/settings/data-control"
   },
   {
     key: "ai-customization",

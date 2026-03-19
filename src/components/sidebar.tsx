@@ -100,7 +100,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const moveToFolder = useMoveToFolder();
-  const [foldersExpanded, setFoldersExpanded] = useState(true);
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
 
   // Folder dialog state
@@ -688,7 +688,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
       </div>
 
       {/* Bottom Section */}
-      <div className="mt-auto pt-4 border-t border-border pb-4 shrink-0"
+      <div className="mt-auto py-2 border-t border-border shrink-0"
         style={{
           paddingLeft: isCollapsed ? '12px' : '16px',
           paddingRight: isCollapsed ? '12px' : '16px',
@@ -696,39 +696,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
         }}
       >
 
-        {/* Archived Button */}
-        <button
-          className={cn(
-            "relative flex items-center h-10 rounded-lg transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-            "text-sidebar-foreground hover:bg-accent mb-1"
-          )}
-          style={{
-            width: isCollapsed ? '40px' : '100%',
-            paddingLeft: isCollapsed ? '0' : '12px',
-            paddingRight: isCollapsed ? '0' : '12px',
-            justifyContent: isCollapsed ? 'center' : 'flex-start'
-          }}
-          onClick={() => {
-            router.push('/archived');
-            if (isMobile) onMobileSidebarToggle();
-          }}
-          aria-label={isCollapsed ? "Archived" : undefined}
-        >
-          <Archive size={20} className="shrink-0" />
-          <span
-            className={cn(
-              "truncate whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.4, 0, 0.2, 1)]",
-              isCollapsed ? "opacity-0" : "opacity-100"
-            )}
-            style={{
-              marginLeft: isCollapsed ? '0px' : '12px',
-              width: isCollapsed ? '0px' : 'auto',
-              overflow: 'hidden'
-            }}
-          >
-            Archived
-          </span>
-        </button>
+
 
         {/* Subscription Button - Dynamic based on subscription status */}
         <button
