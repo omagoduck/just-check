@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Folder,
-  ArrowLeft,
   Loader2,
   Inbox,
   MessageSquare,
@@ -17,6 +16,7 @@ import {
   Archive,
   FolderInput,
   Search,
+  FolderOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -107,15 +107,7 @@ export default function FolderDetailPage() {
       {/* Header */}
       <div className="shrink-0 border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="shrink-0"
-            >
-              <ArrowLeft size={20} />
-            </Button>
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div
                 className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
@@ -130,6 +122,10 @@ export default function FolderDetailPage() {
                 </p>
               </div>
             </div>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/folders")}>
+              <FolderOpen size={16} />
+              All Folders
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setFolderDialogOpen(true)}>
               <PencilLine size={16} />
               Edit

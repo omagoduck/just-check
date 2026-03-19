@@ -8,7 +8,6 @@ import {
   ArchiveRestore,
   Loader2,
   Inbox,
-  ArrowLeft,
   MessageSquare,
   Clock,
   Search,
@@ -57,25 +56,15 @@ export default function ArchivedPage() {
       {/* Header */}
       <div className="shrink-0 border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="shrink-0"
-            >
-              <ArrowLeft size={20} />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                <Archive size={20} className="text-muted-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold">Archived</h1>
-                <p className="text-sm text-muted-foreground">
-                  {archivedConversations.length} archived conversation{archivedConversations.length !== 1 ? "s" : ""}
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+              <Archive size={20} className="text-muted-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Archived</h1>
+              <p className="text-sm text-muted-foreground">
+                {archivedConversations.length} archived conversation{archivedConversations.length !== 1 ? "s" : ""}
+              </p>
             </div>
           </div>
         </div>
