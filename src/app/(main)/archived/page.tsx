@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useArchivedConversations, useArchiveConversation } from "@/hooks/use-conversations";
+import { useIsTouchDevice } from "@/hooks/use-touch-device";
 import type { StoredConversation } from "@/lib/chat-history";
 
 export default function ArchivedPage() {
@@ -168,6 +169,8 @@ function ArchivedConversationCard({
   onUnarchive,
   onOpen,
 }: ArchivedConversationCardProps) {
+  const isTouchDevice = useIsTouchDevice();
+
   return (
     <div
       className={cn(
@@ -201,7 +204,10 @@ function ArchivedConversationCard({
         size="sm"
         onClick={onUnarchive}
         disabled={isUnarchiving}
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className={cn(
+          "shrink-0",
+          !isTouchDevice && "hidden group-hover:inline-flex"
+        )}
         title="Unarchive"
       >
         {isUnarchiving ? (
