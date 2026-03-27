@@ -93,18 +93,19 @@ export default function ChatPage() {
   // Optimistic caching: sync useChat messages into the query cache
   useOptimisticMessages(messages, chatId, queryClient);
 
-  // Determine if user is viewing the branch currently being streamed
-  const streamingBranchParentId = useMemo(() => {
-    const userMessages = messages.filter(m => m.role === 'user');
-    return userMessages.length > 0 ? userMessages[userMessages.length - 1].id : null;
+  // Determine if user is viewing the branch currently being streamed.
+  // Compare the last message (not just last user message) because different
+  // branches can share the same user message but have different assistant responses.
+  const streamingLastMessageId = useMemo(() => {
+    return messages.length > 0 ? messages[messages.length - 1].id : null;
   }, [messages]);
 
-  const activePathLastUserId = useMemo(() => {
-    const userMessages = branchState.activePath.filter(m => m.sender_type === 'user');
-    return userMessages.length > 0 ? userMessages[userMessages.length - 1].id : null;
+  const activePathLastMessageId = useMemo(() => {
+    const p = branchState.activePath;
+    return p.length > 0 ? p[p.length - 1].id : null;
   }, [branchState.activePath]);
 
-  const isViewingStreamingBranch = streamingBranchParentId && activePathLastUserId && streamingBranchParentId === activePathLastUserId;
+  const isViewingStreamingBranch = status !== 'ready' && streamingLastMessageId && activePathLastMessageId && streamingLastMessageId === activePathLastMessageId;
 
   // Choose message source: useChat during streaming on the active branch, branch path otherwise
   const displayedMessages = useMemo(() => {
@@ -268,18 +269,10 @@ export default function ChatPage() {
                   const isLastMessage = index === array.length - 1;
 
                   // O(1) lookup for branch info using pre-computed siblingInfo
-                  let branchCurrentIndex: number | undefined;
-                  let branchTotalSiblings: number | undefined;
-                  let branchParentId: string | null | undefined;
-
-                  if (message.role === 'user') {
-                    const info = siblingInfo.get(message.id);
-                    if (info && info.total > 1) {
-                      branchCurrentIndex = info.index;
-                      branchTotalSiblings = info.total;
-                      branchParentId = info.parentId;
-                    }
-                  }
+                  const info = siblingInfo.get(message.id);
+                  const branchCurrentIndex = info && info.total > 1 ? info.index : undefined;
+                  const branchTotalSiblings = info && info.total > 1 ? info.total : undefined;
+                  const branchParentId = info && info.total > 1 ? info.parentId : undefined;
 
                   const editParentId =
                     message.role === 'user'
