@@ -10,6 +10,7 @@ import {
   type AssistantResponseMetadata,
   type StepData,
   type ModelData,
+  type StoredMessage,
   type TotalUsage,
   type StepUsage,
 } from '@/lib/conversation-history';
@@ -43,7 +44,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
-    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId } = await req.json();
+    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId, trigger, messageId } = await req.json();
+
+    const isRegeneration = trigger === 'regenerate-message';
 
     // Verify conversation ownership
     const supabase = getSupabaseAdminClient();
@@ -56,6 +59,18 @@ export async function POST(req: Request) {
 
     if (convError || !conversation) {
       return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 });
+    }
+
+    // For regeneration, look up the parent of the message being regenerated
+    let regenerationParentId: string | null = null;
+    if (isRegeneration && messageId) {
+      const { data: regenMsg } = await supabase
+        .from('messages')
+        .select('previous_message_id')
+        .eq('id', messageId)
+        .eq('conversation_id', conversationId)
+        .single();
+      regenerationParentId = regenMsg?.previous_message_id ?? null;
     }
 
     // Validate clientPreviousMessageId belongs to this conversation
@@ -81,6 +96,19 @@ export async function POST(req: Request) {
       if (remainingAllowance <= 0) {
         return NextResponse.json({ error: 'Insufficient allowance' }, { status: 402 });
       }
+    }
+
+    // For continuations: look up the assistant message that made the tool call.
+    // messageId is the ID of the assistant message being continued. No global timestamp query needed.
+    let continuationMessage: StoredMessage | null = null;
+    if (!isNewUserTurn && messageId) {
+      const { data } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('id', messageId)
+        .eq('conversation_id', conversationId)
+        .single();
+      continuationMessage = (data as StoredMessage) || null;
     }
 
     // Calculate Routing Context
@@ -132,19 +160,18 @@ export async function POST(req: Request) {
       // Continue with default settings
     }
 
-    // Save only if it's a user message
-    if (isNewUserTurn) {
+    // Save only if it's a user message and not a regeneration
+    let savedUserMessage: StoredMessage | null = null;
+    if (isNewUserTurn && !isRegeneration) {
       // Use client-provided previousMessageId for branching support.
       // Normal reply: client passes the last message's ID in the current path.
       // Edit/branch: client passes the parent of the message being edited.
       // First message: client passes null.
-      await saveUserMessage({
+      savedUserMessage = await saveUserMessage({
         conversationId,
         userMessage: lastMessageInArray,
         previousMessageId: clientPreviousMessageId ?? null,
       });
-      // Refresh to point to User message
-      lastMessageFromDB = await getLastMessageFromDB(conversationId);
     }
 
     // The AI SDK provides aggregated total usage via onFinish's totalUsage callback, which gives all steps summed usage. It works well on a onetime single connection. Like with server side tool calls and resposnes. But this is not the same case in client side tool calls.
@@ -167,8 +194,8 @@ export async function POST(req: Request) {
     let previousStepData: StepData[] = [];
 
     // If this is NOT a new turn (e.g. client side tool result continuation, confirmation (confirmation not implemented yet)), try to restore previous state.
-    if (!isNewUserTurn && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
-      const prevMeta = lastMessageFromDB.metadata as any as AssistantResponseMetadata | null;
+    if (!isNewUserTurn && continuationMessage && continuationMessage.sender_type === 'assistant') {
+      const prevMeta = continuationMessage.metadata as any as AssistantResponseMetadata | null;
       if (prevMeta && prevMeta.totalUsage) {
         accumulatedStepCount = prevMeta.stepCount || 0;
         accumulatedToolCallsCount = prevMeta.toolCallsCount || 0;
@@ -205,10 +232,10 @@ export async function POST(req: Request) {
 
     // Generate assistant message ID upfront for tool charging
     // For new user turns: generate new ID
-    // For continuations: reuse existing ID from last assistant message, or generate new if not found
+    // For continuations: reuse the existing assistant message ID (continuationMessage.id)
     const assistantMessageId = isNewUserTurn 
       ? uuidv4() 
-      : lastMessageFromDB?.id ?? uuidv4();
+      : continuationMessage?.id ?? uuidv4();
 
     // Create wrapped tools with user context for charging
     const tools = {
@@ -371,8 +398,8 @@ export async function POST(req: Request) {
         };
 
         // Save with enriched metadata
-        if (isContinuation && lastMessageFromDB && lastMessageFromDB.sender_type === 'assistant') {
-          await updateMessage(lastMessageFromDB.id, {
+        if (isContinuation && continuationMessage && continuationMessage.sender_type === 'assistant') {
+          await updateMessage(continuationMessage.id, {
             content: assistantMessage.parts,
             metadata: fullMetadata,
           });
@@ -381,7 +408,7 @@ export async function POST(req: Request) {
             conversationId,
             assistantMessage,
             metadata: fullMetadata,
-            previousMessageId: lastMessageFromDB?.id || null,
+            previousMessageId: isRegeneration ? regenerationParentId : (savedUserMessage?.id || lastMessageFromDB?.id || null),
           });
         }
 

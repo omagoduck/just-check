@@ -55,12 +55,15 @@ export default function ChatPage() {
   // Sync useChat display with branch state
   const prevActivePathRef = useRef<string[]>([]);
 
-  const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
+  const { messages, sendMessage, regenerate, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
     experimental_throttle: 100,
     generateId: uuidv4,
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      prepareSendMessagesRequest: ({ id, messages, body, trigger, messageId }) => ({
+        body: { id, messages, trigger, messageId, ...body },
+      }),
     }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Handle client-side tools that should be automatically executed
@@ -200,6 +203,20 @@ export default function ChatPage() {
     });
   };
 
+  // Handle regenerate of an assistant message — creates a new branch
+  const handleRegenerate = (messageId: string, parentId: string | null) => {
+    if (!hasAllowance) return;
+
+    // Clear any stale user override for this parent so defaultSelectedSiblings
+    // can automatically navigate to the new branch once the cache updates.
+    branchState.clearOverride(parentId);
+
+    regenerate({
+      messageId,
+      body: { UIModelId: currentUIModelId },
+    });
+  };
+
   const isUserAtBottomRef = useRef(true);
 
   // Scroll to bottom function
@@ -292,6 +309,11 @@ export default function ChatPage() {
                       onEdit={
                         message.role === 'user'
                           ? (text) => handleEditMessage(text, editParentId)
+                          : undefined
+                      }
+                      onRegenerate={
+                        message.role === 'assistant'
+                          ? () => handleRegenerate(message.id, branchParentId ?? null)
                           : undefined
                       }
                       branchCurrentIndex={branchCurrentIndex}

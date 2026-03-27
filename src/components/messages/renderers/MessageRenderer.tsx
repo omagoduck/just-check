@@ -11,6 +11,7 @@ interface MessageRendererProps {
   isLoading?: boolean;
   isGenerating?: boolean;
   onEdit?: (text: string) => void;
+  onRegenerate?: () => void;
   branchCurrentIndex?: number;
   branchTotalSiblings?: number;
   onBranchPrevious?: () => void;
@@ -23,6 +24,7 @@ export const MessageRenderer = memo(function MessageRenderer({
   isLoading = false,
   isGenerating = false,
   onEdit,
+  onRegenerate,
   branchCurrentIndex,
   branchTotalSiblings,
   onBranchPrevious,
@@ -44,7 +46,19 @@ export const MessageRenderer = memo(function MessageRenderer({
         />
       );
     case 'assistant':
-      return <AIMessage message={message} isStreaming={isStreaming} />;
+      return (
+        <AIMessage
+          message={message}
+          isStreaming={isStreaming}
+          onRegenerate={onRegenerate}
+          branchCurrentIndex={branchCurrentIndex}
+          branchTotalSiblings={branchTotalSiblings}
+          onBranchPrevious={onBranchPrevious}
+          onBranchNext={onBranchNext}
+          isLoading={isLoading}
+          isGenerating={isGenerating}
+        />
+      );
     default:
       return null;
   }

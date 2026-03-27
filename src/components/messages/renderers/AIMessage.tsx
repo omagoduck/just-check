@@ -6,7 +6,7 @@ import { UIMessage } from 'ai';
 import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
 import { Response } from '@/components/response';
 import { UIModels } from '@/lib/models';
-import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X, Info } from 'lucide-react';
+import { Brain, ThumbsUp, ThumbsDown, Copy, Check, MoreVertical, X, Info, RefreshCw } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,11 +17,19 @@ import { useMessageFeedback, useMessageFeedbackMutation } from '@/hooks/use-mess
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { cn } from '@/lib/utils';
 import { copyToClipboard } from '@/lib/utils/clipboard';
+import { BranchIndicator } from './BranchIndicator';
 import { AIMessageSkeleton } from './ChatHistorySkeleton';
 
 interface AIMessageProps {
   message: UIMessage;
   isStreaming?: boolean;
+  onRegenerate?: () => void;
+  branchCurrentIndex?: number;
+  branchTotalSiblings?: number;
+  onBranchPrevious?: () => void;
+  onBranchNext?: () => void;
+  isLoading?: boolean;
+  isGenerating?: boolean;
 }
 
 type FeedbackType = 'like' | 'dislike';
@@ -41,7 +49,17 @@ const PRESETS: Record<FeedbackType, { id: string; label: string }[]> = {
   ],
 };
 
-export const AIMessage = memo(function AIMessage({ message, isStreaming = false }: AIMessageProps) {
+export const AIMessage = memo(function AIMessage({
+  message,
+  isStreaming = false,
+  onRegenerate,
+  branchCurrentIndex,
+  branchTotalSiblings,
+  onBranchPrevious,
+  onBranchNext,
+  isLoading = false,
+  isGenerating = false,
+}: AIMessageProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [popoverType, setPopoverType] = useState<'like' | 'dislike' | null>(null);
@@ -195,7 +213,7 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
       </div>
 
       {/* Action buttons below the message */}
-      <div className={cn('flex gap-1 mt-2', isTouchDevice && 'opacity-100')}>
+      <div className={cn('flex items-center gap-1 mt-2', isTouchDevice && 'opacity-100')}>
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -219,6 +237,27 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             <p>Copy</p>
           </TooltipContent>
         </Tooltip>
+
+        {onRegenerate && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onRegenerate}
+                disabled={isStreaming || isLoading || isGenerating}
+                className={cn(
+                  'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                  'disabled:cursor-not-allowed',
+                  isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-hover:disabled:opacity-50'
+                )}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Regenerate</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <Popover open={popoverType === 'like'} onOpenChange={(open) => {
@@ -447,6 +486,21 @@ export const AIMessage = memo(function AIMessage({ message, isStreaming = false 
             <p>More options</p>
           </TooltipContent>
         </Tooltip>
+
+        {branchTotalSiblings !== undefined && branchTotalSiblings > 1 && onBranchPrevious && onBranchNext && branchCurrentIndex !== undefined && (
+          <div className={cn(
+            'transition-opacity duration-200',
+            isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}>
+            <BranchIndicator
+              currentIndex={branchCurrentIndex}
+              totalSiblings={branchTotalSiblings}
+              onPrevious={onBranchPrevious}
+              onNext={onBranchNext}
+              isLoading={isLoading || isGenerating}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
