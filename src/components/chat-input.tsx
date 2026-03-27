@@ -52,7 +52,7 @@ import {
 const MAX_FILES = 5;
 
 interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onSubmit'> {
-  onSubmit?: (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => void;
+  onSubmit?: (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>) => void;
   isLoading?: boolean;
   isAiGenerating?: boolean;
   onStopGenerating?: () => void;
@@ -60,7 +60,10 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   suggestions?: string[];
   onAttachmentUpload?: (files: File[]) => void;
   onLiveVoiceChat?: () => void;
-  initialUIModelId?: string;
+  /** Currently selected UI model ID, controlled by the parent */
+  selectedUIModelId: string;
+  /** Called when the user selects a different model */
+  onUIModelChange: (uiModelId: string) => void;
   maxInputCharacterLength?: number;
   /** Whether user is on the free plan */
   isFreeUser?: boolean;
@@ -96,7 +99,8 @@ export function ChatInput({
   suggestions = [],
   onAttachmentUpload,
   onLiveVoiceChat,
-  initialUIModelId = "fast",
+  selectedUIModelId,
+  onUIModelChange,
   maxInputCharacterLength,
   isFreeUser = false,
   hasAllowance = true,
@@ -106,7 +110,6 @@ export function ChatInput({
   ...props
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
-  const [selectedUIModelId, setSelectedUIModelId] = useState(initialUIModelId);
   const [isRecording, setIsRecording] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
@@ -411,7 +414,7 @@ export function ChatInput({
         .filter(f => f.uploadStatus === 'success' && f.uploadResult)
         .map(f => f.uploadResult!);
 
-      onSubmit?.(inputValue.trim(), processedAttachments, selectedUIModelId);
+      onSubmit?.(inputValue.trim(), processedAttachments);
       setInputValue('');
 
       // Cleanup blob URLs
@@ -994,7 +997,7 @@ export function ChatInput({
                     {UIModels.map((model) => (
                       <DropdownMenuItem
                         key={model.id}
-                        onClick={() => setSelectedUIModelId(model.id)}
+                        onClick={() => onUIModelChange(model.id)}
                         className={cn(
                           "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
                           selectedUIModelId === model.id && "bg-primary/10 focus:bg-primary/15"

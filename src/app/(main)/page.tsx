@@ -11,9 +11,10 @@ export default function Main() {
   const createConversation = useCreateConversation();
   const setConversationStarter = useConversationStarterStore((state) => state.setConversationStarter);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUIModelId, setCurrentUIModelId] = useState<string>('fast');
   const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
-  const handleSubmit = (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, UIModelId?: string) => {
+  const handleSubmit = (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>) => {
     if (!message.trim()) return;
 
     // Block submission if user has no allowance
@@ -21,7 +22,7 @@ export default function Main() {
 
     setIsLoading(true);
 
-    setConversationStarter({ message: message.trim(), UIModelId, attachments });
+    setConversationStarter({ message: message.trim(), UIModelId: currentUIModelId, attachments });
 
     // Use first 256 characters of the message as the conversation title
     const title = message.trim().slice(0, 256);
@@ -61,6 +62,8 @@ export default function Main() {
           onSubmit={handleSubmit}
           isLoading={isLoading}
           placeholder="Type your message..."
+          selectedUIModelId={currentUIModelId}
+          onUIModelChange={setCurrentUIModelId}
           isFreeUser={isFreeUser}
           hasAllowance={hasAllowance}
           remainingPercentage={remainingPercentage}

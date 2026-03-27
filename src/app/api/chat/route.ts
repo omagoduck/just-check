@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
-    const { messages, id: conversationId, UIModelId } = await req.json();
+    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId } = await req.json();
 
     // Verify conversation ownership
     const supabase = getSupabaseAdminClient();
@@ -56,6 +56,19 @@ export async function POST(req: Request) {
 
     if (convError || !conversation) {
       return NextResponse.json({ error: 'Conversation not found or access denied' }, { status: 404 });
+    }
+
+    // Validate clientPreviousMessageId belongs to this conversation
+    if (clientPreviousMessageId) {
+      const { data: parentMsg } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('id', clientPreviousMessageId)
+        .eq('conversation_id', conversationId)
+        .single();
+      if (!parentMsg) {
+        return NextResponse.json({ error: 'Invalid parent message' }, { status: 400 });
+      }
     }
 
     // Get the last message from the client
@@ -121,10 +134,14 @@ export async function POST(req: Request) {
 
     // Save only if it's a user message
     if (isNewUserTurn) {
+      // Use client-provided previousMessageId for branching support.
+      // Normal reply: client passes the last message's ID in the current path.
+      // Edit/branch: client passes the parent of the message being edited.
+      // First message: client passes null.
       await saveUserMessage({
         conversationId,
         userMessage: lastMessageInArray,
-        previousMessageId: lastMessageFromDB?.id ?? null,
+        previousMessageId: clientPreviousMessageId ?? null,
       });
       // Refresh to point to User message
       lastMessageFromDB = await getLastMessageFromDB(conversationId);

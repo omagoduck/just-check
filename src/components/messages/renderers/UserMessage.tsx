@@ -1,31 +1,39 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { UIMessage } from 'ai';
-import { Copy, Check, Pencil, X, Loader2 } from 'lucide-react';
+import { Copy, Check, Pencil, X, Loader2, ArrowUp } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useAttachmentUrl, isAttachmentUrl } from '@/hooks/use-attachment-url';
 import { cn } from '@/lib/utils';
 import { copyToClipboard } from '@/lib/utils/clipboard';
+import { BranchIndicator } from './BranchIndicator';
 
 interface UserMessageProps {
   message: UIMessage;
+  /** Parent resolves on the chat page (tree / siblingInfo); do not rely on stream metadata alone. */
+  onEdit?: (text: string) => void;
+  branchCurrentIndex?: number;
+  branchTotalSiblings?: number;
+  onBranchPrevious?: () => void;
+  onBranchNext?: () => void;
+  isGenerating?: boolean;
+  isLoading?: boolean;
 }
 
 /**
  * Individual image component that handles URL resolution
  */
-const MessageImage = memo(function MessageImage({ 
-  url, 
-  filename 
-}: { 
-  url: string; 
-  filename?: string 
+const MessageImage = memo(function MessageImage({
+  url,
+  filename
+}: {
+  url: string;
+  filename?: string
 }) {
   const { resolvedUrl, isResolving, error } = useAttachmentUrl(url);
 
-  // If it's not an attachment URL, use it directly
   const displayUrl = !isAttachmentUrl(url) ? url : resolvedUrl;
   const showLoading = isAttachmentUrl(url) && isResolving;
   const showError = isAttachmentUrl(url) && error;
@@ -51,7 +59,16 @@ const MessageImage = memo(function MessageImage({
   );
 });
 
-export const UserMessage = memo(function UserMessage({ message }: UserMessageProps) {
+export const UserMessage = memo(function UserMessage({
+  message,
+  onEdit,
+  branchCurrentIndex,
+  branchTotalSiblings,
+  onBranchPrevious,
+  onBranchNext,
+  isGenerating = false,
+  isLoading = false,
+}: UserMessageProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const isTouchDevice = useIsTouchDevice();
@@ -63,8 +80,7 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
   );
 
   const handleCopy = async () => {
-    const textContent = textParts.map(part => part.text).join('');
-
+    const textContent = textParts.map(part => part.text).join('\n');
     try {
       await copyToClipboard(textContent);
       setCopied(true);
@@ -78,10 +94,108 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
     }
   };
 
+
+  // Edit state (inlined from useMessageEdit hook)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const startEditing = useCallback(() => {
+    const parts = message.parts.filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text');
+    setEditText(parts.map((p) => p.text).join('\n'));
+    setIsEditing(true);
+  }, [message.parts]);
+
+  const cancelEditing = useCallback(() => {
+    setIsEditing(false);
+    setEditText('');
+  }, []);
+
+  const submitEdit = useCallback(() => {
+    if (editText.trim() && onEdit) {
+      onEdit(editText.trim());
+      setIsEditing(false);
+      setEditText('');
+    }
+  }, [editText, onEdit]);
+
+  useEffect(() => {
+    if (isEditing && editInputRef.current) {
+      editInputRef.current.focus();
+      const len = editInputRef.current.value.length;
+      editInputRef.current.setSelectionRange(len, len);
+    }
+  }, [isEditing]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (isEditing && editInputRef.current) {
+      const textarea = editInputRef.current;
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+    }
+  }, [editText, isEditing]);
+
+  const hasBranch = branchTotalSiblings !== undefined && branchTotalSiblings > 1;
+
+  // Inline edit mode
+  if (isEditing) {
+    return (
+      <div className="flex justify-end mb-4">
+        <div className="max-w-[70%] w-full">
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
+            <textarea
+              ref={editInputRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  cancelEditing();
+                } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  submitEdit();
+                }
+              }}
+              rows={1}
+              className="w-full bg-transparent text-foreground text-sm leading-relaxed resize-none outline-none placeholder:text-muted-foreground overflow-y-auto"
+              placeholder="Edit your message..."
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-2">
+            <span className="text-xs text-muted-foreground mr-auto">
+              Esc to cancel · Ctrl+Enter to send
+            </span>
+            <button
+              onClick={cancelEditing}
+              className="h-9 text-sm px-4 rounded-xl bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitEdit}
+              disabled={!editText.trim()}
+              className={cn(
+                'h-9 text-sm px-4 rounded-xl flex items-center gap-1.5 transition-colors',
+                editText.trim()
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+              )}
+            >
+              <ArrowUp className="h-4 w-4" />
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal display mode
   return (
     <div className="flex justify-end mb-4 group">
       <div className="max-w-[70%]">
-        {/* Image attachments displayed above and outside the bubble — V1 UI */}
+        {/* Image attachments displayed above and outside the bubble */}
         {imageParts.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2 justify-end">
             {imageParts.map((part, index) => (
@@ -111,21 +225,36 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
           })}
         </div>
 
-        {/* Action buttons below the message */}
-        <div className={cn('flex justify-end gap-1 mt-2', isTouchDevice && 'opacity-100')}>
+        {/* Branch indicator and action buttons */}
+        <div className={cn('flex items-center justify-end gap-1 mt-2', isTouchDevice && 'opacity-100')}>
+          {hasBranch && onBranchPrevious && onBranchNext && branchCurrentIndex !== undefined && (
+            <div className={cn(
+              'transition-opacity duration-200',
+              isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            )}>
+              <BranchIndicator
+                currentIndex={branchCurrentIndex}
+                totalSiblings={branchTotalSiblings!}
+                onPrevious={onBranchPrevious}
+                onNext={onBranchNext}
+                isLoading={isLoading || isGenerating}
+              />
+            </div>
+          )}
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={handleCopy}
                 className={cn(
-                  'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
+                  'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-primary-foreground/70 hover:text-primary-foreground',
                   isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 )}
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-green-300" />
                 ) : copyFailed ? (
-                  <X className="h-4 w-4 text-red-500" />
+                  <X className="h-4 w-4 text-red-300" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -136,23 +265,26 @@ export const UserMessage = memo(function UserMessage({ message }: UserMessagePro
             </TooltipContent>
           </Tooltip>
 
-          {/* TODO: Add edit message functionality */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className={cn(
-                'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-foreground/70 hover:text-foreground',
-                isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-              )}>
-                <Pencil className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>Edit message (Coming soon)</p>
-            </TooltipContent>
-          </Tooltip>
+          {onEdit && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={startEditing}
+                  className={cn(
+                    'transition-opacity duration-200 p-2 rounded-md hover:bg-muted/80 text-primary-foreground/70 hover:text-primary-foreground',
+                    isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  )}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Edit message</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>
   );
 });
-

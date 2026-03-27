@@ -1,44 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getMessagesForConversation, StoredMessage, type AssistantResponseMetadata } from '@/lib/conversation-history';
+import { getMessagesForConversation, type AssistantResponseMetadata } from '@/lib/conversation-history';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
 import { resolveMessagesAttachments } from '@/lib/storage/attachment-resolver';
-
-/**
- * Organizes messages into a linear sequence based on previous_message_id pointers.
- * 
- * @param messages Unordered array of stored messages
- * @returns Ordered array of stored messages
- */
-function orderMessages(messages: StoredMessage[]): StoredMessage[] {
-    if (messages.length === 0) return [];
-
-    const orderedMessages: StoredMessage[] = [];
-
-    // Create a map to find the child of any message quickly
-    // Key: previous_message_id, Value: The message that points to it
-    const childMap = new Map<string | null, StoredMessage>();
-    for (const msg of messages) {
-        if (msg.previous_message_id === null) {
-            childMap.set(null, msg);
-        } else {
-            childMap.set(msg.previous_message_id, msg);
-        }
-    }
-
-    // Follow the chain starting from the root (null)
-    let nextMessage = childMap.get(null);
-    const seenIds = new Set<string>();
-
-    while (nextMessage && !seenIds.has(nextMessage.id)) {
-        orderedMessages.push(nextMessage);
-        seenIds.add(nextMessage.id);
-        nextMessage = childMap.get(nextMessage.id);
-    }
-
-    return orderedMessages;
-}
 
 /**
  * Filters server-side metadata to only include client-safe fields.
@@ -89,23 +54,30 @@ export async function GET(
             return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
         }
 
-        // 2. Fetch raw messages
+        // 3. Fetch raw messages
         const rawMessages = await getMessagesForConversation(conversationId);
 
-        // 3. Order messages
-        const messages = orderMessages(rawMessages);
+        // 4. Filter out orphan messages (whose previous_message_id points to a non-existent message)
+        const existingIds = new Set(rawMessages.map(m => m.id));
+        const messages = rawMessages.filter(
+            m => m.previous_message_id === null || existingIds.has(m.previous_message_id)
+        );
 
-        // 4. Map StoredMessage to format suitable for useChat's initialMessages
-        // Filter metadata to only include client-safe fields
+        // 5. Map StoredMessage to format suitable for useChat's initialMessages
+        // Include previous_message_id in metadata so the client can reconstruct
+        // the conversation tree for branching support.
         const uiMessages = messages.map(msg => ({
             id: msg.id,
             role: msg.sender_type,
             parts: msg.content,
-            metadata: filterClientMetadata(msg.metadata as AssistantResponseMetadata | undefined),
+            metadata: {
+                ...filterClientMetadata(msg.metadata as AssistantResponseMetadata | undefined),
+                previous_message_id: msg.previous_message_id,
+            },
             createdAt: msg.created_at ? new Date(msg.created_at) : undefined,
         }));
 
-        // 5. Resolve attachment:// URLs to fresh signed URLs for client display
+        // 6. Resolve attachment:// URLs to fresh signed URLs for client display
         const resolvedMessages = await resolveMessagesAttachments(uiMessages, clerkUserId);
 
         return NextResponse.json({ messages: resolvedMessages });

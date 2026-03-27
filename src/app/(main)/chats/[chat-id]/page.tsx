@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, createIdGenerator } from 'ai';
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChatInput } from '@/components/chat-input';
 import { MessageRenderer } from '@/components/messages/renderers/MessageRenderer';
@@ -12,8 +12,12 @@ import { useMessages } from '@/hooks/use-messages';
 import { useConversationStarterStore } from '@/stores/message-store';
 import { ChatHistorySkeleton } from '@/components/messages/renderers/ChatHistorySkeleton';
 import { useSubscriptionAndAllowanceStatus } from '@/hooks/use-subscription-and-allowance';
+import { useBranchSync } from '@/hooks/use-branch-sync';
+import { getLastRealMessageId } from '@/hooks/use-branch-state';
+import { useOptimisticMessages } from '@/hooks/use-optimistic-messages';
 import { v4 as uuidv4 } from 'uuid';
 import { ChevronDown } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ChatPage() {
   const params = useParams();
@@ -24,10 +28,12 @@ export default function ChatPage() {
   const conversationStarter = useConversationStarterStore((state) => state.conversationStarter);
   const clearConversationStarter = useConversationStarterStore((state) => state.clearConversationStarter);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [currentUIModelId, setCurrentUIModelId] = useState<string>('fast');
   const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
-  // Fetch conversation history using TanStack Query
+  // Fetch ALL conversation messages for branch tree
   const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
+  const queryClient = useQueryClient();
 
   // Redirect on error (404, 401, etc.)
   useEffect(() => {
@@ -35,6 +41,19 @@ export default function ChatPage() {
       router.push('/');
     }
   }, [isError, router]);
+
+  // Branch state management
+  const {
+    displayedMessages: branchDisplayedMessages,
+    branchState,
+    siblingInfo,
+    handleBranchPrevious,
+    handleBranchNext,
+    toUIMessage,
+  } = useBranchSync(messagesData, chatId);
+
+  // Sync useChat display with branch state
+  const prevActivePathRef = useRef<string[]>([]);
 
   const { messages, sendMessage, status, addToolOutput, stop, setMessages } = useChat({
     id: chatId,
@@ -56,14 +75,14 @@ export default function ChatPage() {
       // No await - avoids potential deadlocks
       if (result.error) {
         addToolOutput({
-          tool: toolCall.toolName as any,
+          tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           state: result.error.state,
           errorText: result.error.errorText,
         });
       } else {
         addToolOutput({
-          tool: toolCall.toolName as any,
+          tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           output: result.output,
         });
@@ -71,12 +90,39 @@ export default function ChatPage() {
     },
   });
 
-  // Load initial messages into the chat when data is available
+  // Optimistic caching: sync useChat messages into the query cache
+  useOptimisticMessages(messages, chatId, queryClient);
+
+  // Determine if user is viewing the branch currently being streamed
+  const streamingBranchParentId = useMemo(() => {
+    const userMessages = messages.filter(m => m.role === 'user');
+    return userMessages.length > 0 ? userMessages[userMessages.length - 1].id : null;
+  }, [messages]);
+
+  const activePathLastUserId = useMemo(() => {
+    const userMessages = branchState.activePath.filter(m => m.sender_type === 'user');
+    return userMessages.length > 0 ? userMessages[userMessages.length - 1].id : null;
+  }, [branchState.activePath]);
+
+  const isViewingStreamingBranch = streamingBranchParentId && activePathLastUserId && streamingBranchParentId === activePathLastUserId;
+
+  // Choose message source: useChat during streaming on the active branch, branch path otherwise
+  const displayedMessages = useMemo(() => {
+    return isViewingStreamingBranch ? messages : branchDisplayedMessages;
+  }, [isViewingStreamingBranch, messages, branchDisplayedMessages]);
+
+  // Sync useChat with branch active path (only when not streaming and not viewing streaming branch)
   useEffect(() => {
-    if (messagesData?.messages && messagesData.messages.length > 0) {
-      setMessages(messagesData.messages);
+    if (status === 'ready' && branchState.activePath.length > 0 && !isViewingStreamingBranch) {
+      const newIds = branchState.activePath.map(m => m.id);
+      const prevIds = prevActivePathRef.current;
+      const isSame = newIds.length === prevIds.length && newIds.every((id, i) => id === prevIds[i]);
+      if (!isSame) {
+        setMessages(branchState.activePath.map(toUIMessage));
+        prevActivePathRef.current = newIds;
+      }
     }
-  }, [messagesData, setMessages]);
+  }, [branchState.activePath, status, setMessages, toUIMessage, isViewingStreamingBranch]);
 
   // Handle pending message from main page
   useEffect(() => {
@@ -96,12 +142,12 @@ export default function ChatPage() {
         });
       }
 
-      sendMessage({ parts }, { body: { UIModelId: conversationStarter.UIModelId } });
+      sendMessage({ parts }, { body: { UIModelId: conversationStarter.UIModelId, previousMessageId: getLastRealMessageId(displayedMessages) } });
       clearConversationStarter();
     }
-  }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter]);
+  }, [conversationStarter, isLoadingHistory, messagesData, sendMessage, clearConversationStarter, displayedMessages]);
 
-  const handleSendMessage = (text: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>, modelId?: string) => {
+  const handleSendMessage = (text: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>) => {
     // Block submission if user has no allowance
     if (!hasAllowance) return;
 
@@ -121,8 +167,35 @@ export default function ChatPage() {
       });
     }
 
+    // For normal replies, previousMessageId is the last message with actual content in the current display.
+    // Skip empty assistant messages (from stopped streams) as they are never saved to DB.
+    // For edits/branching, handleEditMessage calls sendMessage directly with the correct parent.
+    const previousMessageId = getLastRealMessageId(displayedMessages);
+
     sendMessage({ parts }, {
-      body: { UIModelId: modelId }
+      body: { UIModelId: currentUIModelId, previousMessageId }
+    });
+  };
+
+  // Handle edit of a user message — creates a new branch
+  const handleEditMessage = (text: string, previousMessageId: string | null) => {
+    if (!hasAllowance) return;
+
+    // Clear any stale user override for this parent so defaultSelectedSiblings
+    // can automatically navigate to the new branch once the cache updates.
+    branchState.clearOverride(previousMessageId);
+
+    if (previousMessageId) {
+      const parentChain = branchState.getAncestors(previousMessageId);
+      setMessages(parentChain.map(toUIMessage));
+    } else {
+      setMessages([]);
+    }
+
+    sendMessage({
+      parts: [{ type: 'text', text }]
+    }, {
+      body: { UIModelId: currentUIModelId, previousMessageId }
     });
   };
 
@@ -158,7 +231,7 @@ export default function ChatPage() {
 
   // Auto-scroll to bottom only when user is near bottom
   useEffect(() => {
-    if (messages.length > 0 && !isLoadingHistory && isUserAtBottomRef.current) {
+    if (displayedMessages.length > 0 && !isLoadingHistory && isUserAtBottomRef.current) {
       // Small delay to ensure DOM is updated
       setTimeout(() => {
         if (messagesContainerRef.current && isUserAtBottomRef.current) {
@@ -166,7 +239,7 @@ export default function ChatPage() {
         }
       }, 50);
     }
-  }, [messages, isLoadingHistory]);
+  }, [displayedMessages, isLoadingHistory]);
 
   // Determine loading states based on chat status
   const isLoading = status === 'submitted'; // When message is submitted
@@ -191,13 +264,47 @@ export default function ChatPage() {
               <ChatHistorySkeleton />
             ) : (
               <>
-                {messages.map((message, index, array) => {
+                {displayedMessages.map((message, index, array) => {
                   const isLastMessage = index === array.length - 1;
+
+                  // O(1) lookup for branch info using pre-computed siblingInfo
+                  let branchCurrentIndex: number | undefined;
+                  let branchTotalSiblings: number | undefined;
+                  let branchParentId: string | null | undefined;
+
+                  if (message.role === 'user') {
+                    const info = siblingInfo.get(message.id);
+                    if (info && info.total > 1) {
+                      branchCurrentIndex = info.index;
+                      branchTotalSiblings = info.total;
+                      branchParentId = info.parentId;
+                    }
+                  }
+
+                  const editParentId =
+                    message.role === 'user'
+                      ? siblingInfo.get(message.id)?.parentId ??
+                        (message.metadata as { previous_message_id?: string | null } | undefined)
+                          ?.previous_message_id ??
+                        null
+                      : null;
+
                   return (
                     <MessageRenderer
                       key={message.id}
                       message={message}
                       isStreaming={isGenerating && isLastMessage}
+                      isLoading={isLoading}
+                      isGenerating={isGenerating}
+                      onEdit={
+                        message.role === 'user'
+                          ? (text) => handleEditMessage(text, editParentId)
+                          : undefined
+                      }
+                      branchCurrentIndex={branchCurrentIndex}
+                      branchTotalSiblings={branchTotalSiblings}
+                      onBranchPrevious={branchParentId !== undefined ? () => handleBranchPrevious(branchParentId!) : undefined}
+                      onBranchNext={branchParentId !== undefined ? () => handleBranchNext(branchParentId!) : undefined}
                     />
                   );
                 })}
@@ -245,6 +352,8 @@ export default function ChatPage() {
                 isAiGenerating={isGenerating}
                 onStopGenerating={stop}
                 placeholder="Type your message..."
+                selectedUIModelId={currentUIModelId}
+                onUIModelChange={setCurrentUIModelId}
                 isFreeUser={isFreeUser}
                 hasAllowance={hasAllowance}
                 remainingPercentage={remainingPercentage}
