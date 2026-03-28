@@ -37,9 +37,9 @@ export interface WebsiteContentResult {
  */
 export interface WebsiteContentQuery {
   /**
-   * The URL to extract content from
+   * The URLs to extract content from
    */
-  url: string;
+  urls: string[];
 
   /**
    * Whether to include images in the result

@@ -7,6 +7,7 @@ import { SearchQuery } from '../search-query';
 import { SearchResult, SearchResultItem } from '../search-result';
 import { convertTimeRangeToStartDate, TimeRange } from '../time-range';
 import { getFaviconUrlFromGoogle } from '../favicon-utils';
+import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
 export class ExaProvider implements ISearchProvider {
   private apiKey: string;
@@ -19,7 +20,11 @@ export class ExaProvider implements ISearchProvider {
     }
   }
 
-  async search(query: SearchQuery): Promise<SearchResult> {
+  async search(
+    query: SearchQuery,
+    clerkUserId?: string,
+    messageId?: string
+  ): Promise<SearchResult> {
     try {
       // 1. Translation: Unified SearchQuery -> Exa Request
       const exaPayload = this.buildExaPayload(query);
@@ -40,7 +45,30 @@ export class ExaProvider implements ISearchProvider {
 
       const data = await response.json();
 
-      // 3. Translation: Exa Response -> Unified SearchResult container
+      // 3. Charge allowance and log usage (only on success)
+      // Exa pricing: $7/1k requests (up to 10 results), $1/1k additional results
+      //   Base: $0.007 = 0.7¢
+      //   Each result beyond 10: $0.001 = 0.1¢
+      if (clerkUserId) {
+        const numResults = query.limit || 5;
+        const cost = 0.7 + Math.max(0, numResults - 10) * 0.1;
+
+        await chargeAndLogToolAllowance({
+          toolName: 'webSearch',
+          args: query,
+          result: data,
+          cost,
+          clerkUserId,
+          messageId,
+          metadata: {
+            mode: query.mode,
+            limit: numResults,
+            provider: 'exa',
+          },
+        });
+      }
+
+      // 4. Translation: Exa Response -> Unified SearchResult container
       return this.translateExaResults(data, query);
     } catch (error) {
       console.error('Exa search error:', error);
@@ -59,7 +87,7 @@ export class ExaProvider implements ISearchProvider {
     if (query.mode === 'advanced') {
       payload.type = 'neural';
     } else {
-      payload.type = 'keyword';
+      payload.type = 'fast';
     }
 
     // Map domains

@@ -4,6 +4,7 @@
  */
 import { IWebsiteContentProvider } from '../IWebsiteContentProvider';
 import { WebsiteContentQuery, WebsiteContentResult } from '../website-result';
+import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
 export class ExaExtractor implements IWebsiteContentProvider {
   private apiKey: string;
@@ -16,25 +17,28 @@ export class ExaExtractor implements IWebsiteContentProvider {
     }
   }
 
-  async extract(query: WebsiteContentQuery): Promise<WebsiteContentResult> {
-    const { url, includeImages = true, includeRawContent = true } = query;
+  async extract(
+    query: WebsiteContentQuery,
+    clerkUserId?: string,
+    messageId?: string
+  ): Promise<WebsiteContentResult[]> {
+    const { urls, includeImages = true, includeRawContent = true } = query;
 
-    // Validate URL
-    if (!url || typeof url !== 'string') {
-      throw new Error('URL is required and must be a valid string');
+    if (!urls || urls.length === 0) {
+      throw new Error('At least one URL is required');
+    }
+
+    for (const url of urls) {
+      try {
+        new URL(url);
+      } catch {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
     }
 
     try {
-      // Validate URL format
-      new URL(url);
-    } catch {
-      throw new Error('Invalid URL format');
-    }
-
-    try {
-      // Build Exa request payload based on the documentation
       const payload: Record<string, any> = {
-        urls: [url],
+        urls,
         text: includeRawContent,
         extras: {
           links: 5,
@@ -57,45 +61,70 @@ export class ExaExtractor implements IWebsiteContentProvider {
 
       const data = await response.json();
 
+      const results = this.parseExaResponse(data);
 
-      return this.parseExaResponse(url, data);
+      // Charge per page per content type
+      // Exa Contents pricing: $1/1k pages per content type
+      //   Text = 1 content type = $0.001 = 0.1¢ per page
+      //   (Highlights and Summary not requested by this extractor)
+      if (clerkUserId && results.length > 0) {
+        const costPerPage = includeRawContent ? 0.1 : 0;
+
+        if (costPerPage > 0) {
+          const cost = results.length * costPerPage;
+
+          await chargeAndLogToolAllowance({
+            toolName: 'viewWebsite',
+            args: query,
+            result: data,
+            cost,
+            clerkUserId,
+            messageId,
+            metadata: {
+              urlCount: results.length,
+              provider: 'exa',
+              contentTypes: includeRawContent ? ['text'] : [],
+            },
+          });
+        }
+      }
+
+      return results;
     } catch (error) {
       console.error('Exa extract error:', error);
       throw new Error('Failed to extract website content. Please try again later.');
     }
   }
 
-  private parseExaResponse(url: string, data: any): WebsiteContentResult {
+  private parseExaResponse(data: any): WebsiteContentResult[] {
     const results = data.results || [];
-    const extracted = results[0] || {};
 
-    const result: WebsiteContentResult = {
-      url,
-      title: extracted.title || undefined,
-      content: extracted.text || undefined,
-      images: [],
-      favicon: extracted.favicon || undefined,
-    };
+    return results.map((item: any) => {
+      const result: WebsiteContentResult = {
+        url: item.url || '',
+        title: item.title || undefined,
+        content: item.text || undefined,
+        images: [],
+        favicon: item.favicon || undefined,
+      };
 
-    // Collect all image URLs
-    const imageUrls: string[] = [];
+      // Collect all image URLs
+      const imageUrls: string[] = [];
 
-    // Add main image if available (single string)
-    if (extracted.image && typeof extracted.image === 'string' && extracted.image.startsWith('http')) {
-      imageUrls.push(extracted.image);
-    }
+      if (item.image && typeof item.image === 'string' && item.image.startsWith('http')) {
+        imageUrls.push(item.image);
+      }
 
-    // Add images from extras
-    if (extracted.extras?.imageLinks && Array.isArray(extracted.extras.imageLinks)) {
-      const extraImages = extracted.extras.imageLinks
-        .map((img: any) => img?.url || img)
-        .filter((url: string) => typeof url === 'string' && url.startsWith('http'));
-      imageUrls.push(...extraImages);
-    }
+      if (item.extras?.imageLinks && Array.isArray(item.extras.imageLinks)) {
+        const extraImages = item.extras.imageLinks
+          .map((img: any) => img?.url || img)
+          .filter((url: string) => typeof url === 'string' && url.startsWith('http'));
+        imageUrls.push(...extraImages);
+      }
 
-    // Deduplicate while preserving order (main image first)
-    result.images = [...new Set(imageUrls)];
+      result.images = [...new Set(imageUrls)];
 
-    return result;
+      return result;
+    });
   }
 }

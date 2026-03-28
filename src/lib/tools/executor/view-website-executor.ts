@@ -6,7 +6,7 @@ import { getWebsiteContentProvider } from '../../website-content';
 
 /**
  * Execute the viewWebsite tool on the server side
- * Uses the website content provider to extract content from URLs
+ * Uses the website content provider to extract content from URLs in a single batch request
  */
 export async function executeViewWebsite(
   input: ViewWebsiteInput,
@@ -28,31 +28,19 @@ export async function executeViewWebsite(
       }
     }
 
-    // Get the website content provider (can be overridden via WEBSITE_CONTENT_PROVIDER env var)
+    // Get the website content provider
     const providerType = 'exa';
     const provider = getWebsiteContentProvider(providerType);
 
-    // Extract content from all URLs
-    const results = await Promise.all(
-      input.urls.map(async (url) => {
-        const result = await provider.extract(
-          {
-            url,
-            includeImages: true,
-            includeRawContent: true,
-          },
-          clerkUserId,
-          messageId
-        );
-
-        return {
-          url: result.url,
-          title: result.title,
-          content: result.content,
-          images: result.images,
-          favicon: result.favicon,
-        };
-      })
+    // Extract content from all URLs in a single batch request
+    const results = await provider.extract(
+      {
+        urls: input.urls,
+        includeImages: true,
+        includeRawContent: true,
+      },
+      clerkUserId,
+      messageId
     );
 
     return { results };

@@ -22,29 +22,28 @@ export class TavilyExtractor implements IWebsiteContentProvider {
     clerkUserId?: string,
     messageId?: string,
     mode: 'basic' | 'advanced' = 'basic'
-  ): Promise<WebsiteContentResult> {
-    const { url, includeImages = true, includeRawContent = true } = query;
+  ): Promise<WebsiteContentResult[]> {
+    const { urls, includeImages = true, includeRawContent = true } = query;
 
-    // Validate URL
-    if (!url || typeof url !== 'string') {
-      throw new Error('URL is required and must be a valid string');
+    if (!urls || urls.length === 0) {
+      throw new Error('At least one URL is required');
     }
 
-    try {
-      // Validate URL format
-      new URL(url);
-    } catch {
-      throw new Error('Invalid URL format');
+    for (const url of urls) {
+      try {
+        new URL(url);
+      } catch {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
     }
 
     try {
       const payload: Record<string, any> = {
-        urls: [url],
+        urls,
         api_key: this.apiKey,
         depth: mode,
       };
 
-      // Configure what to extract
       if (includeRawContent) {
         payload.include_raw_content = true;
       }
@@ -54,7 +53,6 @@ export class TavilyExtractor implements IWebsiteContentProvider {
         payload.include_image_descriptions = true;
       }
 
-      // Always request favicon
       payload.include_favicon = true;
 
       const response = await fetch(this.baseUrl, {
@@ -72,15 +70,15 @@ export class TavilyExtractor implements IWebsiteContentProvider {
 
       const data = await response.json();
 
+      const results = this.parseTavilyResponse(data);
 
-      const result = this.parseTavilyResponse(url, data);
-
-      // Charge allowance and log usage (only on success)
+      // Charge per successful extraction
       // Tavily pricing: $0.008/credit
       //   basic = 1 credit per 5 successful extractions = 0.16¢ per extraction
       //   advanced = 2 credits per 5 successful extractions = 0.32¢ per extraction
-      if (clerkUserId) {
-        const cost = mode === 'advanced' ? 0.32 : 0.16;
+      if (clerkUserId && results.length > 0) {
+        const costPerExtraction = mode === 'advanced' ? 0.32 : 0.16;
+        const cost = results.length * costPerExtraction;
 
         await chargeAndLogToolAllowance({
           toolName: 'viewWebsite',
@@ -90,7 +88,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
           clerkUserId,
           messageId,
           metadata: {
-            urlCount: 1,
+            urlCount: results.length,
             provider: 'tavily',
             providerMode: 'extract',
             extractMode: mode,
@@ -98,37 +96,35 @@ export class TavilyExtractor implements IWebsiteContentProvider {
         });
       }
 
-      return result;
+      return results;
     } catch (error) {
       console.error('Tavily extract error:', error);
       throw new Error('Failed to extract website content. Please try again later.');
     }
   }
 
-  private parseTavilyResponse(url: string, data: any): WebsiteContentResult {
-    // Tavily returns results as an array with one item per URL
+  private parseTavilyResponse(data: any): WebsiteContentResult[] {
     const results = data.results || [];
-    const extracted = results[0] || {};
 
-    const result: WebsiteContentResult = {
-      url,
-      title: extracted.title || undefined,
-      content: extracted.content || extracted.raw_content || undefined,
-      images: [],
-    };
+    return results.map((item: any) => {
+      const result: WebsiteContentResult = {
+        url: item.url || '',
+        title: item.title || undefined,
+        content: item.content || item.raw_content || undefined,
+        images: [],
+      };
 
-    // Process images if available
-    if (extracted.images && Array.isArray(extracted.images)) {
-      result.images = extracted.images
-        .map((img: any) => img.url || img)
-        .filter((url: string) => typeof url === 'string' && url.startsWith('http'));
-    }
+      if (item.images && Array.isArray(item.images)) {
+        result.images = item.images
+          .map((img: any) => img.url || img)
+          .filter((url: string) => typeof url === 'string' && url.startsWith('http'));
+      }
 
-    // Extract favicon if available
-    if (extracted.favicon) {
-      result.favicon = extracted.favicon;
-    }
+      if (item.favicon) {
+        result.favicon = item.favicon;
+      }
 
-    return result;
+      return result;
+    });
   }
 }
