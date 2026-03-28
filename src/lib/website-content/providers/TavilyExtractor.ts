@@ -20,7 +20,8 @@ export class TavilyExtractor implements IWebsiteContentProvider {
   async extract(
     query: WebsiteContentQuery,
     clerkUserId?: string,
-    messageId?: string
+    messageId?: string,
+    mode: 'basic' | 'advanced' = 'basic'
   ): Promise<WebsiteContentResult> {
     const { url, includeImages = true, includeRawContent = true } = query;
 
@@ -40,6 +41,7 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       const payload: Record<string, any> = {
         urls: [url],
         api_key: this.apiKey,
+        depth: mode,
       };
 
       // Configure what to extract
@@ -74,8 +76,11 @@ export class TavilyExtractor implements IWebsiteContentProvider {
       const result = this.parseTavilyResponse(url, data);
 
       // Charge allowance and log usage (only on success)
+      // Tavily pricing: $0.008/credit
+      //   basic = 1 credit per 5 successful extractions = 0.16¢ per extraction
+      //   advanced = 2 credits per 5 successful extractions = 0.32¢ per extraction
       if (clerkUserId) {
-        const cost = 1; // Fixed cost per extraction
+        const cost = mode === 'advanced' ? 0.32 : 0.16;
 
         await chargeAndLogToolAllowance({
           toolName: 'viewWebsite',
@@ -87,7 +92,8 @@ export class TavilyExtractor implements IWebsiteContentProvider {
           metadata: {
             urlCount: 1,
             provider: 'tavily',
-            providerMode: 'extract'
+            providerMode: 'extract',
+            extractMode: mode,
           },
         });
       }

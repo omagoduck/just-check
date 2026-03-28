@@ -208,11 +208,12 @@ export class TavilyProvider implements ISearchProvider {
   }
 
   /**
-   * Calculate cost in cents for this search query
-   * Tavily: basic = 1 credit ($0.008), advanced = 2 credits ($0.016)
-   * We round to nearest cent: 0.8 → 1, 1.6 → 2
+   * Calculate cost in cents for this search query.
+   * Tavily pricing: $0.008/credit
+   *   basic = 1 credit  = $0.008 = 0.8¢
+   *   advanced = 2 credits = $0.016 = 1.6¢
    */
   private calculateCost(query: SearchQuery): number {
-    return query.mode === 'advanced' ? 2 : 1;
+    return query.mode === 'advanced' ? 1.6 : 0.8;
   }
 }
