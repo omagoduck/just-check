@@ -73,6 +73,8 @@ export const UserMessage = memo(function UserMessage({
   const [copyFailed, setCopyFailed] = useState(false);
   const isTouchDevice = useIsTouchDevice();
 
+  const messageCreatedAt = (message as UIMessage & { createdAt?: string | Date }).createdAt;
+
   const textParts = message.parts.filter(part => part.type === 'text');
   const imageParts = message.parts.filter(
     (part): part is Extract<UIMessage['parts'][number], { type: 'file' }> =>
@@ -227,6 +229,14 @@ export const UserMessage = memo(function UserMessage({
 
         {/* Branch indicator and action buttons */}
         <div className={cn('flex items-center justify-end gap-1 mt-2', isTouchDevice && 'opacity-100')}>
+          {messageCreatedAt && (
+            <span className={cn(
+              'text-sm text-primary-foreground/50 transition-opacity duration-200',
+              isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            )}>
+              {new Date(messageCreatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
           {hasBranch && onBranchPrevious && onBranchNext && branchCurrentIndex !== undefined && (
             <div className={cn(
               'transition-opacity duration-200',
