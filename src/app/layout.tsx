@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from "@clerk/nextjs";
-import { shadcn } from '@clerk/themes'
+import { shadcn } from '@clerk/ui/themes'
 import { QueryProvider } from "@/providers/query-provider"
 import { SettingsLoader } from "@/components/settings-loader"
 import type { Viewport } from 'next';
@@ -45,7 +45,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ClerkProvider appearance={{ baseTheme: shadcn }}>
+          <ClerkProvider appearance={{ theme: shadcn }}>
             <QueryProvider>
               <SettingsLoader> {/* This will load the settings at launching the app, which is extremely important */}
                 {children}
