@@ -2,7 +2,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { UploadedFile } from '@/lib/conversation-history/types';
 import { v4 as uuidv4 } from 'uuid';
 
-const BUCKET_NAME = 'images';
+const BUCKET_NAME = 'user-assets';
 const URL_EXPIRY_SECONDS = 86400; // 24 hours
 
 /**
