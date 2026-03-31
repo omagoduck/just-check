@@ -2,15 +2,17 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { useAuth, useUser, useClerk } from '@clerk/nextjs'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { AlertCircle, User, Calendar, Globe, Loader2 } from 'lucide-react'
+import { AlertCircle, User, Calendar, Globe, Loader2, Menu, LogOut, Trash2 } from 'lucide-react'
 import { validateAge } from '@/lib/age-validation'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface FormData {
   fullName: string
@@ -29,6 +31,7 @@ function OnboardingContent() {
   const searchParams = useSearchParams()
   const { isLoaded, isSignedIn, getToken } = useAuth()
   const { user } = useUser()
+  const { signOut } = useClerk()
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -37,6 +40,18 @@ function OnboardingContent() {
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  const deleteAccount = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('No user found')
+      await user.delete()
+    },
+    onSuccess: () => {
+      setShowDeleteDialog(false)
+      router.push('/sign-in')
+    },
+  })
 
   // Pre-fill form with Clerk data if available
   useEffect(() => {
@@ -146,7 +161,35 @@ function OnboardingContent() {
 
   return (
     <div className="min-h-dvh bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md shadow-xl relative">
+        <div className="absolute left-4 top-4 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground opacity-50 hover:opacity-100"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/sign-in' })}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <Avatar className="h-16 w-16">
@@ -243,11 +286,11 @@ function OnboardingContent() {
             )}
           </CardContent>
 
-          <CardFooter>
+          <CardFooter className="flex items-center justify-end mt-4">
             <Button
               type="submit"
               disabled={completeOnboarding.isPending}
-              className="mt-4 w-full bg-primary hover:bg-primary/90 disabled:opacity-50"
+              className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50"
             >
               {completeOnboarding.isPending ? (
                 <div className="flex items-center">
@@ -261,6 +304,44 @@ function OnboardingContent() {
           </CardFooter>
         </form>
       </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleteAccount.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteAccount.mutate()}
+              disabled={deleteAccount.isPending}
+            >
+              {deleteAccount.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Account'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
