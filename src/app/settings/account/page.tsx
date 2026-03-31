@@ -8,7 +8,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useUser, useReverification } from "@clerk/nextjs";
-import { isClerkRuntimeError, isReverificationCancelledError } from "@clerk/shared";
+import { isClerkRuntimeError, isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
