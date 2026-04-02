@@ -1,5 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -137,19 +138,13 @@ export function ChatInput({
   const innerAttachmentsRef = useRef<HTMLDivElement>(null);
   const [animatedHeight, setAnimatedHeight] = useState<number | 'auto'>(0);
 
-  // Auto-resize textarea (Chrome-safe)
-  useLayoutEffect(() => {
+  // Auto-resize textarea
+  useEffect(() => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
-      const maxHeight = 150;
-
-      // Measure with overflow hidden to avoid cross-browser scrollHeight jitter.
-      textarea.style.overflowY = "hidden";
       textarea.style.height = 'auto';
-
-      const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
-      textarea.style.height = `${nextHeight}px`;
-      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+      const newHeight = Math.min(textarea.scrollHeight, 150);
+      textarea.style.height = `${newHeight}px`;
     }
   }, [inputValue]);
 
@@ -900,10 +895,9 @@ export function ChatInput({
                 ref={textareaRef}
                 placeholder={placeholder}
                 className={cn(
-                  "w-full bg-transparent text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
-                  "resize-none border-none outline-none",
-                  "px-2 pt-1.5 pb-2 min-h-6 transition-all duration-200",
-                  "overflow-y-auto",
+                  "flex-1 resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none",
+                  "bg-transparent! text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
+                  "pr-4 pb-4 min-h-8 transition-all duration-200",
                   isOverLimit && "text-red-200"
                 )}
                 value={inputValue}
