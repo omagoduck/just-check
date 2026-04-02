@@ -4,6 +4,27 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
 import { userSettingsPostRatelimit, userSettingsGetRatelimit } from '@/lib/ratelimit';
 
+function mergeUserSettings(
+  existingSettings?: Partial<UserSettings>,
+  incomingSettings?: Partial<UserSettings>
+): UserSettings {
+  return {
+    ...DEFAULT_USER_SETTINGS,
+    ...existingSettings,
+    ...incomingSettings,
+    privacySettings: {
+      ...DEFAULT_USER_SETTINGS.privacySettings,
+      ...existingSettings?.privacySettings,
+      ...incomingSettings?.privacySettings,
+    },
+    aiCustomizationSettings: {
+      ...DEFAULT_USER_SETTINGS.aiCustomizationSettings,
+      ...existingSettings?.aiCustomizationSettings,
+      ...incomingSettings?.aiCustomizationSettings,
+    },
+  };
+}
+
 export async function GET() {
   try {
     const { userId: clerkUserId } = await auth();
@@ -46,7 +67,7 @@ export async function GET() {
       });
     }
 
-    const mergedSettings = { ...DEFAULT_USER_SETTINGS, ...existingSettings.settings_data };
+    const mergedSettings = mergeUserSettings(existingSettings.settings_data);
 
     return NextResponse.json({ settings: mergedSettings });
   } catch (error) {
@@ -86,11 +107,7 @@ export async function POST(req: Request) {
       .eq('clerk_user_id', clerkUserId)
       .single();
 
-    const mergedSettings = {
-      ...DEFAULT_USER_SETTINGS,
-      ...existingSettings?.settings_data,
-      ...settings
-    };
+    const mergedSettings = mergeUserSettings(existingSettings?.settings_data, settings);
 
     const { data, error } = await supabase
       .from('user_settings')

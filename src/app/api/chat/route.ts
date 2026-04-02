@@ -1,5 +1,5 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai';
-import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool } from '@/lib/tools';
+import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool, manageMemoryTool } from '@/lib/tools';
 import { chatRatelimit } from '@/lib/ratelimit';
 import { NextResponse } from 'next/server';
 import {
@@ -31,6 +31,8 @@ import { executeViewWebsite } from '@/lib/tools/executor/view-website-executor';
 // Import tool input types
 import type { WebSearchInput } from '@/lib/tools/web-search';
 import type { ViewWebsiteInput } from '@/lib/tools/view-website';
+import type { ManageMemoryInput } from '@/lib/tools/memory';
+import { getUserMemories } from '@/lib/memory';
 
 export async function POST(req: Request) {
   try {
@@ -227,8 +229,20 @@ export async function POST(req: Request) {
       ignoreIncompleteToolCalls: true
     });
 
-    // Build personalized system prompt from user settings
-    const systemPrompt = buildSystemPrompt(userAISettings);
+    const memoryEnabled = userAISettings.memoryEnabled !== false;
+
+    let formattedMemoryList: string | undefined;
+    if (memoryEnabled) {
+      try {
+        const memories = await getUserMemories(clerkUserId);
+        formattedMemoryList = memories.map((memory) => `- ${memory}`).join('\n');
+      } catch (error) {
+        console.error('Failed to load user memory markdown:', error);
+        formattedMemoryList = '';
+      }
+    }
+
+    const systemPrompt = buildSystemPrompt(userAISettings, { memoryMarkdown: formattedMemoryList });
 
     // Generate assistant message ID upfront for tool charging
     // For new user turns: generate new ID
@@ -254,7 +268,14 @@ export async function POST(req: Request) {
         ...viewWebsiteTool,
         execute: async (input: ViewWebsiteInput) =>
           await executeViewWebsite(input, clerkUserId, assistantMessageId)
-      }
+      },
+      ...(memoryEnabled ? {
+        manageMemory: {
+          ...manageMemoryTool,
+          execute: async (input: ManageMemoryInput) =>
+            await manageMemoryTool.execute(input, clerkUserId)
+        }
+      } : {})
     };
 
     const result = streamText({
@@ -300,7 +321,11 @@ export async function POST(req: Request) {
 
         // Add to tools called
         if (toolCalls) {
-          toolCalls.forEach(tc => accumulatedToolsCalled.add(tc.toolName));
+          toolCalls.forEach(tc => {
+            if (tc) {
+              accumulatedToolsCalled.add(tc.toolName);
+            }
+          });
         }
 
         console.log('onStepFinish step logged');

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "next-themes";
@@ -7,6 +8,19 @@ import { Moon, Sun, Monitor } from "lucide-react";
 
 export default function GeneralSettingsPage() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const selectedTheme = mounted ? theme ?? "system" : null;
+  const getThemeButtonClass = (value: "system" | "light" | "dark") =>
+    `flex flex-col items-center gap-2 p-4 rounded-lg border-2 ${mounted ? "transition-all" : ""} ${
+      selectedTheme === value
+        ? "border-primary bg-primary/10"
+        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+    }`;
 
   return (
     <>
@@ -24,10 +38,7 @@ export default function GeneralSettingsPage() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setTheme("system")}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "system"
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                    }`}
+                  className={getThemeButtonClass("system")}
                 >
                   <Monitor className="h-6 w-6" />
                   <span className="text-sm font-medium">System</span>
@@ -35,10 +46,7 @@ export default function GeneralSettingsPage() {
 
                 <button
                   onClick={() => setTheme("light")}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "light"
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                    }`}
+                  className={getThemeButtonClass("light")}
                 >
                   <Sun className="h-6 w-6" />
                   <span className="text-sm font-medium">Day</span>
@@ -46,10 +54,7 @@ export default function GeneralSettingsPage() {
 
                 <button
                   onClick={() => setTheme("dark")}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${theme === "dark"
-                    ? "border-primary bg-primary/10"
-                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                    }`}
+                  className={getThemeButtonClass("dark")}
                 >
                   <Moon className="h-6 w-6" />
                   <span className="text-sm font-medium">Night</span>

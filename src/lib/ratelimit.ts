@@ -59,6 +59,16 @@ export const userSettingsGetRatelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(100, "1m"),
 });
 
+export const userMemoryGetRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(100, "1m"),
+});
+
+export const userMemoryChangeRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(60, "1m"),
+});
+
 export const userProfileGetRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(100, "1m"),

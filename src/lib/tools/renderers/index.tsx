@@ -13,6 +13,7 @@ import { GetTimeRenderer } from './GetTimeRenderer';
 import { GetWeatherRenderer } from './GetWeatherRenderer';
 import { WebSearchRenderer } from './WebSearchRenderer';
 import { ViewWebsiteRenderer } from './ViewWebsiteRenderer';
+import { ManageMemoryRenderer } from './ManageMemoryRenderer';
 
 /**
  * Type for a tool renderer component
@@ -32,6 +33,7 @@ export const toolRenderers: Record<string, ToolRenderer> = {
   'tool-getWeather': GetWeatherRenderer,
   'tool-webSearch': WebSearchRenderer,
   'tool-viewWebsite': ViewWebsiteRenderer,
+  'tool-manageMemory': ManageMemoryRenderer,
   // Add more tool renderers here as you create them
   // 'tool-getLocation': GetLocationRenderer,
 };

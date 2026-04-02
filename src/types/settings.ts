@@ -30,6 +30,8 @@ export interface AICustomizationSettings {
   responseLength: 'default' | 'concise' | 'detail';
   /** Custom instructions for AI behavior */
   customInstructions: string;
+  /** Whether Lumy can use and update persistent memory during chats */
+  memoryEnabled: boolean;
 }
 
 /**
@@ -61,6 +63,7 @@ export const DEFAULT_AI_CUSTOMIZATION_SETTINGS: AICustomizationSettings = {
   aiTone: 'default',
   responseLength: 'default',
   customInstructions: '',
+  memoryEnabled: true,
 };
 
 /**

@@ -1,18 +1,22 @@
 "use client";
 
+import Link from 'next/link';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Brain, ChevronRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useSettingsValue, useUpdateSettings } from "@/hooks/use-settings";
 
 export default function AICustomizationSettingsPage() {
   const settings = useSettingsValue();
   const { mutate: updateSettings, isPending: isSaving } = useUpdateSettings();
 
-  const [pendingField, setPendingField] = useState<{ field: string, value: string } | null>(null);
+  const [pendingField, setPendingField] = useState<{ field: string, value: string | boolean } | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -21,7 +25,7 @@ export default function AICustomizationSettingsPage() {
     };
   }, []);
 
-  const handleChange = useCallback((field: string, value: string) => {
+  const handleChange = useCallback((field: string, value: string | boolean) => {
     setPendingField({ field, value });
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -36,9 +40,9 @@ export default function AICustomizationSettingsPage() {
 
   const getValue = (field: string) => {
     if (pendingField?.field === field) {
-      return pendingField.value;
+      return String(pendingField.value);
     }
-    return settings.aiCustomizationSettings[field as keyof typeof settings.aiCustomizationSettings] || '';
+    return String(settings.aiCustomizationSettings[field as keyof typeof settings.aiCustomizationSettings] || '');
   };
 
   return (
@@ -51,7 +55,7 @@ export default function AICustomizationSettingsPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your AI's Personality</CardTitle>
+            <CardTitle>Your AI&apos;s Personality</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -174,7 +178,57 @@ export default function AICustomizationSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Memory
+            </CardTitle>
+            <CardDescription>
+              Control whether Lumy can use and update long-term memory during chats.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-background/70 p-4">
+              <div className="space-y-1">
+                <Label htmlFor="memory-enabled" className="text-sm font-medium">
+                  Use memory in chat
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  When off, Lumy will not receive saved memory in context and cannot update memory from conversations.
+                </p>
+              </div>
+              <Switch
+                id="memory-enabled"
+                checked={settings.aiCustomizationSettings.memoryEnabled}
+                onCheckedChange={(checked) => handleChange('memoryEnabled', checked)}
+                disabled={isSaving}
+              />
+            </div>
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Review, edit, or clean up long-term memory outside chat whenever you want.
+              </p>
+              {settings.aiCustomizationSettings.memoryEnabled ? (
+                <Link href="/settings/ai-customization/memory">
+                  <Button variant="outline">
+                    Manage Memory
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" disabled>
+                  Manage Memory
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
 }
+

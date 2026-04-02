@@ -74,7 +74,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         <nav className="space-y-2">
           {settingsSections.map((section) => {
             const Icon = section.icon;
-            const isActive = pathname === section.href;
+            const isActive =
+              pathname === section.href ||
+              (section.href === "/settings/ai-customization" && pathname.startsWith("/settings/ai-customization/"));
 
             return (
               <Link
@@ -134,7 +136,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
             <nav className="flex overflow-x-auto horizontal-scroll px-4 py-3 gap-2 border-t border-border">
               {settingsSections.map((section) => {
                 const Icon = section.icon;
-                const isActive = pathname === section.href;
+                const isActive =
+                  pathname === section.href ||
+                  (section.href === "/settings/ai-customization" && pathname.startsWith("/settings/ai-customization/"));
 
                 return (
                   <Link

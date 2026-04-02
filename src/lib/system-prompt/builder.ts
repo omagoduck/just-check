@@ -32,6 +32,10 @@ const LENGTH_MODIFIERS = {
   detail: 'Provide thorough, detailed explanations. Include examples and cover edge cases when relevant.',
 } as const;
 
+export interface BuildSystemPromptOptions {
+  memoryMarkdown?: string;
+}
+
 /**
  * Build the complete dynamic suffix based on user preferences.
  * This section contains all user-specific instructions that get appended to the base prompt.
@@ -98,14 +102,61 @@ function buildDynamicSuffix(settings: AICustomizationSettings): string {
   return parts.length > 0 ? '\n\n' + parts.join('\n\n') : '';
 }
 
+function buildMemorySuffix(memoryMarkdown?: string): string {
+  if (typeof memoryMarkdown !== 'string') {
+    return '';
+  }
+
+  const normalizedMemoryMarkdown = memoryMarkdown.trim();
+  const parts = [
+    '## Persistent Memory Protocol',
+    '',
+    '### Tool Usage',
+    '- Use `manageMemory` with action `"view"` to fetch the latest memory list. The tool returns a markdown bullet list in the `memories` field. This is the same list provided in this system instruction. But if you ever hallucinate or before relying on exact entries or when freshness matters, you can use it.',
+    '- Use `manageMemory` with action `"add"` and `memories: string[]` to store one or more memories.',
+    '- Use `manageMemory` with action `"update"` and `updates: [{ oldMemory, updatedMemory }]` to update one or more memories by exact existing text.',
+    '- Use `manageMemory` with action `"remove"` and `memories: string[]` to delete one or more memories by exact existing text.',
+    '',
+    '### Usage Rules',
+    '- When needed to invoke the memory management tool, always invoke that *before* the response. Never invoke the memory tool mid or end of response. This keeps the flow cleaner and organized.',
+    '- Do not count items manually when mutating memory. Prefer copying the exact existing memory text from the latest list and matching on that string.',
+    '- Never retry a previous successful action if the expectation doesn\'t match. For example you mutated a memory but currently it doesn\'t exist. Know that the user has complete control over memories. Perhaps the user or external factors mutated them. Overall, this is normal. Again, don\'t retry previous successful mutations unless explicitly asked.',
+    '- When you mutate memories by invoking the memory tool it should immediately reflect in the list below. So don\'t hallucinate.',
+    '- The memory is dynamic. Means what you knew doesn\'t matter. Always rely on the latest list in the system instruction or the latest data of view.',
+    '- Never rewrite or dump the full memory in free text. Mutate only via tool actions.',
+    '- Never mention or explain your use of the memory tool to the user (e.g. avoid "I have stored/added/updated/deleted/etc ..." or similar phrasing) unless explicitly asked. Even if any operation fail, silently continue.',
+    '',
+    '### What to Store',
+    '- Store only durable, cross-session user facts, for example, but not limited to, hobbies, favorites, preferences, achievements, and similar.',
+    '- Always phrase stored memories as: "User ..." (never use their name).',
+    '- Do not store duplicates, trivial details, or anything unlikely to be useful in long term or future conversations.',
+    '- Do not store something based on assumption, or excess then what user said.',
+    '- Do not store secrets, credentials, or sensitive personal data unless the user explicitly asked.',
+    '',
+    '### Response Behavior',
+    '- Apply memory only when applicable. If memory is not applicable, just ignore memories and response to the user.',
+    '- Treat memories as your own knowledge. Never reference them as "from memory" or similar, unless explicitly asked.',
+    '- When applicable, naturally incorporate remembered information into responses.',
+    '',
+    '### Latest Memory About User:',
+    normalizedMemoryMarkdown || '(empty)',
+  ];
+
+  return `\n\n${parts.join('\n')}`;
+}
+
 /**
  * Build a complete system prompt by combining base instructions with user preferences.
  *
  * @param settings - User's AI customization settings
  * @returns Complete system prompt string ready for the AI model
  */
-export function buildSystemPrompt(settings: AICustomizationSettings = DEFAULT_AI_CUSTOMIZATION_SETTINGS): string {
+export function buildSystemPrompt(
+  settings: AICustomizationSettings = DEFAULT_AI_CUSTOMIZATION_SETTINGS,
+  options: BuildSystemPromptOptions = {}
+): string {
   const base = BASE_SYSTEM_PROMPT;
   const suffix = buildDynamicSuffix(settings);
-  return base + suffix;
+  const memorySuffix = buildMemorySuffix(options.memoryMarkdown);
+  return base + suffix + memorySuffix;
 }
