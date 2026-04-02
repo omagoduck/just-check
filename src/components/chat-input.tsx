@@ -895,9 +895,9 @@ export function ChatInput({
                 ref={textareaRef}
                 placeholder={placeholder}
                 className={cn(
-                  "flex-1 resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none",
-                  "bg-transparent! text-foreground placeholder:text-muted-foreground text-base leading-relaxed",
-                  "pr-4 pb-4 min-h-8 transition-all duration-200",
+                  "resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none",
+                  "bg-transparent! text-foreground placeholder:text-muted-foreground text-base! leading-relaxed",
+                  "px-2.5 pt-1.5 pb-2 min-h-10! transition-all duration-200",
                   isOverLimit && "text-red-200"
                 )}
                 value={inputValue}
@@ -928,13 +928,14 @@ export function ChatInput({
                     size="sm"
                     variant="ghost"
                     className={cn(
-                      "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9 px-3",
+                      "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9",
+                      isMobile ? "w-9 p-0" : "px-3",
                       isAtFileLimit && "opacity-50"
                     )}
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
-                    <Plus className="h-4 w-4" />
-                    {!isMobile && <span className="text-sm">Attach</span>}
+                    <Plus className="size-5" />
+                    {!isMobile && <span className="text-[15px] font-medium">Attach</span>}
                   </Button>
 
                   {showAttachments && (
@@ -983,11 +984,11 @@ export function ChatInput({
                       variant="ghost"
                       className="h-9 px-3 gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200"
                     >
-                      <Stone className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">
+                      <Stone className="size-4 text-primary" />
+                      <span className="text-[15px] font-medium">
                         {UIModels.find(m => m.id === selectedUIModelId)?.name || "Model"}
                       </span>
-                      <ChevronDown className="h-3 w-3 opacity-50" />
+                      <ChevronDown className="size-4 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -1034,7 +1035,7 @@ export function ChatInput({
                         )}
                         onClick={toggleRecording}
                       >
-                        <Mic className="h-4 w-4" />
+                        <Mic className="size-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -1071,7 +1072,7 @@ export function ChatInput({
                           "bg-muted hover:bg-muted/80 text-muted-foreground hover:shadow-xl hover:scale-105 animate-pulse-slow"
                         )}
                       >
-                        <Square className="h-4 w-4 fill-muted-foreground" />
+                        <Square className="size-5 fill-muted-foreground" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
@@ -1093,9 +1094,9 @@ export function ChatInput({
                         )}
                       >
                         {isLoading ? (
-                          <div className="w-4 h-4 border-t-2 border-primary-foreground rounded-full animate-spin"></div>
+                          <div className="w-5 h-5 border-t-2 border-primary-foreground rounded-full animate-spin"></div>
                         ) : (
-                          <ArrowUp className="h-4 w-4" />
+                          <ArrowUp className="size-5" />
                         )}
                       </Button>
                     </TooltipTrigger>
