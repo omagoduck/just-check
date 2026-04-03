@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { conversationsRatelimit } from '@/lib/ratelimit';
-import { moveConversationToFolder } from '@/lib/chat-history';
+import { moveConversationToFolder, ensureConversationNotTemporary } from '@/lib/chat-history';
 
 export async function POST(
   req: NextRequest,
@@ -31,6 +31,8 @@ export async function POST(
       );
     }
 
+    await ensureConversationNotTemporary(conversationId, clerkUserId);
+
     await moveConversationToFolder({
       conversationId,
       folderId: folder_id,
@@ -41,7 +43,12 @@ export async function POST(
   } catch (error) {
     console.error('Error moving conversation to folder:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
-    const status = message === 'Folder not found' ? 404 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const isNotFound = message === 'Folder not found'
+      || message === 'Conversation not found'
+      || message === 'Temporary conversations cannot be organized';
+    const status = isNotFound
+      ? 404
+      : 500;
+    return NextResponse.json({ error: status === 404 ? 'Conversation not found' : 'Internal server error' }, { status });
   }
 }

@@ -149,6 +149,7 @@ export async function listFolders(
     .from('conversations')
     .select('folder_id')
     .in('folder_id', folderIds)
+    .eq('is_temporary', false)
     .is('deleted_at', null)
     .is('archived_at', null);
 

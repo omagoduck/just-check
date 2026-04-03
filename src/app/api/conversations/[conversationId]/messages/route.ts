@@ -47,6 +47,7 @@ export async function GET(
             .select('id')
             .eq('id', conversationId)
             .eq('clerk_user_id', clerkUserId)
+            .eq('is_temporary', false)
             .is('deleted_at', null)
             .single();
 

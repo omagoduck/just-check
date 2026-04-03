@@ -43,3 +43,8 @@ export {
   moveConversationToFolder,
   getFolder,
 } from './folders';
+
+export {
+  ensureConversationNotTemporary,
+  endTemporaryConversation,
+} from './temporary';

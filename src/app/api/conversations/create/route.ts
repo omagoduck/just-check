@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabaseAdminClient();
     const conversationId = uuidv4();
     const body = await req.json();
-    const { title } = body;
+    const { title, isTemporary } = body;
 
     // Limit title to 256 characters if provided
     const conversationTitle = title && typeof title === 'string' && title.trim().length > 0
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         id: conversationId,
         clerk_user_id: clerkUserId,
         title: conversationTitle,
+        is_temporary: isTemporary === true,
       })
       .select()
       .single();

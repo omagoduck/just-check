@@ -34,6 +34,7 @@ export async function listConversations(
     .from('conversations')
     .select('*', { count: 'exact' })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
     .order('id', { ascending: false })
@@ -100,6 +101,7 @@ export async function listConversationsWithFilters(
     .from('conversations')
     .select('*', { count: 'exact' })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .is('deleted_at', null);
 
   // Apply view filter
@@ -187,6 +189,7 @@ export async function pinConversation(
     .from('conversations')
     .select('id', { count: 'exact', head: true })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .not('pinned_at', 'is', null)
     .is('deleted_at', null);
 
@@ -306,6 +309,7 @@ export async function archiveAllConversations(clerkUserId: string): Promise<{ co
       pinned_at: null,
     })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .is('deleted_at', null)
     .is('archived_at', null);
 
@@ -331,6 +335,7 @@ export async function deleteAllConversations(clerkUserId: string): Promise<{ cou
     .from('conversations')
     .update({ deleted_at: new Date().toISOString() })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .is('deleted_at', null);
 
   if (error) {
@@ -357,6 +362,7 @@ export async function getPinnedCount(clerkUserId: string): Promise<{
     .from('conversations')
     .select('id', { count: 'exact', head: true })
     .eq('clerk_user_id', clerkUserId)
+    .eq('is_temporary', false)
     .not('pinned_at', 'is', null)
     .is('deleted_at', null);
 

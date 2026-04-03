@@ -54,9 +54,10 @@ export async function POST(req: Request) {
     const supabase = getSupabaseAdminClient();
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
-      .select('id')
+      .select('id, is_temporary')
       .eq('id', conversationId)
       .eq('clerk_user_id', clerkUserId)
+      .is('deleted_at', null)
       .single();
 
     if (convError || !conversation) {
@@ -229,7 +230,8 @@ export async function POST(req: Request) {
       ignoreIncompleteToolCalls: true
     });
 
-    const memoryEnabled = userAISettings.memoryEnabled !== false;
+    const isTemporaryConversation = !!conversation?.is_temporary;
+    const memoryEnabled = !isTemporaryConversation && userAISettings.memoryEnabled !== false;
 
     let formattedMemoryList: string | undefined;
     if (memoryEnabled) {

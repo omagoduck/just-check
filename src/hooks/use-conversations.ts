@@ -109,13 +109,14 @@ interface CreateConversationResponse {
 
 interface CreateConversationParams {
   title?: string;
+  isTemporary?: boolean;
 }
 
 async function createConversation(params?: CreateConversationParams): Promise<CreateConversationResponse> {
   const response = await fetch('/api/conversations/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: params?.title }),
+    body: JSON.stringify({ title: params?.title, isTemporary: params?.isTemporary === true }),
   });
   if (!response.ok) throw new Error('Failed to create conversation');
   return response.json();
@@ -127,9 +128,11 @@ export function useCreateConversation() {
 
   return useMutation({
     mutationFn: (params?: CreateConversationParams) => createConversation(params),
-    onSuccess: (data) => {
-      // Invalidate conversations list to include new conversation
-      queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+    onSuccess: (data, variables) => {
+      if (!variables?.isTemporary) {
+        // Invalidate conversations list to include new conversation
+        queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
+      }
       // Navigate to new conversation
       router.push(`/chats/${data.id}`);
     },
@@ -585,4 +588,3 @@ export function useDeleteAllConversations() {
     },
   });
 }
-

@@ -10,6 +10,7 @@ export interface StoredConversation {
   clerk_user_id: string;
   title?: string | null;
   metadata?: Record<string, unknown>;
+  is_temporary?: boolean;
   pinned_at?: string | null;
   archived_at?: string | null;
   folder_id?: string | null;

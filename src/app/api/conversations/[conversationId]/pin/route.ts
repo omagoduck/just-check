@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { conversationsRatelimit } from '@/lib/ratelimit';
-import { pinConversation, unpinConversation } from '@/lib/chat-history';
+import { pinConversation, unpinConversation, ensureConversationNotTemporary } from '@/lib/chat-history';
 
 export async function POST(
   req: NextRequest,
@@ -20,6 +20,7 @@ export async function POST(
     }
 
     const { conversationId } = await params;
+    await ensureConversationNotTemporary(conversationId, clerkUserId);
 
     await pinConversation(conversationId, clerkUserId);
 
@@ -27,8 +28,19 @@ export async function POST(
   } catch (error) {
     console.error('Error pinning conversation:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
-    const status = message.includes('Pin limit reached') ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const isPinLimit = message.includes('Pin limit reached');
+    const isNotFound = message === 'Conversation not found' || message === 'Temporary conversations cannot be organized';
+    const status = isPinLimit
+      ? 400
+      : isNotFound
+        ? 404
+        : 500;
+    const errorMessage = isPinLimit
+      ? 'Pin limit reached'
+      : status === 404
+        ? 'Conversation not found'
+        : 'Internal server error';
+    return NextResponse.json({ error: errorMessage }, { status });
   }
 }
 
@@ -49,15 +61,21 @@ export async function DELETE(
     }
 
     const { conversationId } = await params;
+    await ensureConversationNotTemporary(conversationId, clerkUserId);
 
     await unpinConversation(conversationId, clerkUserId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error unpinning conversation:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const isNotFound = message === 'Conversation not found' || message === 'Temporary conversations cannot be organized';
+    const status = isNotFound
+      ? 404
+      : 500;
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: status === 404 ? 'Conversation not found' : 'Internal server error' },
+      { status }
     );
   }
 }

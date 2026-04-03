@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { ensureConversationNotTemporary } from '@/lib/chat-history';
 
 export async function PATCH(
   req: NextRequest,
@@ -22,6 +23,8 @@ export async function PATCH(
 
     const supabase = getSupabaseAdminClient();
 
+    await ensureConversationNotTemporary(conversationId, clerkUserId);
+
     // Update conversation title
     const { error } = await supabase
       .from('conversations')
@@ -36,9 +39,12 @@ export async function PATCH(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error renaming conversation:', error);
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    const isNotFound = message === 'Conversation not found' || message === 'Temporary conversations cannot be organized';
+    const status = isNotFound ? 404 : 500;
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: status === 404 ? 'Conversation not found' : 'Internal server error' },
+      { status }
     );
   }
 }

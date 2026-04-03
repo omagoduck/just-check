@@ -3,10 +3,12 @@
 
 import Image from "next/image";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants"; // Ensure these constants are correctly defined and exported
-import { Menu as MenuIcon, X, MessageCirclePlus } from 'lucide-react';
+import { Menu as MenuIcon, X, MessageCircleDashed, MessageCirclePlus } from 'lucide-react';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MessageCircleDashedCheck } from "@/components/icons/message-circle-dashed-check";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Props for the Header component
 interface HeaderProps {
@@ -17,10 +19,8 @@ interface HeaderProps {
 export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: HeaderProps) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
-  
-  // Only show new chat button on mobile and on chat pages
-  const isChatPage = pathname.startsWith('/chats/');
-  const showNewChatButton = isMobile && isChatPage;
+  const isMainPage = pathname === "/";
+  const isTemporaryPage = pathname === "/chats/temporary";
 
   return (
     <header className="shrink-0 bg-background h-header-height text-foreground px-1 sm:px-2 flex items-center">
@@ -56,15 +56,52 @@ export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: H
           </Link>
         </div>
 
-        {/* Right Group: New Chat Button (only on mobile chat pages) */}
-        {showNewChatButton && (
-          <Link
-            href="/chats"
-            className="p-2 text-foreground hover:text-foreground/80 hover:bg-accent rounded-lg transition-colors"
-            aria-label="New chat"
-          >
-            <MessageCirclePlus size={20} />
-          </Link>
+        {/* Right Group: Temporary Entry/Indicator */}
+        {isMainPage && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/chats/temporary"
+                  className="p-2 text-foreground hover:text-foreground/80 hover:bg-accent rounded-lg transition-colors"
+                  aria-label="Start temporary chat"
+                >
+                  <MessageCircleDashed size={20} />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Temporary Chat</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {isTemporaryPage && (
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className="p-2 text-foreground rounded-lg"
+                    aria-label="Temporary chat active"
+                  >
+                    <MessageCircleDashedCheck size={20} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Temporary Chat Enabled</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {isMobile && (
+              <Link
+                href="/"
+                className="p-2 text-foreground hover:text-foreground/80 hover:bg-accent rounded-lg transition-colors"
+                aria-label="New chat"
+              >
+                <MessageCirclePlus size={20} />
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </header>
