@@ -42,11 +42,12 @@ interface PricingPlan {
 const pricingPlans: PricingPlan[] = [
   {
     name: "Free",
-    description: "For individuals just starting out with AI.",
+    description: "Basic access for getting started.",
     price: "$0/month",
     features: [
       "Basic chatbot access",
-      "Limited message history",
+      "Limited features",
+      "Limited usage allowance",
       "Standard response time",
       "Community support",
     ],
@@ -54,29 +55,29 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: "Plus",
-    description: "More power for personal projects and advanced users.",
-    price: "$10/month",
+    description: "Expanded access for everyday usage.",
+    price: "$5/month",
     features: [
-      "All Free features",
-      "Enhanced chatbot access",
-      "Extended message history",
-      "Faster response time",
-      "Priority email support",
+      "Basic chatbot access",
+      "More usage than Free",
+      "More features than Free",
+      "Standard response time",
+      "Community support",
     ],
     buttonText: "Upgrade to Plus",
     productId: PRODUCT_IDS.PLUS_MONTHLY,
   },
   {
     name: "Pro",
-    description: "Unleash the full potential of AI for demanding tasks.",
-    price: "$25/month",
+    description: "High-performance plan for advanced users.",
+    price: "$20/month",
     features: [
-      "All Plus features",
-      "Premium chatbot access",
-      "Unlimited message history",
-      "Instant response time",
-      "24/7 Live chat support",
-      "Advanced integrations",
+      "Standard chatbot access",
+      "More usage allowance than Plus",
+      "Most of the features",
+      "Some experimental features",
+      "Faster response time",
+      "Faster support",
     ],
     buttonText: "Upgrade to Pro",
     highlight: true,
@@ -85,14 +86,15 @@ const pricingPlans: PricingPlan[] = [
   },
   {
     name: "Max",
-    description: "Maximum performance and exclusive features for elite users.",
-    price: "$50/month",
+    description: "Maximum access with near-complete capability.",
+    price: "$100/month",
     features: [
-      "All Pro features",
-      "Exclusive chatbot models",
-      "Dedicated account manager",
-      "Early access to new features",
-      "Custom AI model training",
+      "Standard chatbot access",
+      "More usage allowance than Pro",
+      "Almost all features",
+      "Almost all experimental features",
+      "Faster response time",
+      "Faster support",
     ],
     buttonText: "Upgrade to Max",
     productId: PRODUCT_IDS.MAX_MONTHLY,
@@ -434,8 +436,8 @@ export default function UpgradePage() {
                         Processing...
                       </>
                     ) : (
-                      isCurrentPlan 
-                        ? (subscription?.cancelAtPeriodEnd ? "Uncancel" : "Continue to App") 
+                      isCurrentPlan
+                        ? (subscription?.cancelAtPeriodEnd ? "Uncancel" : "Continue to App")
                         : plan.buttonText
                     )}
                   </Button>
@@ -443,6 +445,12 @@ export default function UpgradePage() {
               </Card>
             );
           })}
+        </div>
+
+        <div className="text-center mt-8">
+          <p className="text-xs text-muted-foreground">
+            *Prices shown don't include applicable tax.
+          </p>
         </div>
       </div>
 
