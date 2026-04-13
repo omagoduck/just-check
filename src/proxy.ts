@@ -63,6 +63,14 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Allow onboarding routes without profile completion check
   if (isOnboardingRoute(req)) {
+    const publicMetadata = sessionClaims?.publicMetadata as { profileComplete?: boolean } | undefined
+    const profileComplete = publicMetadata?.profileComplete === true
+
+    if (profileComplete) {
+      console.log('🔄 ALREADY ONBOARDED - Redirecting to /')
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+
     console.log('🔄 ONBOARDING ROUTE - Allowing access without completion check')
     return
   }
