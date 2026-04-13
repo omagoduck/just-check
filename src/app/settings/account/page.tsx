@@ -7,7 +7,9 @@
  */
 
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useUser, useReverification } from "@clerk/nextjs";
+import { useMutation } from "@tanstack/react-query";
 import { isClerkRuntimeError, isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/hooks/use-profile";
 import { validatePasswordStrength } from "@/lib/password-validation";
-import { Eye, EyeOff, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Loader2, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,11 +35,24 @@ import {
 export default function AccountSettingsPage() {
   // Clerk authentication hook - provides current user data
   const { user, isLoaded: userLoaded } = useUser();
+  const router = useRouter();
 
   // Custom hooks for profile data fetching and updates
   const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
+
+  // Delete account mutation
+  const deleteAccount = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("No user found");
+      await user.delete();
+    },
+    onSuccess: () => {
+      setShowDeleteDialog(false);
+      router.push("/sign-in");
+    },
+  });
 
   // Ref for the hidden file input
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +86,9 @@ export default function AccountSettingsPage() {
 
   // Modal open state for password dialog
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  // Modal open state for delete account dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Check if user has a password set (not OAuth-only)
   const hasPassword = user?.passwordEnabled ?? false;
@@ -653,12 +671,50 @@ export default function AccountSettingsPage() {
                 <p className="text-sm text-destructive">
                   Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
-                <Button variant="destructive" type="button">
+                <Button variant="destructive" type="button" onClick={() => setShowDeleteDialog(true)}>
                   Delete Account
                 </Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* Delete Account Confirmation Dialog */}
+          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-5 w-5" />
+                  Delete Account
+                </DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete your account? This action cannot be undone and all your data will be removed.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(false)}
+                  disabled={deleteAccount.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteAccount.mutate()}
+                  disabled={deleteAccount.isPending}
+                >
+                  {deleteAccount.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Account"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </form>
     </div>
