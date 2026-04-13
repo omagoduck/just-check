@@ -9,10 +9,11 @@ async function fetchSubscription(): Promise<SubscriptionData> {
   return response.json();
 }
 
-export function useSubscription() {
+export function useSubscription(enabled: boolean = true) {
   return useQuery({
     queryKey: ['subscription'],
     queryFn: fetchSubscription,
+    enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
   });

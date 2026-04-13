@@ -19,7 +19,7 @@ import { Check, ArrowLeft, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useOnboardedAuth } from "@/hooks/use-onboarded-auth";
 import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -146,8 +146,8 @@ async function handleCheckout(productId: string): Promise<{ success: boolean; er
 
 export default function UpgradePage() {
   const router = useRouter();
-  const { userId } = useAuth();
-  const { data: subscription } = useSubscription();  // Current subscription data
+  const { isSignedIn, isSignedInAndOnboarded, isOnboarded } = useOnboardedAuth();
+  const { data: subscription } = useSubscription(isSignedInAndOnboarded);  // Only fetch when signed in and onboarded
   const queryClient = useQueryClient();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showUncancelDialog, setShowUncancelDialog] = useState(false);
@@ -328,7 +328,7 @@ export default function UpgradePage() {
         setSelectedPlan(plan);
         setShowConfirmDialog(true);
       }
-    } else if (plan.productId && userId) {
+    } else if (plan.productId && isSignedInAndOnboarded) {
       // User is on free plan or no subscription - new checkout flow
       setLoadingPlan(plan.name);
       handleCheckout(plan.productId).then((result) => {
@@ -337,9 +337,12 @@ export default function UpgradePage() {
         }
         setLoadingPlan(null);
       });
-    } else if (!userId) {
-      // Not authenticated
-      alert('Please sign in to upgrade');
+    } else if (isSignedIn && !isOnboarded) {
+      // Signed in but not onboarded - redirect to onboarding
+      router.push('/onboarding?returnUrl=' + encodeURIComponent('/upgrade'));
+    } else if (!isSignedIn) {
+      // Not signed in - redirect to sign in
+      router.push('/sign-in?redirect_url=' + encodeURIComponent('/upgrade'));
     }
   };
 

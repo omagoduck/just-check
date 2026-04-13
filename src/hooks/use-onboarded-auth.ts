@@ -12,6 +12,7 @@ export function useOnboardedAuth() {
   const isSignedInAndOnboarded = isSignedIn && isOnboarded;
 
   return {
+    isSignedIn,
     isOnboarded,
     isSignedInAndOnboarded
   };

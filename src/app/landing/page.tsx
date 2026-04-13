@@ -364,13 +364,22 @@ function TopBar() {
           <div className="text-2xl font-bold text-foreground">{APP_BRAND_SHORT_NAME}</div>
         </Link>
 
-        <Link
-          href={isSignedIn ? "/" : "/sign-in"}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          {isSignedIn ? "Open app" : "Sign in"}
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link
+            href="/upgrade"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Pricing
+          </Link>
+
+          <Link
+            href={isSignedIn ? "/" : "/sign-in"}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            {isSignedIn ? "Open app" : "Sign in"}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </div>
   );
