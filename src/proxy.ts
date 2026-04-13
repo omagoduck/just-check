@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
-  // '/', // Right now we will not allow the user to access the root page as it is another vital page. TODO: Add feature so that user can use our chatbot even while signed out.
+  '/landing(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/webhooks(.*)',
@@ -20,6 +20,29 @@ const isOnboardingRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   console.log('🛡️ MIDDLEWARE - Processing request:', req.nextUrl.pathname)
+
+  // Special handling for root "/" route
+  if (req.nextUrl.pathname === '/') {
+    const { userId, sessionClaims } = await auth.protect().catch(() => ({ userId: null, sessionClaims: null }));
+
+    if (!userId) {
+      console.log('🔄 NOT SIGNED IN - Redirecting to landing')
+      return NextResponse.redirect(new URL('/landing', req.url))
+    }
+
+    const publicMetadata = sessionClaims?.publicMetadata as { profileComplete?: boolean } | undefined
+    const profileComplete = publicMetadata?.profileComplete === true
+
+    if (!profileComplete) {
+      console.log('🔄 NOT ONBOARDED - Redirecting to onboarding')
+      const onboardingUrl = new URL('/onboarding', req.url)
+      onboardingUrl.searchParams.set('returnUrl', req.url)
+      return NextResponse.redirect(onboardingUrl)
+    }
+
+    console.log('✅ SIGNED IN AND ONBOARDED - Allowing access to /')
+    return
+  }
 
   // Allow public routes (no authentication required)
   if (isPublicRoute(req)) {
