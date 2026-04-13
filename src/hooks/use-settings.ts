@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
-import { useAuth } from '@clerk/nextjs';
 import { useOnboardedAuth } from './use-onboarded-auth';
 
 async function fetchSettings(): Promise<UserSettings> {
