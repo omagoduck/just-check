@@ -450,9 +450,16 @@ export default function UpgradePage() {
           })}
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-10">
           <p className="text-xs text-muted-foreground">
-            *Prices shown don't include applicable tax.
+            *Prices shown do not include applicable tax.
+          </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Any question about billing?{" "}
+            <Link href="/how-billing-works" className="font-medium text-primary underline-offset-4 hover:underline">
+              See how billing works
+            </Link>
+            .
           </p>
         </div>
       </div>
