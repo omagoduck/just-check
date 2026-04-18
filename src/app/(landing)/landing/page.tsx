@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Folder,
   Globe,
+  GraduationCap,
   MessageSquareText,
   Mic,
   Monitor,
@@ -311,6 +312,40 @@ export default function LandingPage() {
         <section className="relative pb-16 md:pb-20">
           <motion.div
             {...sectionAnimation}
+            className="relative overflow-hidden rounded-[2.25rem] border border-border/60 bg-background/70 px-6 py-10 shadow-[0_30px_100px_-60px_rgba(24,24,27,0.32)] backdrop-blur-xl dark:bg-card/55 dark:shadow-[0_35px_110px_-60px_rgba(0,0,0,0.8)] md:px-10 md:py-12"
+          >
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                  Students
+                </span>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
+                  Lumy works well for students too.
+                </h2>
+                <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+                  Break down hard concepts, study from your own notes, research with
+                  sources in-thread, and keep every subject organized by folder and
+                  pinned deadline.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/students"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border/80 bg-background/80 px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                >
+                  See how students use Lumy
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="relative pb-16 md:pb-20">
+          <motion.div
+            {...sectionAnimation}
             className="relative overflow-hidden rounded-[2.25rem] border border-border/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(255,250,242,0.9))] px-6 py-10 shadow-[0_30px_100px_-60px_rgba(24,24,27,0.4)] backdrop-blur-xl dark:bg-[linear-gradient(135deg,rgba(28,24,20,0.9),rgba(18,16,14,0.88))] dark:shadow-[0_35px_110px_-60px_rgba(0,0,0,0.85)] md:px-10 md:py-12"
           >
             <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_center,rgba(239,165,52,0.15),transparent_62%)] dark:bg-[radial-gradient(circle_at_center,rgba(239,165,52,0.12),transparent_62%)] lg:block" />
@@ -366,6 +401,12 @@ function TopBar() {
 
         <div className="flex items-center gap-6">
           <Link
+            href="/students"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Students
+          </Link>
+          <Link
             href="/upgrade"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
@@ -392,9 +433,7 @@ function HeroPreview() {
       className="overflow-hidden rounded-[2.25rem] border border-border/60 bg-background/75 p-3 shadow-[0_40px_110px_-65px_rgba(24,24,27,0.5)] backdrop-blur-2xl dark:bg-card/60 dark:shadow-[0_42px_120px_-65px_rgba(0,0,0,0.85)] md:p-4"
     >
       <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <motion.div
-          animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        <div
           className="rounded-[1.75rem] border border-border/70 bg-sidebar p-4 shadow-sm"
         >
           <div className="flex items-center justify-between">
@@ -427,23 +466,21 @@ function HeroPreview() {
             <SidebarBlock
               title="Recent"
               items={[
-                { label: "Temporary chat", icon: <Shield className="h-3.5 w-3.5" /> },
+                { label: "Quick debugging help" },
                 { label: "Web search examples" },
                 { label: "Memory manager copy" },
               ]}
             />
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          <div
           className="rounded-[1.75rem] border border-border/70 bg-card px-4 py-4 shadow-sm md:px-5"
         >
           <div className="flex items-center justify-between border-b border-border/70 pb-4">
             <div>
-              <div className="text-sm font-medium text-foreground">Plan the next release</div>
-              <div className="text-xs text-muted-foreground">Fast, warm, and focused</div>
+              <div className="text-sm font-medium text-foreground">Weekend trip from Berlin</div>
+              <div className="text-xs text-muted-foreground">Cheap, nearby, good weather</div>
             </div>
             <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs text-muted-foreground">
               Thinker
@@ -453,8 +490,7 @@ function HeroPreview() {
           <div className="space-y-4 py-5">
             <div className="flex justify-end">
               <div className="max-w-[70%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
-                Help me compare features, search the web, and turn the best ideas
-                into a clear launch plan.
+                I need a cheap weekend trip from Berlin next month. Somewhere with decent weather and direct train access. Help me pick one and outline the plan.
               </div>
             </div>
 
@@ -472,35 +508,13 @@ function HeroPreview() {
 
             <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-sm">
               <div className="text-sm leading-7 text-foreground">
-                Here is a cleaner plan: keep the first screen focused, make the
-                strongest features easy to scan, and give each advanced tool its own
-                moment so the product feels more capable at a glance.
+                Dresden looks strong for this: 2 hours by direct IC train, hotel options
+                under 50 euros a night, and May averages 19 degrees. The old town,
+                Zwinger Palace, and a day hike in Saxon Switzerland are all doable in
+                a weekend.
               </div>
-
-              <div className="mt-4 rounded-2xl border border-border/70 bg-muted/40 p-4">
-                <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                  <span>Code</span>
-                  <span>TypeScript</span>
-                </div>
-                <div className="mt-3 space-y-2 font-mono text-xs text-foreground/85">
-                  <div>
-                    <span className="text-sky-600">const</span> mode ={" "}
-                    <span className="text-emerald-600">&quot;thinker&quot;</span>;
-                  </div>
-                  <div>
-                    <span className="text-sky-600">const</span> summary ={" "}
-                    <span className="text-emerald-600">&quot;Compare the top 3 options&quot;</span>;
-                  </div>
-                  <div>
-                    <span className="text-sky-600">return</span>{" "}
-                    <span className="text-violet-600">search</span>(
-                    <span className="text-emerald-600">&quot;best release strategy&quot;</span>);
-                  </div>
-                </div>
-              </div>
-
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                {["Regenerate", "Copy", "Sources", "Message info"].map((item) => (
+                {["Regenerate", "Copy", "Search", "Message info"].map((item) => (
                   <span
                     key={item}
                     className="rounded-full border border-border/70 bg-background px-3 py-1.5"
@@ -513,7 +527,7 @@ function HeroPreview() {
           </div>
 
           <ComposerMock />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -558,16 +572,16 @@ function SidebarBlock({
           >
             {item.icon ? (
               <span className="text-muted-foreground">{item.icon}</span>
-            ) : (
+            ) : item.tone ? (
               <span
                 className={cn(
                   "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
-                  item.tone ? tones[item.tone] : "bg-muted text-muted-foreground"
+                  tones[item.tone]
                 )}
               >
                 <Folder className="h-3.5 w-3.5" />
               </span>
-            )}
+            ) : null}
             <span className="truncate">{item.label}</span>
           </div>
         ))}
@@ -674,7 +688,7 @@ function CraftVisual() {
         <div className="space-y-4">
           <h3 className="text-2xl font-bold text-foreground">Key Insights</h3>
           
-          <p className="text-foreground">Here's a quick breakdown of what matters most:</p>
+          <p className="text-foreground">Here&apos;s a quick breakdown of what matters most:</p>
           <ul className="space-y-1.5 text-muted-foreground">
             <li><strong className="text-foreground">Shipping</strong> is the biggest bottleneck right now</li>
             <li>Customer <strong className="text-foreground">retention drops</strong> after week 3</li>
