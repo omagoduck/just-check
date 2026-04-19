@@ -71,7 +71,7 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   hasAllowance?: boolean;
   /** Percentage of allowance remaining (0-100) */
   remainingPercentage?: number;
-  /** When the current allowance period ends (ISO string) */
+  /** When the current daily allowance window ends (ISO string) */
   allowanceResetTime?: string | null;
   /** Whether allowance data is still loading */
   isLoadingAllowance?: boolean;
@@ -690,7 +690,7 @@ export function ChatInput({
                 <p className="text-sm font-medium">
                   {isFreeUser
                     ? "Free access is temporarily unavailable due to heavy demand."
-                    : "Your allowance has ended for this period."}
+                    : "Your daily allowance has ended."}
                 </p>
                 {!isFreeUser && allowanceResetTime && (
                   <p className="text-xs text-muted-foreground mt-0.5">

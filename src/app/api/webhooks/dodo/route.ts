@@ -33,6 +33,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
 import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/subscription-utils";
+import { getCurrentUtcDailyAllowanceWindow } from "@/lib/allowance";
 
 // =============================================================================
 // TIMESTAMP DEDUPLICATION (OPTIONAL)
@@ -87,21 +88,21 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 // PLAN ALLOWANCE MAPPING
 // =============================================================================
 
-// This object defines how many AI messages each subscription plan allows per 6-hour sliding window.
+// This object defines how much AI usage cost each subscription plan allows per UTC day.
 // The key is the plan ID (e.g., "free_monthly", "plus_monthly") and the value is the message allowance.
-// The allowance is cost of cents allocation per 6 hour sliding window.
-// Values are proportional to the former monthly allowances (divided by 120).
+// The allowance is cost of cents allocation per daily UTC window.
+// Values are product-defined daily allowances.
 //
 // Example:
 // - "free_monthly" plan: 0 of equivalent cost
-// - "plus_monthly" plan: 3 of equivalent cost per 6 hours
-// - "pro_monthly" plan: 13 of equivalent cost per 6 hours
-// - "max_monthly" plan: 67 of equivalent cost per 6 hours
+// - "plus_monthly" plan: 13.5 of equivalent cost per day
+// - "pro_monthly" plan: 55 of equivalent cost per day
+// - "max_monthly" plan: 280 of equivalent cost per day
 const PLAN_ALLOWANCES: Record<string, number> = {
   free_monthly: 0,
-  plus_monthly: 3,
-  pro_monthly: 13,
-  max_monthly: 67,
+  plus_monthly: 13.5,
+  pro_monthly: 55,
+  max_monthly: 280,
 };
 
 // Helper function to map Dodo product ID to internal plan ID
@@ -227,12 +228,13 @@ async function upsertSubscriptionAndResetAllowance(
   );
 
   const allowance = PLAN_ALLOWANCES[planId];
+  const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
   const allowanceData = {
     clerk_user_id: clerkUserId,
     alloted_allowance: allowance,
     remaining_allowance: allowance, // Full reset
-    period_start: data.created_at,
-    period_end: data.created_at, // Same as start; window not active until first message
+    period_start: periodStart,
+    period_end: periodEnd,
     last_reset_at: new Date().toISOString(),
   };
 
@@ -255,6 +257,7 @@ async function upsertSubscriptionAndResetAllowance(
 async function resetAllowanceToFreePlan(supabase: SupabaseClient, clerkUserId: string) {
   const freePlanAllowance = PLAN_ALLOWANCES['free_monthly'];
   const now = new Date().toISOString();
+  const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
 
   const { error: allowanceError } = await supabase
     .from('periodic_allowance')
@@ -262,8 +265,8 @@ async function resetAllowanceToFreePlan(supabase: SupabaseClient, clerkUserId: s
       clerk_user_id: clerkUserId,
       alloted_allowance: freePlanAllowance,
       remaining_allowance: freePlanAllowance,
-      period_start: now,
-      period_end: now,
+      period_start: periodStart,
+      period_end: periodEnd,
       last_reset_at: now,
     }, { onConflict: 'clerk_user_id' });
 

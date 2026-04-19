@@ -239,11 +239,11 @@ export default function UsagePage() {
 
   // Determine next reset message
   const getNextResetMessage = () => {
-    if (!usageData?.periodEnd) return "No active session";
+    if (!usageData?.periodEnd) return "No active daily allowance";
     const periodEnd = new Date(usageData.periodEnd);
     const now = new Date();
     if (now > periodEnd) {
-      return "Start using to know the next reset time.";
+      return "Daily allowance refreshes at midnight UTC.";
     }
     return `Next reset: ${formatDate(usageData.periodEnd)}`;
   };
@@ -457,9 +457,9 @@ export default function UsagePage() {
       {/* Monthly Allowance Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Periodic Allowance</CardTitle>
+          <CardTitle>Daily Allowance</CardTitle>
           <CardDescription>
-            Track your remaining allowance for the current session
+            Track your allowance for daily window
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

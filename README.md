@@ -295,7 +295,7 @@ lumy-with-ai-sdk/
 | `messages` | Individual messages with branching support |
 | `user_settings` | Privacy and AI customization settings |
 | `user_subscriptions` | DodoPayments subscription data |
-| `periodic_allowance` | Token usage tracking (6-hour windows) |
+| `periodic_allowance` | Token usage tracking (daily UTC windows) |
 | `message_feedback` | User feedback on AI responses |
 | `message_token_usage_log` | Detailed token usage logs |
 | `file_uploads` | Attachment metadata |
@@ -304,7 +304,7 @@ lumy-with-ai-sdk/
 ### Key Features
 
 - **Message Branching** - Messages can reference previous messages via `previous_message_id`
-- **Sliding Window Allowance** - 6-hour rolling windows for usage limits
+- **Daily Allowance** - UTC-midnight daily windows for usage limits
 - **Soft Deletes** - `deleted_at` columns for data retention
 - **Timestamps** - UTC timestamps with automatic updates
 

@@ -5,17 +5,30 @@ const getSupabase = (): SupabaseClient => {
   return getSupabaseAdminClient();
 };
 
-/**
- * Retrieves the remaining allowance (in cents) for a user.
- * Implements a 6-hour sliding window based on period_start and period_end.
- * If window expired, automatically resets allowance to full and starts a new window.
- * Returns 0 if the user has no allowance record.
- * Throws on database errors.
- */
-export async function getRemainingAllowance(clerkUserId: string): Promise<number> {
+export interface AllowanceStatus {
+  periodStart: string | null;
+  periodEnd: string | null;
+  remainingAllowance: number;
+  allotedAllowance: number;
+  remainingPercentage: number;
+}
+
+export function getCurrentUtcDailyAllowanceWindow(now = new Date()) {
+  const periodStart = new Date(now);
+  periodStart.setUTCHours(0, 0, 0, 0);
+
+  const periodEnd = new Date(periodStart);
+  periodEnd.setUTCDate(periodEnd.getUTCDate() + 1);
+
+  return {
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
+  };
+}
+
+async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<AllowanceStatus> {
   const supabase = getSupabase();
 
-  // Fetch allowance row
   const { data, error } = await supabase
     .from('periodic_allowance')
     .select('remaining_allowance, alloted_allowance, period_start, period_end')
@@ -23,93 +36,81 @@ export async function getRemainingAllowance(clerkUserId: string): Promise<number
     .single();
 
   if (error) {
-    // If the row doesn't exist, treat as 0
     if (error.code === 'PGRST116') {
-      return 0;
+      return {
+        periodStart: null,
+        periodEnd: null,
+        remainingAllowance: 0,
+        allotedAllowance: 0,
+        remainingPercentage: 0,
+      };
     }
     throw error;
   }
 
-  const remaining = data?.remaining_allowance ?? 0;
-  const allotted = data?.alloted_allowance ?? 0;
+  const remaining = Number(data?.remaining_allowance ?? 0);
+  const allotted = Number(data?.alloted_allowance ?? 0);
   const periodEnd = data?.period_end ? new Date(data.period_end) : null;
 
-  // #region Race condition fix note
-  // """CRITICAL: Race condition in allowance window reset
-
-  // Confidence: 95%
-
-  // Problem: The getRemainingAllowance() function has a time-of-check-to-time-of-use (TOCTOU) race condition. Between reading the allowance data (line 19-23) and performing the reset update (line 44-54), another concurrent request could:
-
-  // Also read the same expired window
-  // Both requests attempt to reset the window
-  // The second update could overwrite the first, potentially causing:
-  // Double reset of allowance
-  // Lost period_start/period_end timestamps
-  // Inconsistent last_reset_at values
-  // This is particularly problematic because getRemainingAllowance() is called before deductAllowance() in the chat flow, meaning every chat message could trigger this race.
-
-  // Suggestion: Use an atomic database operation similar to the existing deduct_allowance PostgreSQL function. Create a new database function:
-
-  // CREATE OR REPLACE FUNCTION get_or_reset_allowance(
-  //   p_clerk_user_id TEXT
-  // )
-  // RETURNS TABLE(remaining INTEGER, allotted INTEGER, period_end TIMESTAMPTZ) AS $$
-  // BEGIN
-  //   -- First, try to update if expired (atomic)
-  //   UPDATE periodic_allowance
-  //   SET 
-  //     remaining_allowance = alloted_allowance,
-  //     period_start = NOW(),
-  //     period_end = NOW() + INTERVAL '6 hours',
-  //     last_reset_at = NOW()
-  //   WHERE clerk_user_id = p_clerk_user_id
-  //     AND alloted_allowance > 0
-  //     AND period_end < NOW()
-  //   RETURNING remaining_allowance, alloted_allowance, periodic_allowance.period_end;
-
-  //   -- If no update happened, return current values
-  //   IF NOT FOUND THEN
-  //     RETURN QUERY
-  //     SELECT remaining_allowance, alloted_allowance, periodic_allowance.period_end
-  //     FROM periodic_allowance
-  //     WHERE clerk_user_id = p_clerk_user_id;
-  //   END IF;
-  // END;
-  // $$ LANGUAGE plpgsql;
-  // """
-  // - AI CI Reviewer
-  //
-  // Our note, right now we are still in dev stage. So we have time to solve it later. It's just a marker comment.
-  //
-  // TODO P3: Solve it.
-  //
-  // #endregion
-
-  // If period_end is in the past (expired window or never-started window), reset now
   if (allotted > 0 && periodEnd && new Date() > periodEnd) {
-    const resetTime = new Date();
-    const resetTimeISO = resetTime.toISOString();
-    const newPeriodEnd = new Date(resetTime);
-    newPeriodEnd.setHours(newPeriodEnd.getHours() + 6);
+    const resetTime = new Date().toISOString();
+    const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
 
-    const { data: updateData } = await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from('periodic_allowance')
       .update({
         remaining_allowance: allotted,
-        period_start: resetTimeISO,
-        period_end: newPeriodEnd.toISOString(),
-        last_reset_at: resetTimeISO,
+        period_start: periodStart,
+        period_end: periodEnd,
+        last_reset_at: resetTime,
       })
       .eq('clerk_user_id', clerkUserId)
-      .select('remaining_allowance')
+      .select('remaining_allowance, alloted_allowance, period_start, period_end')
       .single();
 
-    return updateData?.remaining_allowance ?? allotted;
+    if (updateError) {
+      throw updateError;
+    }
+
+    const updatedRemaining = Number(updateData?.remaining_allowance ?? allotted);
+    const updatedAllotted = Number(updateData?.alloted_allowance ?? allotted);
+
+    return {
+      periodStart: updateData?.period_start ?? periodStart,
+      periodEnd: updateData?.period_end ?? periodEnd,
+      remainingAllowance: updatedRemaining,
+      allotedAllowance: updatedAllotted,
+      remainingPercentage: updatedAllotted > 0
+        ? Math.max(0, Math.round((updatedRemaining / updatedAllotted) * 100))
+        : 0,
+    };
   }
 
-  // Window is active (or no allotted allowance): return current remaining
-  return remaining;
+  return {
+    periodStart: data?.period_start ?? null,
+    periodEnd: data?.period_end ?? null,
+    remainingAllowance: remaining,
+    allotedAllowance: allotted,
+    remainingPercentage: allotted > 0
+      ? Math.max(0, Math.round((remaining / allotted) * 100))
+      : 0,
+  };
+}
+
+/**
+ * Retrieves the remaining allowance (in cents) for a user.
+ * Implements a daily UTC allowance window based on period_start and period_end.
+ * If the daily window expired, automatically resets allowance to full for the current UTC day.
+ * Returns 0 if the user has no allowance record.
+ * Throws on database errors.
+ */
+export async function getRemainingAllowance(clerkUserId: string): Promise<number> {
+  const status = await getAllowanceStatusFromDatabase(clerkUserId);
+  return status.remainingAllowance;
+}
+
+export async function getAllowanceStatus(clerkUserId: string): Promise<AllowanceStatus> {
+  return getAllowanceStatusFromDatabase(clerkUserId);
 }
 
 /**
@@ -127,6 +128,8 @@ export async function deductAllowance(clerkUserId: string, cost: number): Promis
     // No deduction needed; just return current
     return getRemainingAllowance(clerkUserId);
   }
+
+  await getRemainingAllowance(clerkUserId);
 
   const supabase = getSupabase();
 

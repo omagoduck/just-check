@@ -10,7 +10,7 @@ interface SubscriptionAndAllowanceStatus {
   hasAllowance: boolean;
   /** Percentage of allowance remaining (0-100+) */
   remainingPercentage: number;
-  /** When the current allowance period ends (ISO string) */
+  /** When the current daily allowance window ends (ISO string) */
   periodEnd: string | null;
   /** Whether allowance data is still loading */
   isLoading: boolean;

@@ -4,6 +4,7 @@
 -- Version: 006
 -- Created: 2026-02-02
 -- Updated: 2026-03-16 - Changed allowance columns to NUMERIC(16,10) for sub-cent precision
+-- Updated: 2026-04-19 - Allowance periods are daily UTC windows
 -- ============================================================================
 
 -- ============================================================================
@@ -90,11 +91,12 @@ $$;
 
 -- ============================================================================
 -- PERIODIC ALLOWANCE TABLE
--- Tracks token/message usage allowance per user per billing period
+-- Tracks token/message usage allowance per user per UTC day
 -- ============================================================================
 
--- Create periodic_allowance table
--- clerk_user_id is the PRIMARY KEY to ensure one row per user
+-- Create periodic_allowance table.
+-- clerk_user_id is the PRIMARY KEY to ensure one row per user.
+-- period_start and period_end represent the active daily UTC allowance window.
 CREATE TABLE IF NOT EXISTS public.periodic_allowance (
     clerk_user_id TEXT PRIMARY KEY REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     alloted_allowance NUMERIC(16,10) NOT NULL DEFAULT 0,
@@ -124,7 +126,8 @@ CREATE TRIGGER update_periodic_allowance_updated_at
 -- Disable RLS (consistent with other tables)
 ALTER TABLE public.periodic_allowance DISABLE ROW LEVEL SECURITY;
 
---- Create a function to atomically deduct allowance with clamping to 0
+--- Create a function to atomically deduct allowance with clamping to 0.
+--- The application refreshes expired daily UTC windows before calling this function.
 CREATE OR REPLACE FUNCTION deduct_allowance(
   p_clerk_user_id TEXT,
   p_cost NUMERIC(16,10)
