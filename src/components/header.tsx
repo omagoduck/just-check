@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants"; // Ensure these constants are correctly defined and exported
+import { APP_BRAND_LOGO_URL, APP_BRAND_NAME } from "@/lib/branding-constants"; // Ensure these constants are correctly defined and exported
 import { Menu as MenuIcon, X, MessageCircleDashed, MessageCirclePlus } from 'lucide-react';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -45,14 +45,14 @@ export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: H
           <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors"> {/* Keeps logo and name together */}
             <Image 
               src={APP_BRAND_LOGO_URL} 
-              alt={`${APP_BRAND_SHORT_NAME} Logo`} 
+              alt={`${APP_BRAND_NAME} Logo`} 
               width={32}  // Use desired display width
               height={32} // Use desired display height
               className="h-8 w-8" // This controls the rendered size
               priority // Add priority if it's LCP (Largest Contentful Paint)
             />
             {/* Brand name can be slightly smaller on mobile, or full size based on your preference */}
-            <div className="text-xl text-foreground/90 transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
+            <div className="text-xl text-foreground/90 transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_NAME}</div>
           </Link>
         </div>
 

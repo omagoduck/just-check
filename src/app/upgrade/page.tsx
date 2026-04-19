@@ -20,7 +20,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOnboardedAuth } from "@/hooks/use-onboarded-auth";
-import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
+import { APP_BRAND_LOGO_URL, APP_BRAND_NAME } from "@/lib/branding-constants";
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -366,13 +366,13 @@ export default function UpgradePage() {
             <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors">
               <Image
                 src={APP_BRAND_LOGO_URL}
-                alt={`${APP_BRAND_SHORT_NAME} Logo`}
+                alt={`${APP_BRAND_NAME} Logo`}
                 width={32}
                 height={32}
                 className="h-8 w-8"
                 priority
               />
-              <div className="text-xl text-foreground/90 hover:text-accent-foreground transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
+              <div className="text-xl text-foreground/90 hover:text-accent-foreground transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_NAME}</div>
             </Link>
           </div>
         </div>

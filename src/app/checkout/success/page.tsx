@@ -7,7 +7,7 @@ import { CheckCircle2, ArrowLeft, Home } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { APP_BRAND_LOGO_URL, APP_BRAND_SHORT_NAME } from "@/lib/branding-constants";
+import { APP_BRAND_LOGO_URL, APP_BRAND_NAME } from "@/lib/branding-constants";
 
 export default function CheckoutSuccessPage() {
   const router = useRouter();
@@ -30,13 +30,13 @@ export default function CheckoutSuccessPage() {
             <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors">
               <Image
                 src={APP_BRAND_LOGO_URL}
-                alt={`${APP_BRAND_SHORT_NAME} Logo`}
+                alt={`${APP_BRAND_NAME} Logo`}
                 width={32}
                 height={32}
                 className="h-8 w-8"
                 priority
               />
-              <div className="text-xl text-foreground/90 hover:text-accent-foreground transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_SHORT_NAME}</div>
+              <div className="text-xl text-foreground/90 hover:text-accent-foreground transition-colors cursor-pointer md:text-2xl font-bold">{APP_BRAND_NAME}</div>
             </Link>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function CheckoutSuccessPage() {
             </div>
             <CardTitle className="text-3xl font-bold">Payment Successful!</CardTitle>
             <CardDescription className="text-base">
-              Thank you for upgrading to {APP_BRAND_SHORT_NAME} Pro. Your account has been successfully upgraded.
+              Thank you for upgrading to {APP_BRAND_NAME} Pro. Your account has been successfully upgraded.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

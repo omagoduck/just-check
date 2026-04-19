@@ -10,12 +10,12 @@ import {
   User,
   Brain,
   ArrowLeft,
-  Database
+  FolderCog
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { APP_BRAND_SHORT_NAME, APP_BRAND_LOGO_URL } from "@/lib/branding-constants";
+import { APP_BRAND_NAME, APP_BRAND_LOGO_URL } from "@/lib/branding-constants";
 
 const settingsSections = [
   {
@@ -25,28 +25,28 @@ const settingsSections = [
     href: "/settings/general"
   },
   {
-    key: "privacy",
-    label: "Privacy",
-    icon: Shield,
-    href: "/settings/privacy"
-  },
-  {
-    key: "data-control",
-    label: "Data Control",
-    icon: Database,
-    href: "/settings/data-control"
-  },
-  {
     key: "ai-customization",
     label: "AI Customization",
     icon: Brain,
     href: "/settings/ai-customization"
   },
   {
+    key: "data-control",
+    label: "Management",
+    icon: FolderCog,
+    href: "/settings/data-control"
+  },
+  {
     key: "usage",
     label: "Usage",
     icon: Plug,
     href: "/settings/usage"
+  },
+  {
+    key: "privacy",
+    label: "Privacy",
+    icon: Shield,
+    href: "/settings/privacy"
   },
   {
     key: "account",
@@ -106,14 +106,14 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
             <Link href="/" className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground bg-transparent px-3 py-1.5 rounded-lg select-none transition-colors">
               <Image
                 src={APP_BRAND_LOGO_URL}
-                alt={`${APP_BRAND_SHORT_NAME} Logo`}
+                alt={`${APP_BRAND_NAME} Logo`}
                 width={32}
                 height={32}
                 className="h-8 w-8"
                 priority
               />
               <div className="text-xl transition-colors cursor-pointer md:text-2xl font-bold">
-                {APP_BRAND_SHORT_NAME}
+                {APP_BRAND_NAME}
               </div>
             </Link>
 

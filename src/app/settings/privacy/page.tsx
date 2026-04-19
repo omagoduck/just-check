@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { useSettingsValue, useUpdateSettings } from "@/hooks/use-settings";
+import { SUPPORT_EMAIL } from "@/lib/branding-constants";
+import { ExternalLink, FileText, ShieldCheck } from "lucide-react";
 
 export default function PrivacySettingsPage() {
   const settings = useSettingsValue();
@@ -55,20 +56,64 @@ export default function PrivacySettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Data Request */}
         <Card>
           <CardHeader>
-            <CardTitle>Data Request</CardTitle>
+            <CardTitle>Legal</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="data-request">Request your Lumy data</Label>
-              <Textarea
-                id="data-request"
-                placeholder="Describe what data you would like to request or any privacy concerns you have..."
-                className="min-h-[100px]"
-              />
-            </div>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <a
+              href="https://www.oearol.com/legal/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-between rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">Privacy Policy</span>
+                  <span className="block text-xs text-muted-foreground">How your data is handled</span>
+                </span>
+              </span>
+              <ExternalLink className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            </a>
+
+            <a
+              href="https://www.oearol.com/legal/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center justify-between rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <FileText className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">Terms of Service</span>
+                  <span className="block text-xs text-muted-foreground">The terms for using Lumy</span>
+                </span>
+              </span>
+              <ExternalLink className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            </a>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-6 text-muted-foreground">
+              If you want to request a copy of your Lumy data or have any privacy or data related query, contact support at{" "}
+              <a
+                className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary"
+                href={`mailto:${SUPPORT_EMAIL}`}
+              >
+                {SUPPORT_EMAIL}
+              </a>
+              .
+            </p>
           </CardContent>
         </Card>
       </div>

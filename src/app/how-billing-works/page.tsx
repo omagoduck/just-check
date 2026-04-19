@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   APP_BRAND_NAME,
-  APP_BRAND_SHORT_NAME,
   PARENT_COMPANY_BRAND_NAME,
+  SUPPORT_EMAIL,
 } from "@/lib/branding-constants";
-
-const SUPPORT_EMAIL = "snack-outline-slam@duck.com";
 
 export const metadata: Metadata = {
   title: `How Billing Works | ${APP_BRAND_NAME}`,
@@ -48,12 +46,12 @@ export default function HowBillingWorksPage() {
 
           <div className="space-y-4 text-sm leading-7 text-muted-foreground sm:text-base">
             <p>
-              {APP_BRAND_SHORT_NAME} is an AI software product developed and operated by{" "}
+              {APP_BRAND_NAME} is an AI software product developed and operated by{" "}
               {PARENT_COMPANY_BRAND_NAME}. This page explains how billing works, clearly and
               without unnecessary complexity. Please read it before subscribing.
             </p>
             <p>
-              This page applies only to billing for {APP_BRAND_SHORT_NAME}. It does not explain
+              This page applies only to billing for {APP_BRAND_NAME}. It does not explain
               billing for every {PARENT_COMPANY_BRAND_NAME} product, service, experiment, or
               platform.
             </p>
@@ -99,14 +97,14 @@ export default function HowBillingWorksPage() {
 
         <Section id="payment-processor" title="1. Payment Processor">
           <p>
-            All payments for {APP_BRAND_SHORT_NAME} are processed by Dodo Payments, a global
+            All payments for {APP_BRAND_NAME} are processed by Dodo Payments, a global
             Merchant of Record platform.
           </p>
           <p>What this means for you:</p>
           <ul className="list-disc space-y-2 pl-6">
             <li>
               The charge on your bank or card statement may appear under Dodo Payments, not{" "}
-              {PARENT_COMPANY_BRAND_NAME} or {APP_BRAND_SHORT_NAME}. This is expected for purchases
+              {PARENT_COMPANY_BRAND_NAME} or {APP_BRAND_NAME}. This is expected for purchases
               processed through Dodo Payments.
             </li>
             <li>
@@ -121,7 +119,7 @@ export default function HowBillingWorksPage() {
             </li>
             <li>
               If you see a charge from Dodo Payments and believe it may be related to{" "}
-              {APP_BRAND_SHORT_NAME}, contact us at the support email listed at the bottom of this
+              {APP_BRAND_NAME}, contact us at the support email listed at the bottom of this
               page so we can help identify it.
             </li>
           </ul>
@@ -241,7 +239,7 @@ export default function HowBillingWorksPage() {
           <ul className="list-disc space-y-2 pl-6">
             <li>
               Your subscription is not normally terminated immediately. You retain access to{" "}
-              {APP_BRAND_SHORT_NAME} for the remainder of your active billing period.
+              {APP_BRAND_NAME} for the remainder of your active billing period.
             </li>
             <li>
               At the end of that billing period, your subscription expires and should not renew
@@ -324,7 +322,7 @@ export default function HowBillingWorksPage() {
             refundable.
           </p>
           <p>
-            If the account shows clear, deliberate usage of {APP_BRAND_SHORT_NAME} during the
+            If the account shows clear, deliberate usage of {APP_BRAND_NAME} during the
             billing period, the refund may be denied partially or entirely. This protects against
             misuse of the refund process.
           </p>
@@ -352,7 +350,7 @@ export default function HowBillingWorksPage() {
                 <tr>
                   <td className="py-3 pr-4 text-foreground">Oearol account email</td>
                   <td className="py-3">
-                    The email linked to your {APP_BRAND_SHORT_NAME} or{" "}
+                    The email linked to your {APP_BRAND_NAME} or{" "}
                     {PARENT_COMPANY_BRAND_NAME} account on the platform.
                   </td>
                 </tr>
@@ -428,7 +426,7 @@ export default function HowBillingWorksPage() {
         <Section id="changes" title="10. Changes to How Billing Works">
           <p>
             {PARENT_COMPANY_BRAND_NAME} reserves the right to modify how billing works for{" "}
-            {APP_BRAND_SHORT_NAME} at any
+            {APP_BRAND_NAME} at any
             time, including changes to how subscriptions are structured, how billing is calculated,
             how plan changes are handled, how wallet or credit behavior is described, and how the
             overall payment system operates.
@@ -439,7 +437,7 @@ export default function HowBillingWorksPage() {
             in-app notification, notice on the relevant billing page, or another appropriate method.
           </p>
           <p>
-            Continued use of {APP_BRAND_SHORT_NAME} after the effective date of any updated billing
+            Continued use of {APP_BRAND_NAME} after the effective date of any updated billing
             explanation, billing page, or flow may mean the updated billing process applies going forward,
             subject to applicable law and any notice requirements.
           </p>
@@ -453,7 +451,7 @@ export default function HowBillingWorksPage() {
           <p>
             We do our best to keep this page current, but there may be a period where live provider
             behavior differs from what is written here. This page is specific to{" "}
-            {APP_BRAND_SHORT_NAME}; other {PARENT_COMPANY_BRAND_NAME} products may have different
+            {APP_BRAND_NAME}; other {PARENT_COMPANY_BRAND_NAME} products may have different
             billing flows or terms. When in doubt, contact us at{" "}
             <a className="font-medium text-foreground underline underline-offset-4" href={`mailto:${SUPPORT_EMAIL}`}>
               {SUPPORT_EMAIL}
@@ -464,8 +462,8 @@ export default function HowBillingWorksPage() {
 
         <footer className="border-t pt-8 text-sm leading-7 text-muted-foreground">
           <p>
-            {APP_BRAND_SHORT_NAME} is a product of {PARENT_COMPANY_BRAND_NAME}. Billing is
-            processed by Dodo Payments for transactions involving {APP_BRAND_SHORT_NAME}.
+            {APP_BRAND_NAME} is a product of {PARENT_COMPANY_BRAND_NAME}. Billing is
+            processed by Dodo Payments for transactions involving {APP_BRAND_NAME}.
           </p>
           <p className="mt-4">
             <Link href="/upgrade" className="font-medium text-foreground underline underline-offset-4">

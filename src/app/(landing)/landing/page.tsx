@@ -34,7 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   APP_BRAND_LOGO_URL,
-  APP_BRAND_SHORT_NAME,
+  APP_BRAND_NAME,
   APP_BRAND_SLOGAN,
 } from "@/lib/branding-constants";
 
@@ -390,13 +390,13 @@ function TopBar() {
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl">
             <Image
               src={APP_BRAND_LOGO_URL}
-              alt={`${APP_BRAND_SHORT_NAME} logo`}
+              alt={`${APP_BRAND_NAME} logo`}
               width={28}
               height={28}
               className="h-7 w-7"
             />
           </div>
-          <div className="text-2xl font-bold text-foreground">{APP_BRAND_SHORT_NAME}</div>
+          <div className="text-2xl font-bold text-foreground">{APP_BRAND_NAME}</div>
         </Link>
 
         <div className="flex items-center gap-6">

@@ -46,8 +46,8 @@ export interface UserSettings {
  * Default privacy settings
  */
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
-  shareAnonymousData: false,
-  shareDiagnostics: false,
+  shareAnonymousData: true,
+  shareDiagnostics: true,
 };
 
 /**

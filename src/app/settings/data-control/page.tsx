@@ -58,7 +58,7 @@ export default function DataControlSettingsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-6">Data Control</h1>
+      <h1 className="text-2xl font-bold mb-6">Management</h1>
 
       <div className="space-y-4">
         {/* View Archived Chats */}
