@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getRemainingAllowance } from '@/lib/allowance';
 import { uploadFileToStorage, recordFileUpload, deleteFileFromStorage } from '@/lib/storage/file-storage-service';
 import { validateFiles, SUPPORTED_FILE_TYPES } from '@/lib/storage/file-validation';
+import { extractFileForModel, getModelProcessableMimeType } from '@/lib/storage/file-extraction';
 import { uploadRatelimit } from '@/lib/ratelimit';
 
 export async function POST(req: NextRequest) {
@@ -59,11 +60,16 @@ export async function POST(req: NextRequest) {
     const uploadPromises = validFiles.map(async (file) => {
       let storagePath;
       try {
-        storagePath = await uploadFileToStorage(clerkUserId, file);
+        const mimeType = getModelProcessableMimeType(file);
+        const extraction = await extractFileForModel(file, mimeType);
+        storagePath = await uploadFileToStorage(clerkUserId, file, mimeType);
         const uploadedFile = await recordFileUpload(
           clerkUserId,
           storagePath,
-          file
+          file,
+          {},
+          mimeType,
+          extraction
         );
 
         return {

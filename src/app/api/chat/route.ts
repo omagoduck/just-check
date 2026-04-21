@@ -22,7 +22,7 @@ import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCost 
 import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
-import { resolveMessagesAttachments } from '@/lib/storage/attachment-resolver';
+import { preprocessMessagesAttachmentsForModel } from '@/lib/storage/message-attachment-preprocessor';
 
 // Import raw executors for tool charging
 import { executeWebSearch } from '@/lib/tools/executor/web-search-executor';
@@ -219,10 +219,11 @@ export async function POST(req: Request) {
     let streamOnFinishUsage: { totalTokens?: number; inputTokens?: number; outputTokens?: number; inputTokenDetails?: any; outputTokenDetails?: any } | undefined;
 
     // =========================================================================
-    // RESOLVE ATTACHMENT URLs (NEW STEP)
+    // PREPARE ATTACHMENTS FOR MODEL INPUT
     // =========================================================================
-    // Convert attachment:// URLs to fresh signed URLs before sending to AI
-    const attachmentResolvedMessages = await resolveMessagesAttachments(messages, clerkUserId);
+    // Keep chat state as stable attachment:// file parts, but send the model either
+    // a fresh image URL or extracted text context for non-image files.
+    const attachmentResolvedMessages = await preprocessMessagesAttachmentsForModel(messages, clerkUserId);
     
     const modelMessages = await convertToModelMessages(attachmentResolvedMessages, {
       // safety net for incomplete tool calls. incomplete tool call may cause errors. 

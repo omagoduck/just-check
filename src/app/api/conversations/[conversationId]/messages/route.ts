@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import { getMessagesForConversation, type AssistantResponseMetadata } from '@/lib/conversation-history';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
-import { resolveMessagesAttachments } from '@/lib/storage/attachment-resolver';
 
 /**
  * Filters server-side metadata to only include client-safe fields.
@@ -78,10 +77,9 @@ export async function GET(
             createdAt: msg.created_at ? new Date(msg.created_at) : undefined,
         }));
 
-        // 6. Resolve attachment:// URLs to fresh signed URLs for client display
-        const resolvedMessages = await resolveMessagesAttachments(uiMessages, clerkUserId);
-
-        return NextResponse.json({ messages: resolvedMessages });
+        // Keep attachment:// URLs stable in the chat state. Renderers resolve them
+        // lazily for display; sending signed URLs back to /api/chat loses the file ID.
+        return NextResponse.json({ messages: uiMessages });
     } catch (error) {
         console.error('Error fetching messages:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

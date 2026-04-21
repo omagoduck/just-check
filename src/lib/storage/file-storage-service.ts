@@ -24,7 +24,8 @@ export function generateStoragePath(
  */
 export async function uploadFileToStorage(
   userId: string,
-  file: File
+  file: File,
+  contentType = file.type
 ): Promise<string> {
   const supabase = getSupabaseAdminClient();
 
@@ -33,7 +34,7 @@ export async function uploadFileToStorage(
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .upload(storagePath, file, {
-      contentType: file.type,
+      contentType,
       upsert: false, // Never overwrite
     });
 
@@ -153,7 +154,10 @@ export async function resolveAttachmentUrl(
 export async function recordFileUpload(
   userId: string,
   storagePath: string,
-  file: File
+  file: File,
+  metadata: Record<string, unknown> = {},
+  mimeType = file.type,
+  extractedData?: Record<string, unknown>
 ): Promise<UploadedFile> {
   const supabase = getSupabaseAdminClient();
 
@@ -163,9 +167,10 @@ export async function recordFileUpload(
       user_id: userId,
       storage_path: storagePath,
       original_filename: file.name,
-      mime_type: file.type,
+      mime_type: mimeType,
       file_size: file.size,
-      metadata: {},
+      metadata,
+      extracted_data: extractedData ?? null,
     })
     .select()
     .single();
@@ -175,6 +180,34 @@ export async function recordFileUpload(
   }
 
   return data as UploadedFile;
+}
+
+/**
+ * Fetches file metadata for a user-owned upload.
+ */
+export async function getFileUploadForUser(
+  fileId: string,
+  requestingUserId: string
+): Promise<UploadedFile> {
+  const supabase = getSupabaseAdminClient();
+
+  const { data: file, error } = await supabase
+    .from('file_uploads')
+    .select('*')
+    .eq('id', fileId)
+    .eq('user_id', requestingUserId)
+    .single();
+
+  if (error || !file) {
+    console.error('File metadata lookup failed:', { fileId, error });
+    throw new Error('File not found or access denied');
+  }
+
+  if (file.deleted_at) {
+    throw new Error('File has been deleted');
+  }
+
+  return file as UploadedFile;
 }
 
 /**

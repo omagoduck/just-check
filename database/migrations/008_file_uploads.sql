@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS public.file_uploads (
   -- Metadata (optional, for future use)
   metadata JSONB DEFAULT '{}',
 
+  -- Extracted model-readable file content/context
+  extracted_data JSONB,
+
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),

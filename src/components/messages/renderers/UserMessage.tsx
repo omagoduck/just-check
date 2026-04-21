@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { UIMessage } from 'ai';
-import { Copy, Check, Pencil, X, Loader2, ArrowUp } from 'lucide-react';
+import { Copy, Check, Pencil, X, Loader2, ArrowUp, FileText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useAttachmentUrl, isAttachmentUrl } from '@/hooks/use-attachment-url';
@@ -59,6 +59,56 @@ const MessageImage = memo(function MessageImage({
   );
 });
 
+const MessageFile = memo(function MessageFile({
+  part,
+}: {
+  part: Extract<UIMessage['parts'][number], { type: 'file' }>
+}) {
+  const { resolvedUrl, isResolving, error } = useAttachmentUrl(part.url);
+  const href = isAttachmentUrl(part.url) ? resolvedUrl : part.url;
+  const fileName = part.filename || 'Attached file';
+
+  const content = (
+    <div className="flex h-24 w-24 flex-col overflow-hidden rounded-lg border border-border/60 bg-card p-2 text-card-foreground shadow-sm transition-colors hover:bg-muted/70">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        {isResolving ? (
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        ) : error ? (
+          <X className="h-6 w-6 text-destructive" />
+        ) : (
+          <FileText className="h-9 w-9 text-primary" />
+        )}
+      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-full truncate text-center text-xs font-medium text-muted-foreground">
+            {fileName}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>{error ? `${fileName} unavailable` : fileName}</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+
+  if (!href || error || isResolving) {
+    return content;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="block h-24 w-24"
+      download={fileName}
+    >
+      {content}
+    </a>
+  );
+});
+
 export const UserMessage = memo(function UserMessage({
   message,
   onEdit,
@@ -79,6 +129,10 @@ export const UserMessage = memo(function UserMessage({
   const imageParts = message.parts.filter(
     (part): part is Extract<UIMessage['parts'][number], { type: 'file' }> =>
       part.type === 'file' && part.mediaType?.startsWith('image/')
+  );
+  const fileParts = message.parts.filter(
+    (part): part is Extract<UIMessage['parts'][number], { type: 'file' }> =>
+      part.type === 'file' && !part.mediaType?.startsWith('image/')
   );
 
   const handleCopy = async () => {
@@ -197,14 +251,20 @@ export const UserMessage = memo(function UserMessage({
   return (
     <div className="flex justify-end mb-4 group">
       <div className="max-w-[70%]">
-        {/* Image attachments displayed above and outside the bubble */}
-        {imageParts.length > 0 && (
+        {/* Attachments displayed above and outside the bubble */}
+        {(imageParts.length > 0 || fileParts.length > 0) && (
           <div className="flex flex-wrap gap-2 mb-2 justify-end">
             {imageParts.map((part, index) => (
               <MessageImage
                 key={`image-${index}`}
                 url={part.url}
                 filename={part.filename}
+              />
+            ))}
+            {fileParts.map((part, index) => (
+              <MessageFile
+                key={`file-${index}`}
+                part={part}
               />
             ))}
           </div>

@@ -1,8 +1,14 @@
 import { fileTypeFromBlob } from 'file-type';
+import {
+  STRUCTURED_EXTRACTABLE_MIME_TYPES,
+  TEXT_EXTRACTABLE_MIME_TYPES,
+  getModelProcessableMimeType,
+  isTextExtractableMimeType,
+} from './file-extraction';
 
 /**
  * Supported file types for upload
- * Currently only images, but extensible for future file types
+ * Images are passed as files. Text-like, PDF, and DOCX files are extracted for model context.
  */
 export const SUPPORTED_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -10,7 +16,11 @@ export const SUPPORTED_IMAGE_MIME_TYPES = [
   'image/webp',
 ] as const;
 
-export const SUPPORTED_FILE_TYPES = [...SUPPORTED_IMAGE_MIME_TYPES] as const;
+export const SUPPORTED_FILE_TYPES = [
+  ...SUPPORTED_IMAGE_MIME_TYPES,
+  ...TEXT_EXTRACTABLE_MIME_TYPES,
+  ...STRUCTURED_EXTRACTABLE_MIME_TYPES,
+] as const;
 
 /**
  * Validation error types for better error handling
@@ -73,10 +83,12 @@ export function validateMimeType(
   file: File,
   allowedTypes: readonly string[]
 ): FileValidationError | null {
-  if (!allowedTypes.includes(file.type)) {
+  const mimeType = getModelProcessableMimeType(file);
+
+  if (!allowedTypes.includes(mimeType)) {
     return {
       type: FileValidationErrorType.UNSUPPORTED_MIME_TYPE,
-      message: `File ${file.name} has unsupported MIME type: ${file.type}`,
+      message: `File ${file.name} has unsupported MIME type: ${mimeType || 'unknown'}`,
       fileName: file.name,
       details: `Allowed types: ${allowedTypes.join(', ')}`,
     };
@@ -93,6 +105,23 @@ export async function validateFileContent(
   allowedTypes: readonly string[]
 ): Promise<FileValidationError | null> {
   try {
+    const mimeType = getModelProcessableMimeType(file);
+
+    if (isTextExtractableMimeType(mimeType)) {
+      try {
+        const buffer = await file.arrayBuffer();
+        new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+        return null;
+      } catch (error) {
+        return {
+          type: FileValidationErrorType.INVALID_FILE_CONTENT,
+          message: `File ${file.name} is not valid UTF-8 text`,
+          fileName: file.name,
+          details: error instanceof Error ? error.message : 'Unable to decode text file',
+        };
+      }
+    }
+
     // Use file-type library to detect actual file type from content
     const detectedType = await fileTypeFromBlob(file);
 

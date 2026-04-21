@@ -119,6 +119,7 @@ export interface UploadedFile {
   mime_type: string;
   file_size: number;
   metadata?: Record<string, unknown>;
+  extracted_data?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
