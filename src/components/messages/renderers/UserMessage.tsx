@@ -291,7 +291,7 @@ export const UserMessage = memo(function UserMessage({
         <div className={cn('flex items-center justify-end gap-1 mt-2', isTouchDevice && 'opacity-100')}>
           {messageCreatedAt && (
             <span className={cn(
-              'text-sm text-primary-foreground/50 transition-opacity duration-200',
+              'hidden sm:inline text-sm text-primary-foreground/50 transition-opacity duration-200', // Hidden on narrower devices cause it cause broken layout. TODO || P8 : Engineer around it to solve.
               isTouchDevice ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             )}>
               {new Date(messageCreatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
