@@ -410,13 +410,11 @@ export async function POST(request: NextRequest) {
 
       if (existingWebhook?.processed) {
         // Already processed by a previous request - idempotent response
-        console.log(`Webhook ${webhookId} already processed (duplicate insert), skipping`);
         return NextResponse.json({ received: true, status: "already_processed" }, { status: 200 });
       }
 
       // Not processed yet - another request is currently processing it
       // Return 200 to acknowledge receipt (the other request will complete processing)
-      console.log(`Webhook ${webhookId} is being processed by another request`);
       return NextResponse.json({ received: true, status: "in_progress" }, { status: 200 });
     }
 
@@ -462,7 +460,6 @@ export async function POST(request: NextRequest) {
         );
 
         if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
@@ -565,7 +562,6 @@ export async function POST(request: NextRequest) {
         );
 
         if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
@@ -620,7 +616,6 @@ export async function POST(request: NextRequest) {
         );
 
         if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
@@ -673,7 +668,6 @@ export async function POST(request: NextRequest) {
         );
 
         if (isDuplicateWebhookTimestamp) {
-          console.log(`Skipping duplicate event ${eventType} for sub ${subscriptionId} (timestamp ${dodoEventTimestamp})`);
           return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
         }
 
@@ -715,7 +709,6 @@ export async function POST(request: NextRequest) {
       // =======================================================================
       // If Dodo send event types we don't know or we don't handle, we log but don't error, cause we don't need all the event types
       default:
-        console.log(`Unhandled event type: ${eventType}`);
         processingDetails = { action: "unhandled" };
     }
 

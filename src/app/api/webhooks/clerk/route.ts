@@ -13,15 +13,12 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client'
 // Configure the _session template in Clerk Dashboard to include: 
 // { "publicMetadata": { "profileComplete": "{{user.public_metadata.profileComplete}}" } }
 export async function POST(req: NextRequest) {
-  console.log('🔔 WEBHOOK RECEIVED - Starting processing...')
   
   try {
     // ✅ CORRECT: Use Clerk's built-in verifyWebhook helper for security
     // This validates the webhook signature to prevent malicious requests
     const evt = await verifyWebhook(req)
 
-    console.log('✅ Webhook verified successfully')
-    console.log('📋 Event type:', evt.type)
 
     const eventType = evt.type
 
@@ -41,8 +38,6 @@ export async function POST(req: NextRequest) {
         return new Response('Missing required user data', { status: 400 })
       }
 
-      console.log('👤 User ID:', clerkUserId)
-      console.log('📧 Email:', email_addresses[0].email_address)
 
       const supabase = getSupabaseAdminClient()
 
@@ -50,19 +45,9 @@ export async function POST(req: NextRequest) {
       // Creates database record and sets initial completion status
       if (eventType === 'user.created') {
         const email = email_addresses[0].email_address
-        
-        console.log('🗃️ Creating profile in Supabase...')
-        console.log('📊 Profile data to insert:', {
-          clerk_user_id: clerkUserId,
-          email: email,
-          full_name: `${first_name || ''} ${last_name || ''}`.trim() || null,
-          nickname: null,                    // Will be filled during onboarding
-          date_of_birth: null,               // Will be filled during onboarding  
-          avatar_url: image_url || null,     // From OAuth provider (Google, etc.)
-        })
-        
+
         // Create user profile in your database
-        const { error: profileError, data: insertedProfile } = await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             clerk_user_id: clerkUserId,
@@ -72,7 +57,6 @@ export async function POST(req: NextRequest) {
             date_of_birth: null,               // Required: set to null initially
             avatar_url: image_url || null,     // Optional: from OAuth provider
           })
-          .select()
 
         if (profileError) {
           console.error('🚨 ERROR: Profile creation failed:', profileError)
@@ -85,8 +69,6 @@ export async function POST(req: NextRequest) {
           return new Response('Error creating profile', { status: 500 })
         }
 
-        console.log('✅ Profile created successfully:', insertedProfile)
-        console.log('Profile created for user:', clerkUserId)
 
         // 🔑 IMPORTANT: Set Clerk publicMetadata for session claims
         // This data will appear in JWT tokens and be available in middleware
@@ -99,20 +81,17 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        console.log('User metadata updated for profile completion tracking')
       }
 
       // Handle user updates (profile completion changes or profile edits)
       // This runs when user completes onboarding or updates their profile
       if (eventType === 'user.updated') {
-        console.log('🔄 Processing user.updated event for:', clerkUserId)
         
         // Use centralized clerk client
 
         // First: Sync avatar_url from Clerk to Supabase
         // This captures profile picture changes made through Clerk's built-in upload UI
         if (image_url !== undefined) {
-          console.log('📸 Syncing avatar_url from Clerk to Supabase:', image_url)
           
           // Check if profile exists
           const { data: existingProfile } = await supabase
@@ -129,15 +108,12 @@ export async function POST(req: NextRequest) {
 
             if (avatarUpdateError) {
               console.error('🚨 ERROR: Failed to sync avatar_url:', avatarUpdateError)
-            } else {
-              console.log('✅ Avatar URL synced to Supabase successfully')
             }
           }
         }
 
         // Then: Update Clerk metadata for profile completion status
         // This ensures session tokens have accurate completion status
-        console.log('🔍 Checking profile completion status...')
         const { data: profile, error: fetchError } = await supabase
           .from('profiles')
           .select('full_name, nickname, date_of_birth')
@@ -156,23 +132,14 @@ export async function POST(req: NextRequest) {
           profile?.nickname &&      // Required: Short display name
           profile?.date_of_birth    // Required: For age verification
         )
-        
-        console.log('📊 Profile completion check:', {
-          full_name: !!profile?.full_name,
-          nickname: !!profile?.nickname,
-          date_of_birth: !!profile?.date_of_birth,
-          isComplete
-        })
 
         // Update Clerk publicMetadata to match database state
-        console.log('🔧 Updating Clerk metadata...')
         await clerkClient.users.updateUser(clerkUserId, {
           publicMetadata: {
             profileComplete: isComplete
           }
         })
 
-        console.log('✅ User metadata updated successfully:', { isComplete, clerkUserId })
       }
     }
 
@@ -201,8 +168,6 @@ export async function POST(req: NextRequest) {
         return new Response('Error deleting profile', { status: 500 })
       }
 
-      console.log('Profile soft deleted for user:', clerkUserId)
-      console.log('💡 Note: Clerk user is permanently deleted, but profile data is preserved')
     }
 
     return new Response('Webhook processed successfully', { status: 200 })

@@ -331,12 +331,9 @@ export async function POST(req: Request) {
           });
         }
 
-        console.log('onStepFinish step logged');
       },
 
       onFinish: ({ finishReason, totalUsage, steps }) => {
-        console.log('Stream finished. Reason:', finishReason);
-        console.log('Stream Usage:', totalUsage);
         // Capture for later use in onFinish of toUIMessageStreamResponse
         streamOnFinishUsage = totalUsage;
       }
