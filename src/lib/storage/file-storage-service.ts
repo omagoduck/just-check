@@ -19,6 +19,20 @@ export function generateStoragePath(
 }
 
 /**
+ * Generates a storage path for a feedback image attachment.
+ * Format: private/feedback/{userId}/{feedbackId}/{uuid}-{sanitizedFilename}
+ */
+export function generateFeedbackStoragePath(
+  userId: string,
+  feedbackId: string,
+  filename: string
+): string {
+  const uuid = uuidv4();
+  const sanitized = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `private/feedback/${userId}/${feedbackId}/${uuid}-${sanitized}`;
+}
+
+/**
  * Uploads a file to Supabase Storage
  * Returns the storage path
  */
@@ -40,6 +54,33 @@ export async function uploadFileToStorage(
 
   if (error) {
     throw new Error(`Failed to upload file: ${error.message}`);
+  }
+
+  return storagePath;
+}
+
+/**
+ * Uploads a feedback image attachment to Supabase Storage.
+ * Returns the storage path.
+ */
+export async function uploadFeedbackFileToStorage(
+  userId: string,
+  feedbackId: string,
+  file: File,
+  contentType = file.type
+): Promise<string> {
+  const supabase = getSupabaseAdminClient();
+  const storagePath = generateFeedbackStoragePath(userId, feedbackId, file.name);
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(storagePath, file, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload feedback image: ${error.message}`);
   }
 
   return storagePath;
