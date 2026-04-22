@@ -10,6 +10,7 @@ export interface AllowanceStatus {
   periodEnd: string | null;
   remainingAllowance: number;
   allotedAllowance: number;
+  hasAllowance: boolean;
   remainingPercentage: number;
 }
 
@@ -42,6 +43,7 @@ async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<Allo
         periodEnd: null,
         remainingAllowance: 0,
         allotedAllowance: 0,
+        hasAllowance: false,
         remainingPercentage: 0,
       };
     }
@@ -80,8 +82,9 @@ async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<Allo
       periodEnd: updateData?.period_end ?? periodEnd,
       remainingAllowance: updatedRemaining,
       allotedAllowance: updatedAllotted,
+      hasAllowance: updatedRemaining > 0,
       remainingPercentage: updatedAllotted > 0
-        ? Math.max(0, Math.round((updatedRemaining / updatedAllotted) * 100))
+        ? Number(Math.max(0, (updatedRemaining / updatedAllotted) * 100).toFixed(6))
         : 0,
     };
   }
@@ -91,8 +94,9 @@ async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<Allo
     periodEnd: data?.period_end ?? null,
     remainingAllowance: remaining,
     allotedAllowance: allotted,
+    hasAllowance: remaining > 0,
     remainingPercentage: allotted > 0
-      ? Math.max(0, Math.round((remaining / allotted) * 100))
+      ? Number(Math.max(0, (remaining / allotted) * 100).toFixed(6))
       : 0,
   };
 }

@@ -6,7 +6,7 @@ import { useSubscription } from './use-subscription';
 interface SubscriptionAndAllowanceStatus {
   /** Whether user is on the free plan */
   isFreeUser: boolean;
-  /** Whether user has remaining allowance (> 0%) */
+  /** Whether user has remaining allowance */
   hasAllowance: boolean;
   /** Percentage of allowance remaining (0-100+) */
   remainingPercentage: number;
@@ -28,9 +28,9 @@ export function useSubscriptionAndAllowanceStatus(): SubscriptionAndAllowanceSta
   const remainingPercentage = usage?.remainingPercentage ?? 0;
   const periodEnd = usage?.periodEnd ?? null;
 
-  // Free users never have allowance (PLAN_ALLOWANCES['free_monthly'] = 0)
-  // Paid users have allowance if remainingPercentage > 0
-  const hasAllowance = !isFreeUser && remainingPercentage > 0;
+  // Free users never have allowance (PLAN_ALLOWANCES['free_monthly'] = 0).
+  // Paid users are gated by the raw allowance value.
+  const hasAllowance = !isFreeUser && usage?.hasAllowance === true;
 
   return {
     isFreeUser,

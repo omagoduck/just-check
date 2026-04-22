@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 interface UsageData {
   periodStart: string | null;
   periodEnd: string | null;
+  hasAllowance: boolean;
   remainingPercentage: number;
 }
 

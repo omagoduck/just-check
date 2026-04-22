@@ -14,6 +14,7 @@ export async function GET() {
     return NextResponse.json({
       periodStart: allowance.periodStart,
       periodEnd: allowance.periodEnd,
+      hasAllowance: allowance.hasAllowance,
       remainingPercentage: allowance.remainingPercentage,
     });
   } catch (error) {
