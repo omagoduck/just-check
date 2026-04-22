@@ -192,6 +192,10 @@ export function ChatInput({
   const hasUploadsInProgress = attachedFiles.some(f => f.uploadStatus === 'pending' || f.uploadStatus === 'uploading');
   const hasFailedUploads = attachedFiles.some(f => f.uploadStatus === 'error');
   const isAtFileLimit = attachedFiles.length >= MAX_FILES;
+  const characterCount = inputValue.length;
+  const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
+  const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
+  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isLoadingAllowance && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads && hasAllowance;
 
   // Handle drag and drop with counter pattern for robustness
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -394,7 +398,7 @@ export function ChatInput({
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!inputValue.trim() || isLoading || isAiGenerating) return;
+    if (!inputValue.trim() || isLoading || isAiGenerating || isLoadingAllowance || !hasAllowance || isOverLimit) return;
 
     const hasUploadsInProgress = attachedFiles.some(f => f.uploadStatus === 'pending' || f.uploadStatus === 'uploading');
     const hasFailedUploads = attachedFiles.some(f => f.uploadStatus === 'error');
@@ -435,7 +439,7 @@ export function ChatInput({
       setUploadError(error instanceof Error ? error.message : 'Submit failed');
       // Don't cleanup on error - keep attachments for retry
     }
-  }, [inputValue, isLoading, isAiGenerating, onSubmit, attachedFiles, filePreviewUrls]);
+  }, [inputValue, isLoading, isAiGenerating, isLoadingAllowance, hasAllowance, isOverLimit, onSubmit, attachedFiles, filePreviewUrls]);
 
   const inputModality = useInputModality()
 
@@ -637,11 +641,6 @@ export function ChatInput({
     setShowSuggestions(false);
     textareaRef.current?.focus();
   };
-
-  const characterCount = inputValue.length;
-  const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
-  const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
-  const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads && hasAllowance;
 
   return (
     <TooltipProvider>
