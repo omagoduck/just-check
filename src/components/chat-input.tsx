@@ -75,6 +75,8 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   allowanceResetTime?: string | null;
   /** Whether allowance data is still loading */
   isLoadingAllowance?: boolean;
+  /** Whether file uploads are allowed before local count checks */
+  canUploadFile?: boolean;
 }
 interface AttachedFile {
   id: string;
@@ -107,6 +109,7 @@ export function ChatInput({
   remainingPercentage = 100,
   allowanceResetTime = null,
   isLoadingAllowance = false,
+  canUploadFile: canUploadFileProp,
   ...props
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
@@ -120,6 +123,7 @@ export function ChatInput({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
+  const attachedFilesRef = useRef<AttachedFile[]>([]);
   const dragCounterRef = useRef(0);
 
   const isVoiceSupported = isWebSpeechRecognitionSupported();
@@ -159,6 +163,8 @@ export function ChatInput({
 
   // Handle dynamic height of attachment preview
   useLayoutEffect(() => {
+    attachedFilesRef.current = attachedFiles;
+
     if (attachedFiles.length > 0) {
       if (innerAttachmentsRef.current) {
         setAnimatedHeight(innerAttachmentsRef.current.scrollHeight);
@@ -195,17 +201,33 @@ export function ChatInput({
   const characterCount = inputValue.length;
   const isNearLimit = maxInputCharacterLength ? characterCount >= maxInputCharacterLength * 0.9 : false;
   const isOverLimit = maxInputCharacterLength ? characterCount > maxInputCharacterLength : false;
+  const hasUploadAllowance = canUploadFileProp ?? hasAllowance;
+  const canUploadFile = hasUploadAllowance && !isLoadingAllowance && !isAtFileLimit;
+  const fileUploadBlockReason = !hasUploadAllowance
+    ? 'Insufficient allowance'
+    : isLoadingAllowance
+      ? 'Checking allowance'
+      : isAtFileLimit
+      ? `${attachedFiles.length}/${MAX_FILES} files attached`
+      : null;
   const canSubmit = inputValue.trim().length > 0 && !isLoading && !isAiGenerating && !isLoadingAllowance && !isOverLimit && !hasUploadsInProgress && !hasFailedUploads && hasAllowance;
+
+  const showFileUploadBlockedToast = useCallback(() => {
+    toast.warning('File upload unavailable', {
+      description: fileUploadBlockReason ?? 'Please try again shortly.',
+    });
+  }, [fileUploadBlockReason]);
 
   // Handle drag and drop with counter pattern for robustness
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canUploadFile) return;
     dragCounterRef.current++;
     if (e.dataTransfer.types.includes('Files')) {
       setIsDragging(true);
     }
-  }, []);
+  }, [canUploadFile]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -231,9 +253,13 @@ export function ChatInput({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
+      if (!canUploadFile) {
+        showFileUploadBlockedToast();
+        return;
+      }
       processFiles(files);
     }
-  }, []);
+  }, [canUploadFile, showFileUploadBlockedToast]);
 
   // Handle paste (copy-paste file upload)
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -242,6 +268,10 @@ export function ChatInput({
 
     if (filesFromList.length > 0) {
       e.preventDefault();
+      if (!canUploadFile) {
+        showFileUploadBlockedToast();
+        return;
+      }
       processFiles(filesFromList);
       return;
     }
@@ -261,16 +291,25 @@ export function ChatInput({
 
     if (files.length > 0) {
       e.preventDefault();
+      if (!canUploadFile) {
+        showFileUploadBlockedToast();
+        return;
+      }
       processFiles(files);
     }
-  }, []);
+  }, [canUploadFile, showFileUploadBlockedToast]);
 
   const processFiles = async (files: File[]) => {
+    if (!canUploadFile) {
+      showFileUploadBlockedToast();
+      return;
+    }
 
     const newPreviewUrls: { [id: string]: string } = {};
 
+    const currentAttachedFiles = attachedFilesRef.current;
     const uniqueNewFiles = files.filter(newFile =>
-      !attachedFiles.some(existingFile =>
+      !currentAttachedFiles.some(existingFile =>
         existingFile.file.name === newFile.name && existingFile.file.size === newFile.size
       )
     );
@@ -283,7 +322,7 @@ export function ChatInput({
     }
 
     // Enforce maximum file count limit
-    const currentCount = attachedFiles.length;
+    const currentCount = currentAttachedFiles.length;
     const availableSlots = MAX_FILES - currentCount;
     
     if (availableSlots <= 0) {
@@ -315,7 +354,9 @@ export function ChatInput({
       }
     });
 
-    setAttachedFiles(prev => [...prev, ...filesWithIds]);
+    const nextAttachedFiles = [...currentAttachedFiles, ...filesWithIds];
+    attachedFilesRef.current = nextAttachedFiles;
+    setAttachedFiles(nextAttachedFiles);
     setFilePreviewUrls(prev => ({ ...prev, ...newPreviewUrls }));
 
     if (onAttachmentUpload) {
@@ -428,6 +469,7 @@ export function ChatInput({
         }
       });
 
+      attachedFilesRef.current = [];
       setAttachedFiles([]);
       setFilePreviewUrls({});
       setShowAttachments(false);
@@ -560,6 +602,8 @@ export function ChatInput({
       event.target.value = '';
     }
 
+    if (!canUploadFile) return;
+
     // Process files, but catch any errors to avoid unhandled rejections
     try {
       await processFiles(newFiles);
@@ -621,14 +665,16 @@ export function ChatInput({
   };
 
   const removeAttachment = (idToRemove: string) => {
-    const fileToRemove = attachedFiles.find(f => f.id === idToRemove);
+    const fileToRemove = attachedFilesRef.current.find(f => f.id === idToRemove);
     if (!fileToRemove) return;
 
     if (filePreviewUrls[idToRemove] && filePreviewUrls[idToRemove].startsWith('blob:')) {
       URL.revokeObjectURL(filePreviewUrls[idToRemove]);
     }
 
-    setAttachedFiles(prev => prev.filter(f => f.id !== idToRemove));
+    const nextAttachedFiles = attachedFilesRef.current.filter(f => f.id !== idToRemove);
+    attachedFilesRef.current = nextAttachedFiles;
+    setAttachedFiles(nextAttachedFiles);
     setFilePreviewUrls(prev => {
       const newUrls = { ...prev };
       delete newUrls[idToRemove];
@@ -929,7 +975,7 @@ export function ChatInput({
                     className={cn(
                       "text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 h-9",
                       isMobile ? "w-9 p-0" : "px-3",
-                      isAtFileLimit && "opacity-50"
+                      !canUploadFile && "opacity-50"
                     )}
                     onClick={() => setShowAttachments(!showAttachments)}
                   >
@@ -940,34 +986,34 @@ export function ChatInput({
                   {showAttachments && (
                     <div className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-lg border border-border rounded-xl shadow-xl z-10 p-2 min-w-40">
                       <button
-                        onClick={() => !isAtFileLimit && imageFileInputRef.current?.click()}
-                        disabled={isAtFileLimit}
+                        onClick={() => canUploadFile && imageFileInputRef.current?.click()}
+                        disabled={!canUploadFile}
                         className={cn(
                           "flex items-center space-x-2 w-full px-3 py-2 text-sm rounded-lg transition-colors",
-                          isAtFileLimit
+                          !canUploadFile
                             ? "text-muted-foreground/50 cursor-not-allowed"
                             : "text-foreground hover:bg-muted/50"
                         )}
                       >
-                        <Image className={cn("h-4 w-4", isAtFileLimit ? "text-muted-foreground/50" : "text-blue-400")} />
+                        <Image className={cn("h-4 w-4", !canUploadFile ? "text-muted-foreground/50" : "text-blue-400")} />
                         <span>Upload Image</span>
                       </button>
                       <button
-                        onClick={() => !isAtFileLimit && generalFileInputRef.current?.click()}
-                        disabled={isAtFileLimit}
+                        onClick={() => canUploadFile && generalFileInputRef.current?.click()}
+                        disabled={!canUploadFile}
                         className={cn(
                           "flex items-center space-x-2 w-full px-3 py-2 text-sm rounded-lg transition-colors",
-                          isAtFileLimit
+                          !canUploadFile
                             ? "text-muted-foreground/50 cursor-not-allowed"
                             : "text-foreground hover:bg-muted/50"
                         )}
                       >
-                        <FileText className={cn("h-4 w-4", isAtFileLimit ? "text-muted-foreground/50" : "text-green-400")} />
+                        <FileText className={cn("h-4 w-4", !canUploadFile ? "text-muted-foreground/50" : "text-green-400")} />
                         <span>Upload File</span>
                       </button>
-                      {isAtFileLimit && (
+                      {fileUploadBlockReason && (
                         <p className="text-xs text-muted-foreground px-3 py-1 mt-1 border-t border-border">
-                          Maximum {MAX_FILES} files reached
+                          {fileUploadBlockReason}
                         </p>
                       )}
                     </div>
@@ -1152,6 +1198,7 @@ export function ChatInput({
           multiple
           accept="image/*"
           onChange={handleFileUpload}
+          disabled={!canUploadFile}
           className="hidden"
         />
         <input
@@ -1160,6 +1207,7 @@ export function ChatInput({
           multiple
           accept="image/*,.txt,.md,.markdown,.csv,.tsv,.json,.xml,.pdf,.docx,text/plain,text/markdown,text/csv,text/tab-separated-values,application/json,application/xml,text/xml,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           onChange={handleFileUpload}
+          disabled={!canUploadFile}
           className="hidden"
         />
       </div>
