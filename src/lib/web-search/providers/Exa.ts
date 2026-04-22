@@ -5,7 +5,7 @@
 import { ISearchProvider } from '../ISearchProvider';
 import { SearchQuery } from '../search-query';
 import { SearchResult, SearchResultItem } from '../search-result';
-import { convertTimeRangeToStartDate, TimeRange } from '../time-range';
+import { convertTimeRangeToStartDate } from '../time-range';
 import { getFaviconUrlFromGoogle } from '../favicon-utils';
 import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
@@ -61,9 +61,9 @@ export class ExaProvider implements ISearchProvider {
           clerkUserId,
           messageId,
           metadata: {
-            mode: query.mode,
             limit: numResults,
             provider: 'exa',
+            searchType: 'fast',
           },
         });
       }
@@ -83,12 +83,7 @@ export class ExaProvider implements ISearchProvider {
       use_autoprompt: true, // Generally recommended for Exa
     };
 
-    // Map search mode
-    if (query.mode === 'advanced') {
-      payload.type = 'neural';
-    } else {
-      payload.type = 'fast';
-    }
+    payload.type = 'fast';
 
     // Map domains
     if (query.includeDomains && query.includeDomains.length > 0) {
@@ -203,7 +198,7 @@ export class ExaProvider implements ISearchProvider {
       provider: 'exa',
       metadata: {
         totalResults: data.results.length,
-        searchMode: query.mode || 'auto',
+        searchType: 'fast',
       }
     };
   }

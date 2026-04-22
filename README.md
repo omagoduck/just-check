@@ -48,7 +48,7 @@ Lumy Alpha is a production-ready AI chat application built with Next.js 16 (App 
 
 ### AI Tools
 
-- **Web Search** - AI-powered search with fast/advanced modes
+- **Web Search** - AI-powered web search
 - **View Website** - Extract and analyze content from URLs
 - **Get Weather** - Real-time weather information
 - **Get Time** - Current time utility

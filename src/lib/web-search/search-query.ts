@@ -61,14 +61,6 @@ export interface SearchQuery {
   };
 
   /**
-   * Search mode to use
-   * 'auto' = automatic mode selection
-   * 'fast' = standard/keyword-based search
-   * 'advanced' = neural/advanced search
-   */
-  mode?: 'auto' | 'fast' | 'advanced';
-
-  /**
    * Country code for region-specific search results
    * Uses ISO 3166-1 alpha-2 country codes (e.g., 'US', 'GB', 'IN')
    */

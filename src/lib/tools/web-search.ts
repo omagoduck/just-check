@@ -5,7 +5,7 @@ import { SearchResultItem } from '../web-search/search-result';
 import { executeWebSearch } from './executor/web-search-executor';
 
 // Type definitions for web search tool
-export interface WebSearchInput extends SearchQuery { }
+export type WebSearchInput = SearchQuery;
 
 // Simplified output for AI - only essential information
 export interface WebSearchOutput {
@@ -14,7 +14,7 @@ export interface WebSearchOutput {
 
 // Web search tool definition with AI SDK format
 export const webSearchTool = {
-  description: 'Search the web for information using AI-powered search providers. Supports both fast keyword based search and advanced neural search modes.',
+  description: 'Search the web for information using AI-powered search providers.',
   inputSchema: z.object({
     query: z.string().describe('The search query string'),
     requestPageContent: z.boolean().optional().default(false).describe('Flag to request page content in results. When true, includes full page text and images.'),
@@ -29,7 +29,6 @@ export const webSearchTool = {
         FIXME: timeRange is causing error. debug soon.
       */
     }).optional().describe('Date range for filtering search results'),
-    mode: z.enum(['auto', 'fast', 'advanced']).optional().default('auto').describe('Search mode: fast (keyword-based) or advanced (neural, goes beyond keywords to understand intent)'),
     country: z.string().optional().describe('Country code for region-specific search results (e.g., "US", "GB")'),
   }) as z.ZodType<WebSearchInput>,
   execute: executeWebSearch,

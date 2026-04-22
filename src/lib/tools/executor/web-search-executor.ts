@@ -4,7 +4,7 @@
 import type { WebSearchInput, WebSearchOutput } from '../web-search';
 import { getSearchProvider, ProviderType } from '../../web-search/providers/Factory';
 import { SearchQuery } from '../../web-search/search-query';
-import { TimeRange } from '../../web-search/time-range';
+// import { TimeRange } from '../../web-search/time-range';
 
 
 /**
@@ -22,7 +22,6 @@ export function normalizeSearchInput(input: any): WebSearchInput {
       end: input.dateRange.end,
       timeRange: input.dateRange.timeRange,
     } : undefined,
-    mode: input.mode && ['auto', 'fast', 'advanced'].includes(input.mode) ? input.mode : 'auto',
     country: input.country && typeof input.country === 'string' ? input.country : undefined,
   };
 }
@@ -55,13 +54,12 @@ export async function executeWebSearch(
       includeDomains: input.includeDomains,
       excludeDomains: input.excludeDomains,
       dateRange: input.dateRange,
-      mode: input.mode || 'auto',
       country: input.country,
     };
 
     // Determine which provider to use
     // For now, we'll default to Tavily but allow future extension to auto-select based on query type
-    let providerType: ProviderType = 'tavily';
+    const providerType: ProviderType = 'tavily';
 
     // Future logic could be:
     // - Use Exa for research/technical queries

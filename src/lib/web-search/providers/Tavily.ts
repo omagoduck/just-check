@@ -5,7 +5,7 @@
 import { ISearchProvider } from '../ISearchProvider';
 import { SearchQuery } from '../search-query';
 import { SearchResult, SearchResultItem } from '../search-result';
-import { convertTimeRangeToStartDate, TimeRange } from '../time-range';
+import { convertTimeRangeToStartDate } from '../time-range';
 import { getFaviconUrlFromGoogle } from '../favicon-utils';
 import { chargeAndLogToolAllowance } from '@/lib/allowance/tool-charging';
 
@@ -46,7 +46,7 @@ export class TavilyProvider implements ISearchProvider {
 
       // 3. Charge allowance and log usage (only on success)
       if (clerkUserId) {
-        const cost = this.calculateCost(query);
+        const cost = this.calculateCost();
 
         await chargeAndLogToolAllowance({
           toolName: 'webSearch',
@@ -56,10 +56,9 @@ export class TavilyProvider implements ISearchProvider {
           clerkUserId,
           messageId,
           metadata: {
-            mode: query.mode,
             limit: query.limit,
             provider: 'tavily',
-            searchDepth: query.mode === 'advanced' ? 'advanced' : 'basic'
+            searchDepth: 'basic'
           },
         });
       }
@@ -79,12 +78,7 @@ export class TavilyProvider implements ISearchProvider {
       api_key: this.apiKey,
     };
 
-    // Map search mode
-    if (query.mode === 'advanced') {
-      payload.search_depth = 'advanced';
-    } else {
-      payload.search_depth = 'basic';
-    }
+    payload.search_depth = 'basic';
 
     // Map domains
     if (query.includeDomains && query.includeDomains.length > 0) {
@@ -183,7 +177,7 @@ export class TavilyProvider implements ISearchProvider {
       provider: 'tavily',
       metadata: {
         totalResults: data.results.length,
-        searchMode: query.mode || 'auto',
+        searchDepth: 'basic',
       }
     };
   }
@@ -213,7 +207,7 @@ export class TavilyProvider implements ISearchProvider {
    *   basic = 1 credit  = $0.008 = 0.8¢
    *   advanced = 2 credits = $0.016 = 1.6¢
    */
-  private calculateCost(query: SearchQuery): number {
-    return query.mode === 'advanced' ? 1.6 : 0.8;
+  private calculateCost(): number {
+    return 0.8;
   }
 }
