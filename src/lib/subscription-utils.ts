@@ -5,17 +5,17 @@
 
 // ============ Product IDs ============
 export const PRODUCT_IDS = {
+  GO_MONTHLY: 'go_monthly',
   PLUS_MONTHLY: 'plus_monthly',
   PRO_MONTHLY: 'pro_monthly',
-  MAX_MONTHLY: 'max_monthly',
 } as const;
 
 export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
 
 export const DODO_PRODUCT_IDS: Record<ProductId, string> = {
-  [PRODUCT_IDS.PLUS_MONTHLY]: 'pdt_0NaLUT3efOeN5ZFe8uOEy',
-  [PRODUCT_IDS.PRO_MONTHLY]: 'pdt_0NaLUXSIIoUb7EVgGTGKd',
-  [PRODUCT_IDS.MAX_MONTHLY]: 'pdt_0NaPF2KF5ViAIUsoZDhWk',
+  [PRODUCT_IDS.GO_MONTHLY]: 'pdt_0NaLUT3efOeN5ZFe8uOEy',
+  [PRODUCT_IDS.PLUS_MONTHLY]: 'pdt_0NaLUXSIIoUb7EVgGTGKd',
+  [PRODUCT_IDS.PRO_MONTHLY]: 'pdt_0NaPF2KF5ViAIUsoZDhWk',
 };
 
 export function getDodoProductId(productId: string): string | null {
@@ -31,15 +31,15 @@ export function getDodoProductId(productId: string): string | null {
  */
 export const PLAN_DISPLAY_NAMES: Record<string, string> = {
   free_monthly: 'Free',
+  go_monthly: 'Go',
   plus_monthly: 'Plus',
   pro_monthly: 'Pro',
-  max_monthly: 'Max',
 };
 
 /**
  * Get the user-friendly display name for a subscription plan ID
- * @param planId - The internal plan ID (e.g., 'plus_monthly')
- * @returns The display name (e.g., 'Plus')
+ * @param planId - The internal plan ID (e.g., 'go_monthly')
+ * @returns The display name (e.g., 'Go')
  */
 export function getPlanDisplayName(planId: string): string {
   return PLAN_DISPLAY_NAMES[planId] || planId.replace(/_/g, ' ');

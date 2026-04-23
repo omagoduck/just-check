@@ -3,7 +3,7 @@
  * Represents the subscription information needed on the client side
  */
 export interface SubscriptionData {
-  /** Internal plan identifier (e.g., "free_monthly", "plus_monthly", "pro_monthly", "max_monthly") */
+  /** Internal plan identifier (e.g., "free_monthly", "go_monthly", "plus_monthly", "pro_monthly") */
   planId: string;
   /** Subscription status: active, cancelled, trialing, past_due, etc. */
   status: string;

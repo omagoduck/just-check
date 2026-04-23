@@ -89,28 +89,28 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 // =============================================================================
 
 // This object defines how much AI usage cost each subscription plan allows per UTC day.
-// The key is the plan ID (e.g., "free_monthly", "plus_monthly") and the value is the message allowance.
+// The key is the plan ID (e.g., "free_monthly", "go_monthly") and the value is the message allowance.
 // The allowance is cost of cents allocation per daily UTC window.
 // Values are product-defined daily allowances.
 //
 // Example:
 // - "free_monthly" plan: 0 of equivalent cost
-// - "plus_monthly" plan: 13.5 of equivalent cost per day
-// - "pro_monthly" plan: 55 of equivalent cost per day
-// - "max_monthly" plan: 280 of equivalent cost per day
+// - "go_monthly" plan: 13.5 of equivalent cost per day
+// - "plus_monthly" plan: 55 of equivalent cost per day
+// - "pro_monthly" plan: 280 of equivalent cost per day
 const PLAN_ALLOWANCES: Record<string, number> = {
   free_monthly: 0,
-  plus_monthly: 13.5,
-  pro_monthly: 55,
-  max_monthly: 280,
+  go_monthly: 13.5,
+  plus_monthly: 55,
+  pro_monthly: 280,
 };
 
 // Helper function to map Dodo product ID to internal plan ID
 function getPlanIdFromProductId(productId: string): string | null {
   const reverseMap: Record<string, string> = {
+    [DODO_PRODUCT_IDS[PRODUCT_IDS.GO_MONTHLY]]: 'go_monthly',
     [DODO_PRODUCT_IDS[PRODUCT_IDS.PLUS_MONTHLY]]: 'plus_monthly',
     [DODO_PRODUCT_IDS[PRODUCT_IDS.PRO_MONTHLY]]: 'pro_monthly',
-    [DODO_PRODUCT_IDS[PRODUCT_IDS.MAX_MONTHLY]]: 'max_monthly',
   };
   return reverseMap[productId] || null;
 }

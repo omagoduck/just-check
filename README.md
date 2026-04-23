@@ -67,9 +67,9 @@ Lumy Alpha is a production-ready AI chat application built with Next.js 16 (App 
 | Plan | Price | Features |
 |------|-------|----------|
 | **Free** | $0 | Basic access with limited tokens |
-| **Plus** | $10/mo | Increased limits, priority support |
-| **Pro** | $25/mo | High limits, advanced features |
-| **Max** | $50/mo | Unlimited access, premium support |
+| **Go** | $10/mo | Increased limits, priority support |
+| **Plus** | $25/mo | High limits, advanced features |
+| **Pro** | $50/mo | Unlimited access, premium support |
 
 ---
 

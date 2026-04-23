@@ -29,7 +29,7 @@ import { toast } from "sonner";
 
 // Pricing plan interface defining the structure for each plan card
 interface PricingPlan {
-  name: string;           // Plan name (Free, Plus, Pro, Max)
+  name: string;           // Plan name (Free, Go, Plus, Pro)
   description: string;    // Short description of the plan
   price: string;          // Display price (e.g., "$10/month")
   features: string[];     // List of features included
@@ -54,7 +54,7 @@ const pricingPlans: PricingPlan[] = [
     buttonText: "Get Started",
   },
   {
-    name: "Plus",
+    name: "Go",
     description: "Expanded access for everyday usage.",
     price: "$5/month",
     features: [
@@ -64,40 +64,40 @@ const pricingPlans: PricingPlan[] = [
       "Standard response time",
       "Community support",
     ],
-    buttonText: "Upgrade to Plus",
-    productId: PRODUCT_IDS.PLUS_MONTHLY,
+    buttonText: "Upgrade to Go",
+    productId: PRODUCT_IDS.GO_MONTHLY,
   },
   {
-    name: "Pro",
+    name: "Plus",
     description: "High-performance plan for advanced users.",
     price: "$20/month",
     features: [
       "Standard chatbot access",
-      "More usage allowance than Plus",
+      "More usage allowance than Go",
       "Most of the features",
       "Some experimental features",
       "Faster response time",
       "Faster support",
     ],
-    buttonText: "Upgrade to Pro",
+    buttonText: "Upgrade to Plus",
     highlight: true,
     badge: "Most Popular",
-    productId: PRODUCT_IDS.PRO_MONTHLY,
+    productId: PRODUCT_IDS.PLUS_MONTHLY,
   },
   {
-    name: "Max",
+    name: "Pro",
     description: "Maximum access with near-complete capability.",
     price: "$100/month",
     features: [
       "Standard chatbot access",
-      "More usage allowance than Pro",
+      "More usage allowance than Plus",
       "Almost all features",
       "Almost all experimental features",
       "Faster response time",
       "Faster support",
     ],
-    buttonText: "Upgrade to Max",
-    productId: PRODUCT_IDS.MAX_MONTHLY,
+    buttonText: "Upgrade to Pro",
+    productId: PRODUCT_IDS.PRO_MONTHLY,
   },
 ];
 

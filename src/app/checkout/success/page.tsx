@@ -42,7 +42,7 @@ export default function CheckoutSuccessPage() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-theme(spacing.48))]">
+      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-(--spacing(48)))]">
         <Card className="max-w-md w-full text-center">
           <CardHeader className="pb-4">
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
@@ -50,27 +50,27 @@ export default function CheckoutSuccessPage() {
             </div>
             <CardTitle className="text-3xl font-bold">Payment Successful!</CardTitle>
             <CardDescription className="text-base">
-              Thank you for upgrading to {APP_BRAND_NAME} Pro. Your account has been successfully upgraded.
+              Thank you for upgrading your {APP_BRAND_NAME} plan. Your account has been successfully upgraded.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-muted p-4 text-sm">
-              <p className="text-muted-foreground mb-2">What's next?</p>
+              <p className="text-muted-foreground mb-2">What&apos;s next?</p>
               <ul className="space-y-2 text-left">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
                   <span>Access to premium AI models</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
                   <span>Unlimited message history</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
                   <span>Priority support with faster response times</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
                   <span>Advanced integrations and features</span>
                 </li>
               </ul>
