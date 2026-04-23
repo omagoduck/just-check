@@ -37,6 +37,17 @@ export const PLAN_DISPLAY_NAMES: Record<string, string> = {
 };
 
 /**
+ * Daily allowance by plan.
+ * These values represent the per-day allowance budget used by billing/webhook sync.
+ */
+export const PLAN_ALLOWANCES: Record<string, number> = {
+  free_monthly: 0,
+  go_monthly: 13.2,
+  plus_monthly: 54,
+  pro_monthly: 275,
+};
+
+/**
  * Get the user-friendly display name for a subscription plan ID
  * @param planId - The internal plan ID (e.g., 'go_monthly')
  * @returns The display name (e.g., 'Go')

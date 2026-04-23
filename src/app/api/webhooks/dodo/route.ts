@@ -32,7 +32,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
-import { DODO_PRODUCT_IDS, PRODUCT_IDS } from "@/lib/subscription-utils";
+import { DODO_PRODUCT_IDS, PLAN_ALLOWANCES, PRODUCT_IDS } from "@/lib/subscription-utils";
 import { getCurrentUtcDailyAllowanceWindow } from "@/lib/allowance";
 
 // =============================================================================
@@ -83,27 +83,6 @@ async function hasMatchingDodoWebhookTimestamp(
 // and not from someone pretending to be Dodo (security measure)
 // It should be stored in your .env file as DODO_WEBHOOK_SECRET
 const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
-
-// =============================================================================
-// PLAN ALLOWANCE MAPPING
-// =============================================================================
-
-// This object defines how much AI usage cost each subscription plan allows per UTC day.
-// The key is the plan ID (e.g., "free_monthly", "go_monthly") and the value is the message allowance.
-// The allowance is cost of cents allocation per daily UTC window.
-// Values are product-defined daily allowances.
-//
-// Example:
-// - "free_monthly" plan: 0 of equivalent cost
-// - "go_monthly" plan: 13.5 of equivalent cost per day
-// - "plus_monthly" plan: 55 of equivalent cost per day
-// - "pro_monthly" plan: 280 of equivalent cost per day
-const PLAN_ALLOWANCES: Record<string, number> = {
-  free_monthly: 0,
-  go_monthly: 13.5,
-  plus_monthly: 55,
-  pro_monthly: 280,
-};
 
 // Helper function to map Dodo product ID to internal plan ID
 function getPlanIdFromProductId(productId: string): string | null {
