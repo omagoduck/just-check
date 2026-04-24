@@ -1,6 +1,6 @@
 /**
  * Subscription-related constants and utilities
- * Includes product IDs, DODO integration, and display name mappings
+ * Shared plan constants and display mappings
  */
 
 // ============ Product IDs ============
@@ -12,19 +12,6 @@ export const PRODUCT_IDS = {
 
 export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
 
-export const DODO_PRODUCT_IDS: Record<ProductId, string> = {
-  [PRODUCT_IDS.GO_MONTHLY]: 'pdt_0NaLUT3efOeN5ZFe8uOEy',
-  [PRODUCT_IDS.PLUS_MONTHLY]: 'pdt_0NaLUXSIIoUb7EVgGTGKd',
-  [PRODUCT_IDS.PRO_MONTHLY]: 'pdt_0NaPF2KF5ViAIUsoZDhWk',
-};
-
-export function getDodoProductId(productId: string): string | null {
-  if (productId in DODO_PRODUCT_IDS) {
-    return DODO_PRODUCT_IDS[productId as ProductId];
-  }
-  return null;
-}
-
 // ============ Display Name Utilities ============
 /**
  * Mapping from internal plan IDs to user-friendly display names
@@ -34,17 +21,6 @@ export const PLAN_DISPLAY_NAMES: Record<string, string> = {
   go_monthly: 'Go',
   plus_monthly: 'Plus',
   pro_monthly: 'Pro',
-};
-
-/**
- * Daily allowance by plan.
- * These values represent the per-day allowance budget used by billing/webhook sync.
- */
-export const PLAN_ALLOWANCES: Record<string, number> = {
-  free_monthly: 0,
-  go_monthly: 13.2,
-  plus_monthly: 54,
-  pro_monthly: 275,
 };
 
 /**

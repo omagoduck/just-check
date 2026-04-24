@@ -32,7 +32,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
 import { Webhook } from "standardwebhooks";
-import { DODO_PRODUCT_IDS, PLAN_ALLOWANCES, PRODUCT_IDS } from "@/lib/subscription-utils";
+import { getPlanIdFromDodoProductId, PLAN_ALLOWANCES } from "@/lib/subscription-utils.server";
 import { getCurrentUtcDailyAllowanceWindow } from "@/lib/allowance";
 
 // =============================================================================
@@ -86,12 +86,7 @@ const DODO_WEBHOOK_SECRET = process.env.DODO_WEBHOOK_SECRET;
 
 // Helper function to map Dodo product ID to internal plan ID
 function getPlanIdFromProductId(productId: string): string | null {
-  const reverseMap: Record<string, string> = {
-    [DODO_PRODUCT_IDS[PRODUCT_IDS.GO_MONTHLY]]: 'go_monthly',
-    [DODO_PRODUCT_IDS[PRODUCT_IDS.PLUS_MONTHLY]]: 'plus_monthly',
-    [DODO_PRODUCT_IDS[PRODUCT_IDS.PRO_MONTHLY]]: 'pro_monthly',
-  };
-  return reverseMap[productId] || null;
+  return getPlanIdFromDodoProductId(productId);
 }
 
 // Helper to add days to a date (handles month/year rollovers automatically)
@@ -138,7 +133,7 @@ async function updateSubscription(
 
   const existingMetadata = existingSubscription?.metadata || {};
 
-  const subscriptionData: any = {
+  const subscriptionData = {
     clerk_user_id: clerkUserId,
     dodo_subscription_id: subscriptionId,
     status: data.status, // Use status from payload
