@@ -2,18 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-client";
 import { clerkClient } from "@/lib/clerk/clerk-client";
+import { DODO_API_KEY, DODO_API_URL, DODO_RETURN_URL } from "@/lib/dodo-utils.server";
 import { getDodoProductId } from "@/lib/subscription-utils.server";
 import { checkoutRatelimit } from "@/lib/ratelimit";
-
-const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
-const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
-const RETURN_URL = process.env.DODO_PAYMENTS_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success`;
-
-// DODO API base URL
-const DODO_API_URL =
-  DODO_ENVIRONMENT === "live_mode"
-    ? "https://live.dodopayments.com"
-    : "https://test.dodopayments.com";
 
 interface DODOCustomer {
   customer_id: string;
@@ -173,7 +164,7 @@ export async function GET(request: NextRequest) {
     // Build checkout payload with customer association
     const payload = {
       product_cart: [{ product_id: dodoProductId, quantity: 1 }],
-      return_url: RETURN_URL,
+      return_url: DODO_RETURN_URL,
       customer: { customer_id: customerId },
     };
 
@@ -256,7 +247,7 @@ export async function POST(request: NextRequest) {
 
     const payload = {
       product_cart: [{ product_id: dodoProductId, quantity: 1 }],
-      return_url: RETURN_URL,
+      return_url: DODO_RETURN_URL,
       customer: { customer_id: customerId },
       ...otherOptions,
     };

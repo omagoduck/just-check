@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { DODO_API_KEY, DODO_API_URL } from '@/lib/dodo-utils.server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { getDodoProductId } from '@/lib/subscription-utils.server';
 import { subscriptionPreviewRatelimit } from '@/lib/ratelimit';
-
-// DODO Payments API configuration
-const DODO_API_KEY = process.env.DODO_PAYMENTS_API_KEY;
-const DODO_ENVIRONMENT = process.env.DODO_PAYMENTS_ENVIRONMENT || "test_mode";
-
-// Base URL for DODO API (test or live)
-const DODO_API_URL =
-  DODO_ENVIRONMENT === "live_mode"
-    ? "https://live.dodopayments.com"
-    : "https://test.dodopayments.com";
 
 /**
  * POST /api/subscription/preview

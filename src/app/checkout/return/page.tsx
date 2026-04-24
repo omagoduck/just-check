@@ -1,15 +1,15 @@
-// TODO: P5. This page is so static and doesn't validate if the user actually has a subscription, though it doesn't affect other part of the app, cause at the end database has the source of truth. 
+// TODO: P5. This page is so static and doesn't validate if the user actually has a subscription, though it doesn't affect other part of the app, cause at the end database has the source of truth.
 // So it needs some update to validate if the user actually has a subscription.
 'use client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, ArrowLeft, Home } from "lucide-react";
+import { CheckCircle2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { APP_BRAND_LOGO_URL, APP_BRAND_NAME } from "@/lib/branding-constants";
 
-export default function CheckoutSuccessPage() {
+export default function CheckoutReturnPage() {
   const router = useRouter();
 
   return (
@@ -54,34 +54,12 @@ export default function CheckoutSuccessPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 text-sm">
-              <p className="text-muted-foreground mb-2">What&apos;s next?</p>
-              <ul className="space-y-2 text-left">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
-                  <span>Access to premium AI models</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
-                  <span>Unlimited message history</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
-                  <span>Priority support with faster response times</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
-                  <span>Advanced integrations and features</span>
-                </li>
-              </ul>
-            </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button onClick={() => router.push("/")} className="flex-1">
-                <Home className="mr-2 h-4 w-4" />
-                Go to Dashboard
-              </Button>
-              <Button variant="outline" onClick={() => router.push("/chats")} className="flex-1">
                 Start Chatting
+              </Button>
+              <Button variant="outline" onClick={() => router.push("/settings/usage")} className="flex-1">
+                Usage
               </Button>
             </div>
           </CardContent>
