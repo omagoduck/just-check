@@ -150,7 +150,6 @@ async function updateSubscription(
     trial_end: data.trial_period_days && data.trial_period_days > 0
       ? addDays(data.created_at, data.trial_period_days)
       : null,
-    payment_status: 'paid',
     amount: data.recurring_pre_tax_amount,
     currency: data.currency,
     dodo_customer_id: data.customer?.customer_id,
@@ -518,6 +517,57 @@ export async function POST(request: NextRequest) {
           plan_id: planId,
           subscription_id: subscriptionId,
           allowance: allowance,
+        };
+        break;
+      }
+
+      case "subscription.failed": {
+        const data = payload.data;
+        const dodoEventTimestamp = payload.timestamp;
+
+        const clerkUserId = data.customer?.metadata?.clerk_user_id;
+        const productId = data.product_id;
+        const subscriptionId = data.subscription_id;
+
+        if (!clerkUserId) {
+          throw new Error('Missing clerk_user_id in customer metadata');
+        }
+
+        const isDuplicateWebhookTimestamp = await hasMatchingDodoWebhookTimestamp(
+          supabase,
+          subscriptionId,
+          dodoEventTimestamp
+        );
+
+        if (isDuplicateWebhookTimestamp) {
+          return NextResponse.json({ received: true, status: "skipped_duplicate" }, { status: 200 });
+        }
+
+        const { planId } = await updateSubscription(
+          supabase,
+          clerkUserId,
+          productId,
+          subscriptionId,
+          {
+            status: data.status, // Use status from payload
+            created_at: data.created_at,
+            next_billing_date: data.next_billing_date,
+            payment_frequency_interval: data.payment_frequency_interval,
+            trial_period_days: data.trial_period_days,
+            recurring_pre_tax_amount: data.recurring_pre_tax_amount,
+            currency: data.currency,
+            cancel_at_next_billing_date: data.cancel_at_next_billing_date,
+            customer: data.customer,
+            canceled_at: data.cancelled_at,
+          },
+          dodoEventTimestamp
+        );
+
+        processingDetails = {
+          action: 'subscription_failed',
+          clerk_user_id: clerkUserId,
+          plan_id: planId,
+          subscription_id: subscriptionId,
         };
         break;
       }

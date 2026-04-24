@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     trial_start TIMESTAMP WITH TIME ZONE,
     trial_end TIMESTAMP WITH TIME ZONE,
     canceled_at TIMESTAMP WITH TIME ZONE,
-    payment_status TEXT DEFAULT 'unpaid',
     amount INTEGER,
     currency TEXT DEFAULT 'USD',
     dodo_customer_id TEXT,
