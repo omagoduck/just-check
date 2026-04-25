@@ -128,7 +128,7 @@ function OnboardingContent() {
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required'
     } else {
-      const ageValidation = validateAge(formData.dateOfBirth, 1, 150)
+      const ageValidation = validateAge(formData.dateOfBirth, 13, 150)
       if (!ageValidation.isValid) {
         newErrors.dateOfBirth = ageValidation.error || 'Invalid date of birth'
       }

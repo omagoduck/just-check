@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     if (!dateOfBirth) {
       errors.push('Date of birth is required')
     } else {
-      const ageValidation = validateAge(dateOfBirth, 1, 150)
+      const ageValidation = validateAge(dateOfBirth, 13, 150)
       if (!ageValidation.isValid) {
         errors.push(ageValidation.error || 'Invalid date of birth')
       }
