@@ -438,9 +438,6 @@ function HeroPreview() {
         >
           <div className="flex items-center justify-between">
             <div className="text-lg font-semibold">Lumy</div>
-            <div className="rounded-xl bg-accent px-2 py-1 text-xs text-muted-foreground">
-              Alpha
-            </div>
           </div>
 
           <div className="mt-4 rounded-2xl bg-primary px-3 py-3 text-sm font-medium text-primary-foreground shadow-sm">

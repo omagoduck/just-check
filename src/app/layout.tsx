@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lumy Alpha",
-  description: "Chat with Lumy Alpha",
+  title: "Lumy",
+  description: "Chat with Lumy",
 };
 
 export const viewport: Viewport = {

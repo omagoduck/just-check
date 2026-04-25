@@ -1,4 +1,4 @@
-# Lumy Alpha
+# Lumy
 
 <div align="center">
 
@@ -20,7 +20,7 @@
 
 ## Overview
 
-Lumy Alpha is a production-ready AI chat application built with Next.js 16 (App Router) that provides users with access to multiple AI models through a unified interface. The application features a smart model routing system, subscription-based access control, real-time streaming responses, and comprehensive user customization options.
+Lumy is a production-ready AI chat application built with Next.js 16 (App Router) that provides users with access to multiple AI models through a unified interface. The application features a smart model routing system, subscription-based access control, real-time streaming responses, and comprehensive user customization options.
 
 ### Key Highlights
 
@@ -353,10 +353,10 @@ Rate limiting is configured via Upstash Redis with the following defaults:
 
 ```bash
 # Build the image
-docker build -t lumy-alpha .
+docker build -t oearol-lumy .
 
 # Run the container
-docker run -p 3000:3000 lumy-alpha
+docker run -p 3000:3000 oearol-lumy
 ```
 
 ### Manual Deployment
