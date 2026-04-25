@@ -21,6 +21,8 @@ export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: H
   const isMobile = useIsMobile();
   const isMainPage = pathname === "/";
   const isTemporaryPage = pathname === "/chats/temporary";
+  const isChatPage = pathname.startsWith("/chats/");
+  const showNewChatIconAtHeader = isChatPage && !isTemporaryPage && isMobile;
 
   return (
     <header className="shrink-0 bg-background h-header-height text-foreground px-1 sm:px-2 flex items-center">
@@ -102,6 +104,15 @@ export default function Header({ onMobileSidebarToggle, isMobileSidebarOpen }: H
               </Link>
             )}
           </div>
+        )}
+        {showNewChatIconAtHeader && (
+          <Link
+            href="/"
+            className="p-2 text-foreground hover:text-foreground/80 hover:bg-accent rounded-lg transition-colors"
+            aria-label="New chat"
+          >
+            <MessageCirclePlus size={20} />
+          </Link>
         )}
       </div>
     </header>
