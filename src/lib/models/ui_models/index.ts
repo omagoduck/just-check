@@ -17,8 +17,8 @@ export const UIModels: UIModel[] = [
         description: 'Advanced reasoning model for the toughest challenges.'
     },
     {
-        id: 'lumy-sense-1',
-        name: 'Lumy Sense 1',
+        id: 'lumy-flash-1',
+        name: 'Lumy Flash 1',
         description: 'Good for daily necessary and simple tasks.'
     },
     {

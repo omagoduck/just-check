@@ -21,7 +21,11 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
     switch (uiModelId) {
         case 'fast':
             if (context?.hasImages) {
-                return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
+                return {
+                    provider: 'openrouter',
+                    id: 'moonshotai/kimi-k2.5',
+                    providerOptions: { openrouter: { reasoning: { enabled: false } } }
+                };
             }
             return {
                 provider: 'openrouter',
@@ -33,7 +37,7 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
             if (context?.hasImages) {
                 return {
                     provider: 'openrouter',
-                    id: 'qwen/qwen3.5-397b-a17b',
+                    id: 'moonshotai/kimi-k2.5',
                     providerOptions: { openrouter: { reasoning: { enabled: true } } }
                 };
             }
@@ -46,22 +50,33 @@ export function resolveModelRoute(uiModelId: string, context?: RoutingContext): 
         case 'pro-thinker':
             return {
                 provider: 'openrouter',
-                id: 'moonshotai/kimi-k2.5',
+                id: 'moonshotai/kimi-k2.6',
                 providerOptions: { openrouter: { reasoning: { enabled: true } } }
             };
 
-        case 'lumy-sense-1':
-            return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
+        case 'lumy-flash-1':
+            if (context?.hasImages) {
+                return {
+                    provider: 'openrouter',
+                    id: 'moonshotai/kimi-k2.5',
+                    providerOptions: { openrouter: { reasoning: { enabled: false } } }
+                };
+            }
+            return {
+                provider: 'openrouter',
+                id: 'deepseek/deepseek-v3.2',
+                providerOptions: { openrouter: { reasoning: { enabled: false } } }
+            };
 
         case 'lumy-itor-1':
             return {
                 provider: 'openrouter',
-                id: 'moonshotai/kimi-k2.5',
+                id: 'moonshotai/kimi-k2.6',
                 providerOptions: { openrouter: { reasoning: { enabled: true } } }
             };
 
         default:
             // Fallback for any unknown or unspecified model IDs
-            return { provider: 'openrouter', id: 'mistralai/mistral-large-2512' };
+            return { provider: 'openrouter', id: 'moonshotai/kimi-k2.5' };
     }
 }
