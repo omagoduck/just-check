@@ -37,7 +37,7 @@ import {
   Clock,
   Zap
 } from "lucide-react";
-import { UIModels } from "@/lib/models";
+import { UIModels, NormalModels, RawModels } from "@/lib/models";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +45,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  Drawer,
+  DrawerContent,
+} from "@/components/ui/drawer";
 
 // The MAX_FILES constant is hardcoded rn. Different use cases or user tiers may require different limits.
 // TODO || P8: Suggestion: Consider making this configurable via props or environment 
@@ -122,6 +129,8 @@ export function ChatInput({
   const [audioData, setAudioData] = useState(new Uint8Array(0));
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMobileModelDrawerOpen, setIsMobileModelDrawerOpen] = useState(false);
+  const [isMobileAdvancedDrawerOpen, setIsMobileAdvancedDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const attachedFilesRef = useRef<AttachedFile[]>([]);
   const dragCounterRef = useRef(0);
@@ -505,6 +514,18 @@ export function ChatInput({
   const handleStopGenerating = useCallback(() => {
     onStopGenerating?.();
   }, [onStopGenerating]);
+
+  const handleMobileModelSelect = useCallback((modelId: string) => {
+    onUIModelChange(modelId);
+    setIsMobileAdvancedDrawerOpen(false);
+    setIsMobileModelDrawerOpen(false);
+  }, [onUIModelChange]);
+
+  // Closes the main drawer before opening the advanced drawer for a cleaner mobile drill-down flow.
+  const handleOpenMobileAdvancedDrawer = useCallback(() => {
+    setIsMobileModelDrawerOpen(false);
+    setIsMobileAdvancedDrawerOpen(true);
+  }, []);
 
   const stopAudioProcessing = useCallback(() => {
     if (animationFrameRef.current) {
@@ -1024,12 +1045,13 @@ export function ChatInput({
               </div>
 
               <div className="flex items-center space-x-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                {isMobile ? (
+                  <>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-9 px-3 gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200"
+                      onClick={() => setIsMobileModelDrawerOpen(true)}
                     >
                       <Stone className="size-4 text-primary" />
                       <span className="text-[15px] font-medium">
@@ -1037,38 +1059,187 @@ export function ChatInput({
                       </span>
                       <ChevronDown className="size-4 opacity-60" />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-64 bg-card/95 backdrop-blur-lg border-border text-foreground"
-                  >
-                    {UIModels.map((model) => (
-                      <DropdownMenuItem
-                        key={model.id}
-                        onClick={() => onUIModelChange(model.id)}
-                        className={cn(
-                          "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
-                          selectedUIModelId === model.id && "bg-primary/10 focus:bg-primary/15"
-                        )}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span className={cn(
-                            "font-medium transition-colors",
-                            selectedUIModelId === model.id ? "text-primary" : "text-foreground"
-                          )}>
-                            {model.name}
-                          </span>
-                          {selectedUIModelId === model.id && (
-                            <Check className="h-3.5 w-3.5 text-primary" />
+
+                    <Drawer
+                      open={isMobileModelDrawerOpen}
+                      onOpenChange={setIsMobileModelDrawerOpen}
+                      direction="bottom"
+                    >
+                      <DrawerContent className="border-border bg-card/98 px-0 max-h-[85vh]">
+                        <div className="px-3 pt-3 pb-4 overflow-y-auto">
+                          {NormalModels.map((model) => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => handleMobileModelSelect(model.id)}
+                              className={cn(
+                                "flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-left transition-colors",
+                                selectedUIModelId === model.id
+                                  ? "bg-primary/10"
+                                  : "hover:bg-muted/50"
+                              )}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className={cn(
+                                    "font-medium",
+                                    selectedUIModelId === model.id ? "text-primary" : "text-foreground"
+                                  )}>
+                                    {model.name}
+                                  </span>
+                                  {selectedUIModelId === model.id && (
+                                    <Check className="h-4 w-4 text-primary" />
+                                  )}
+                                </div>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                  {model.description}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+
+                          {RawModels.length > 0 && (
+                            <>
+                              <div className="mx-4 my-2 h-px bg-border" />
+                              <button
+                                type="button"
+                                onClick={handleOpenMobileAdvancedDrawer}
+                                className="flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left transition-colors hover:bg-muted/50"
+                              >
+                                <p className="font-medium text-foreground">Advanced</p>
+                                <ChevronDown className="size-4 -rotate-90 text-muted-foreground" />
+                              </button>
+                            </>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                          {model.description}
+                      </DrawerContent>
+                    </Drawer>
+
+                    <Drawer
+                      open={isMobileAdvancedDrawerOpen}
+                      onOpenChange={setIsMobileAdvancedDrawerOpen}
+                      direction="bottom"
+                    >
+                      <DrawerContent className="border-border bg-card/98 px-0 max-h-[85vh]">
+                        <div className="px-3 pt-3 pb-4 overflow-y-auto">
+                          {RawModels.map((model) => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => handleMobileModelSelect(model.id)}
+                              className={cn(
+                                "flex w-full items-start gap-3 rounded-2xl px-4 py-3 text-left transition-colors",
+                                selectedUIModelId === model.id
+                                  ? "bg-primary/10"
+                                  : "hover:bg-muted/50"
+                              )}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className={cn(
+                                    "font-medium",
+                                    selectedUIModelId === model.id ? "text-primary" : "text-foreground"
+                                  )}>
+                                    {model.name}
+                                  </span>
+                                  {selectedUIModelId === model.id && (
+                                    <Check className="h-4 w-4 text-primary" />
+                                  )}
+                                </div>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                  {model.description}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 px-3 gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200"
+                      >
+                        <Stone className="size-4 text-primary" />
+                        <span className="text-[15px] font-medium">
+                          {UIModels.find(m => m.id === selectedUIModelId)?.name || "Model"}
                         </span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                        <ChevronDown className="size-4 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-64 bg-card/95 backdrop-blur-lg border-border text-foreground"
+                    >
+                      {NormalModels.map((model) => (
+                        <DropdownMenuItem
+                          key={model.id}
+                          onClick={() => onUIModelChange(model.id)}
+                          className={cn(
+                            "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
+                            selectedUIModelId === model.id && "bg-primary/10 focus:bg-primary/15"
+                          )}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className={cn(
+                              "font-medium transition-colors",
+                              selectedUIModelId === model.id ? "text-primary" : "text-foreground"
+                            )}>
+                              {model.name}
+                            </span>
+                            {selectedUIModelId === model.id && (
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            {model.description}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                      {RawModels.length > 0 && (
+                      <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="flex items-center gap-2 p-3 cursor-pointer focus:bg-muted/50">
+                          <span className="font-medium text-muted-foreground">Advanced</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-64 bg-card/95 backdrop-blur-lg border-border text-foreground">
+                          {RawModels.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => onUIModelChange(model.id)}
+                              className={cn(
+                                "flex flex-col items-start gap-1 p-3 focus:bg-muted/50 cursor-pointer",
+                                selectedUIModelId === model.id && "bg-primary/10 focus:bg-primary/15"
+                              )}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className={cn(
+                                  "font-medium transition-colors",
+                                  selectedUIModelId === model.id ? "text-primary" : "text-foreground"
+                                )}>
+                                  {model.name}
+                                </span>
+                                {selectedUIModelId === model.id && (
+                                  <Check className="h-3.5 w-3.5 text-primary" />
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                {model.description}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
                 {isVoiceSupported && (
                   <Tooltip>

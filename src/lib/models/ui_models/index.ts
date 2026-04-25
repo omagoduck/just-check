@@ -1,6 +1,6 @@
 import { UIModel } from '../types';
 
-export const UIModels: UIModel[] = [
+export const NormalModels: UIModel[] = [
     {
         id: 'fast',
         name: 'Fast',
@@ -15,7 +15,10 @@ export const UIModels: UIModel[] = [
         id: 'pro-thinker',
         name: 'Pro Thinker',
         description: 'Advanced reasoning model for the toughest challenges.'
-    },
+    }
+];
+
+export const RawModels: UIModel[] = [
     {
         id: 'lumy-flash-1',
         name: 'Lumy Flash 1',
@@ -27,3 +30,5 @@ export const UIModels: UIModel[] = [
         description: 'Our best reasoning model for complex tasks handling.'
     }
 ];
+
+export const UIModels: UIModel[] = [...NormalModels, ...RawModels];
