@@ -91,7 +91,22 @@ export function FolderDialog({
             <div className="space-y-2">
               <label className="text-sm font-medium">Color</label>
               <div className="flex flex-wrap gap-2">
-                {FOLDER_COLORS.map((color) => (
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor('')}
+                  className={`relative h-8 w-8 overflow-hidden rounded-full border-2 transition-all ${
+                    selectedColor === ''
+                      ? 'border-foreground scale-110'
+                      : 'border-transparent hover:border-muted-foreground'
+                  }`}
+                  title="Default"
+                  aria-label="Select Default color"
+                >
+                  <span className="absolute inset-y-0 left-0 w-1/2 bg-white" />
+                  <span className="absolute inset-y-0 right-0 w-1/2 bg-[#111111]" />
+                </button>
+
+                {FOLDER_COLORS.filter((color) => color.value !== '').map((color) => (
                   <button
                     key={color.value}
                     type="button"
@@ -102,7 +117,7 @@ export function FolderDialog({
                         : 'border-transparent hover:border-muted-foreground'
                     }`}
                     style={{
-                      backgroundColor: color.value || 'hsl(var(--muted))',
+                      backgroundColor: color.value,
                     }}
                     title={color.name}
                     aria-label={`Select ${color.name} color`}
