@@ -29,9 +29,10 @@ interface FormErrors {
 function OnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isLoaded, isSignedIn, getToken } = useAuth()
+  const { isLoaded, isSignedIn } = useAuth()
   const { user } = useUser()
   const { signOut } = useClerk()
+  const isOnboarded = !!user?.publicMetadata?.profileComplete
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -71,6 +72,14 @@ function OnboardingContent() {
     }
   }, [isLoaded, isSignedIn, router])
 
+  // Redirect once onboarding is complete (JWT has propagated)
+  useEffect(() => {
+    if (isOnboarded) {
+      const returnUrl = searchParams.get('returnUrl') || '/'
+      window.location.href = returnUrl
+    }
+  }, [isOnboarded, searchParams])
+
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
 
@@ -90,18 +99,9 @@ function OnboardingContent() {
       if (!response.ok) throw new Error('Failed to complete onboarding')
       return response.json()
     },
-    onSuccess: async (data) => {
-      // Token refresh logic
-      if (data.requiresAuthTokenRefresh) {
-        for (let i = 0; i < 3; i++) {
-          try {
-            await getToken({ skipCache: true })
-            break
-          } catch { await new Promise(r => setTimeout(r, Math.pow(2, i) * 500)) }
-        }
-      }
-      // Redirect
-      setTimeout(() => router.push(searchParams.get('returnUrl') || '/'), data.tokenRefreshDelay || 2500)
+    onSuccess: async () => {
+      // Force Clerk to re-fetch user data so publicMetadata.profileComplete updates
+      await user?.reload()
     }
   })
 
