@@ -92,8 +92,6 @@ export interface ConversationFolder {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
-  /** Number of conversations in this folder (populated by query) */
-  conversation_count?: number;
 }
 
 /**

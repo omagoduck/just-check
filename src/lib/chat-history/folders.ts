@@ -128,10 +128,10 @@ export async function deleteFolder(
 }
 
 /**
- * Lists all folders for a user with conversation counts
+ * Lists all folders for a user
  *
  * @param params - List parameters including clerkUserId
- * @returns Array of folders with conversation counts
+ * @returns Array of folders
  * @throws Error if database query fails
  */
 export async function listFolders(
@@ -141,7 +141,6 @@ export async function listFolders(
 
   const supabase = getSupabaseAdminClient();
 
-  // Get folders
   const { data: folders, error } = await supabase
     .from('conversation_folders')
     .select('*')
@@ -153,34 +152,7 @@ export async function listFolders(
     throw new Error(`Failed to fetch folders: ${error.message}`);
   }
 
-  if (!folders || folders.length === 0) {
-    return [];
-  }
-
-  // Get conversation counts for each folder
-  const folderIds = folders.map((f) => f.id);
-  const { data: counts, error: countError } = await supabase
-    .from('conversations')
-    .select('folder_id')
-    .in('folder_id', folderIds)
-    .eq('is_temporary', false)
-    .is('deleted_at', null)
-    .is('archived_at', null);
-
-  if (countError) {
-    throw new Error(`Failed to fetch folder counts: ${countError.message}`);
-  }
-
-  // Count conversations per folder
-  const countMap = new Map<string, number>();
-  for (const row of counts || []) {
-    countMap.set(row.folder_id, (countMap.get(row.folder_id) || 0) + 1);
-  }
-
-  return folders.map((folder) => ({
-    ...(folder as ConversationFolder),
-    conversation_count: countMap.get(folder.id) || 0,
-  }));
+  return (folders || []) as ConversationFolder[];
 }
 
 /**

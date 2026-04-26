@@ -440,11 +440,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                         >
                           {folder.name}
                         </span>
-                        {!isCollapsed && folder.conversation_count !== undefined && folder.conversation_count > 0 && (
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {folder.conversation_count}
-                          </span>
-                        )}
                       </div>
 
                       {!isCollapsed && (

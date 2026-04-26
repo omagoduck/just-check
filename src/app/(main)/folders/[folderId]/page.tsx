@@ -117,9 +117,6 @@ export default function FolderDetailPage() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl font-semibold truncate">{folder.name}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
-                </p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => router.push("/folders")}>

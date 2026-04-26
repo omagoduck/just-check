@@ -224,9 +224,6 @@ function FolderCard({ folder, onClick, onRename, onDelete }: FolderCardProps) {
         <span className="text-sm font-medium truncate w-full text-center">
           {folder.name}
         </span>
-        <span className="text-xs text-muted-foreground mt-0.5">
-          {folder.conversation_count || 0} chat{(folder.conversation_count || 0) !== 1 ? "s" : ""}
-        </span>
       </button>
 
       {/* Context menu */}
