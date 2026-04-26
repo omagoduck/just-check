@@ -167,7 +167,7 @@ export default function FoldersPage() {
             >
               <h3 className="text-lg font-semibold mb-2">Delete Folder?</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Conversations inside will be moved back to your main chat list.
+                This will permanently delete the folder and all chats inside it. To keep your chats, move them to another folder or back to your regular chat list before deleting.
               </p>
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" onClick={() => { setDeleteDialogOpen(false); setFolderToDelete(null); }}>

@@ -984,7 +984,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
           <DialogHeader>
             <DialogTitle>Delete Folder?</DialogTitle>
             <DialogDescription>
-              This will delete the folder. Conversations inside will be moved back to your main chat list.
+              This will permanently delete the folder and all chats inside it. To keep your chats, move them to another folder or back to your regular chat list before deleting.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-end gap-3">

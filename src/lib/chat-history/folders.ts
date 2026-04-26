@@ -100,16 +100,30 @@ export async function deleteFolder(
   clerkUserId: string
 ): Promise<void> {
   const supabase = getSupabaseAdminClient();
+  const now = new Date().toISOString();
 
-  const { error } = await supabase
+  // Soft-delete the folder first to prevent new chats being added via race
+  const { error: folderError } = await supabase
     .from('conversation_folders')
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: now })
     .eq('id', folderId)
     .eq('clerk_user_id', clerkUserId)
     .is('deleted_at', null);
 
-  if (error) {
-    throw new Error(`Failed to delete folder: ${error.message}`);
+  if (folderError) {
+    throw new Error(`Failed to delete folder: ${folderError.message}`);
+  }
+
+  // Then soft-delete all chats inside the folder
+  const { error: chatsError } = await supabase
+    .from('conversations')
+    .update({ deleted_at: now })
+    .eq('folder_id', folderId)
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (chatsError) {
+    throw new Error(`Failed to delete chats in folder: ${chatsError.message}`);
   }
 }
 
