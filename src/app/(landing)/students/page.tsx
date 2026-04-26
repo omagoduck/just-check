@@ -17,6 +17,7 @@ import {
   FileText,
   Folder,
   Globe,
+  Menu,
   MessageSquareText,
   Mic,
   Pencil,
@@ -33,6 +34,12 @@ import {
   APP_BRAND_NAME,
   APP_BRAND_SLOGAN,
 } from "@/lib/branding-constants";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const heroChips = [
   "Break down difficult concepts",
@@ -307,19 +314,21 @@ function TopBar() {
           <div className="text-2xl font-bold text-foreground">{APP_BRAND_NAME}</div>
         </Link>
 
-        <div className="flex items-center gap-6">
-          <Link
-            href="/landing"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Landing
-          </Link>
-          <Link
-            href="/upgrade"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Pricing
-          </Link>
+        <div className="flex items-center gap-3 sm:gap-6">
+          <div className="hidden sm:flex items-center gap-6">
+            <Link
+              href="/landing"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Landing
+            </Link>
+            <Link
+              href="/upgrade"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Pricing
+            </Link>
+          </div>
 
           <Link
             href={isSignedIn ? "/" : "/sign-in"}
@@ -328,6 +337,31 @@ function TopBar() {
             {isSignedIn ? "Open app" : "Sign in"}
             <ArrowRight className="h-4 w-4" />
           </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Toggle navigation menu"
+                className="rounded-full p-2.5 text-muted-foreground hover:text-foreground transition-colors sm:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent
+              align="end"
+              side="bottom"
+              sideOffset={16}
+              className="-mr-4 w-[calc(100vw-2rem)] rounded-[1.75rem] border-border/60 bg-background/95 p-4 text-foreground backdrop-blur-2xl sm:hidden"
+            >
+              <DropdownMenuItem asChild className="rounded-2xl px-4 py-3 text-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                <Link href="/landing">Landing</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-2xl px-4 py-3 text-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                <Link href="/upgrade">Pricing</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
@@ -820,5 +854,4 @@ function ActionChip({ icon, label }: { icon: ReactNode; label: string }) {
     </span>
   );
 }
-
 
