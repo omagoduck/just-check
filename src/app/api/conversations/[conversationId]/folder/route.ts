@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { conversationsRatelimit } from '@/lib/ratelimit';
 import { moveConversationToFolder, ensureConversationNotTemporary } from '@/lib/chat-history';
+import { z } from 'zod';
+
+const paramsSchema = z.object({
+  conversationId: z.string().uuid(),
+});
+
+// folder_id can be null (to remove from folder) or a UUID (to move to folder)
+const moveBodySchema = z.object({
+  folder_id: z.string().uuid().nullable(),
+});
 
 export async function POST(
   req: NextRequest,
@@ -13,42 +23,44 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limit
     const { success } = await conversationsRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
-    const { conversationId } = await params;
-    const body = await req.json();
-    const { folder_id } = body;
+    const { conversationId } = paramsSchema.parse(await params);
 
-    // folder_id can be null (to remove from folder) or a string (to move to folder)
-    if (folder_id !== null && typeof folder_id !== 'string') {
+    const parsed = moveBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid folder_id. Must be a string or null.' },
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
         { status: 400 }
       );
     }
+    const { folder_id: folderId } = parsed.data;
 
     await ensureConversationNotTemporary(conversationId, clerkUserId);
 
     await moveConversationToFolder({
       conversationId,
-      folderId: folder_id,
+      folderId,
       clerkUserId,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error moving conversation to folder:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     const isNotFound = message === 'Folder not found'
       || message === 'Conversation not found'
       || message === 'Temporary conversations cannot be organized';
-    const status = isNotFound
-      ? 404
-      : 500;
+    const status = isNotFound ? 404 : 500;
     return NextResponse.json({ error: status === 404 ? 'Conversation not found' : 'Internal server error' }, { status });
   }
 }

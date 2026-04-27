@@ -5,6 +5,11 @@ import { clerkClient } from "@/lib/clerk/clerk-client";
 import { DODO_API_KEY, DODO_API_URL, DODO_RETURN_URL } from "@/lib/dodo-utils.server";
 import { getDodoProductId } from "@/lib/subscription-utils.server";
 import { checkoutRatelimit } from "@/lib/ratelimit";
+import { z } from "zod";
+
+const checkoutPostSchema = z.object({
+  productId: z.string().min(1),
+});
 
 interface DODOCustomer {
   customer_id: string;
@@ -224,15 +229,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
     }
 
-    const body = await request.json();
-    const { productId, ...otherOptions } = body;
-
-    if (!productId) {
+    const parsed = checkoutPostSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "productId is required" },
+        { error: "Invalid request body", details: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`) },
         { status: 400 }
       );
     }
+    const { productId } = parsed.data;
 
     const dodoProductId = getDodoProductId(productId);
     if (!dodoProductId) {
@@ -249,7 +253,6 @@ export async function POST(request: NextRequest) {
       product_cart: [{ product_id: dodoProductId, quantity: 1 }],
       return_url: DODO_RETURN_URL,
       customer: { customer_id: customerId },
-      ...otherOptions,
     };
 
     const response = await fetch(`${DODO_API_URL}/checkouts`, {

@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { conversationsRatelimit } from '@/lib/ratelimit';
 import { getFolder, updateFolder, deleteFolder } from '@/lib/chat-history';
+import { z } from 'zod';
+
+const paramsSchema = z.object({
+  folderId: z.string().uuid(),
+});
+
+const updateBodySchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  color: z.string().nullable().optional(),
+});
 
 export async function GET(
   req: NextRequest,
@@ -13,7 +23,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { folderId } = await params;
+    const { folderId } = paramsSchema.parse(await params);
     const folder = await getFolder(folderId, clerkUserId);
 
     if (!folder) {
@@ -22,6 +32,12 @@ export async function GET(
 
     return NextResponse.json({ folder });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid folder ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error fetching folder:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -46,24 +62,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
-    const { folderId } = await params;
-    const body = await req.json();
-    const { name, color } = body;
+    const { folderId } = paramsSchema.parse(await params);
 
-    if (name !== undefined) {
-      if (typeof name !== 'string' || name.trim().length === 0) {
-        return NextResponse.json(
-          { error: 'Folder name cannot be empty' },
-          { status: 400 }
-        );
-      }
-      if (name.trim().length > 100) {
-        return NextResponse.json(
-          { error: 'Folder name must be 100 characters or less' },
-          { status: 400 }
-        );
-      }
+    const parsed = updateBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
     }
+    const { name, color } = parsed.data;
 
     const folder = await updateFolder({
       folderId,
@@ -74,6 +82,12 @@ export async function PATCH(
 
     return NextResponse.json({ folder });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid folder ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error updating folder:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     const status = message === 'Folder not found' ? 404 : message.includes('already exists') ? 409 : 500;
@@ -97,12 +111,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
     }
 
-    const { folderId } = await params;
+    const { folderId } = paramsSchema.parse(await params);
 
     await deleteFolder(folderId, clerkUserId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid folder ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error deleting folder:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

@@ -2,6 +2,7 @@ import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool, manageMemoryTool } from '@/lib/tools';
 import { chatRatelimit } from '@/lib/ratelimit';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   saveUserMessage,
   saveAssistantMessage,
@@ -34,6 +35,15 @@ import type { ViewWebsiteInput } from '@/lib/tools/view-website';
 import type { ManageMemoryInput } from '@/lib/tools/memory';
 import { getUserMemories } from '@/lib/memory';
 
+const chatBodySchema = z.object({
+  messages: z.array(z.any()).min(1),
+  id: z.string().uuid(),
+  UIModelId: z.string().min(1),
+  previousMessageId: z.string().uuid().nullable().optional(),
+  trigger: z.string().optional(),
+  messageId: z.string().uuid().optional(),
+});
+
 export async function POST(req: Request) {
   try {
     const { userId: clerkUserId } = await auth();
@@ -46,7 +56,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
-    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId, trigger, messageId } = await req.json();
+    const parsed = chatBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
+    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId, trigger, messageId } = parsed.data;
 
     const isRegeneration = trigger === 'regenerate-message';
 

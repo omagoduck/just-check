@@ -4,6 +4,15 @@ import { executeGetWeather } from '@/lib/tools/executor/get-weather-executor';
 import { getLocationFromCoordinates, fetchWeatherData } from '@/lib/tools/executor/get-weather-executor';
 import { weatherRatelimit } from '@/lib/ratelimit';
 import type { GetWeatherOutput } from '@/lib/tools/get-weather';
+import { z } from 'zod';
+
+const weatherBodySchema = z.union([
+  z.object({ location: z.string().min(1) }),
+  z.object({
+    lat: z.number().min(-90).max(90),
+    lon: z.number().min(-180).max(180),
+  }),
+]);
 
 export async function POST(request: Request) {
   try {
@@ -19,25 +28,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
-    const { location, lat, lon } = await request.json();
-
-    // Validate input
-    if (!location && (lat === undefined || lon === undefined)) {
+    const parsed = weatherBodySchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Either location or coordinates (lat/lon) must be provided' },
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
         { status: 400 }
       );
     }
 
     let weatherData: GetWeatherOutput;
 
-    if (location) {
+    if ('location' in parsed.data) {
       // Use existing server-side executor for location-based queries
-      weatherData = await executeGetWeather({ location });
+      weatherData = await executeGetWeather({ location: parsed.data.location });
     } else {
       // Handle coordinate-based queries
-      const locationName = await getLocationFromCoordinates(lat!, lon!);
-      const { currentData, forecastData } = await fetchWeatherData(lat!, lon!);
+      const { lat, lon } = parsed.data;
+      const locationName = await getLocationFromCoordinates(lat, lon);
+      const { currentData, forecastData } = await fetchWeatherData(lat, lon);
 
       // Process current weather data
       const current = {

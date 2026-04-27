@@ -3,6 +3,28 @@ import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
 import { userSettingsPostRatelimit, userSettingsGetRatelimit } from '@/lib/ratelimit';
+import { z } from 'zod';
+
+const settingsPostSchema = z.object({
+  settings: z.object({
+    privacySettings: z.object({
+      shareAnonymousData: z.boolean(),
+      shareDiagnostics: z.boolean(),
+    }).partial().optional(),
+    aiCustomizationSettings: z.object({
+      aiNickname: z.string().optional(),
+      userNickname: z.string().optional(),
+      userProfession: z.string().optional(),
+      preferredTopics: z.string().optional(),
+      avoidTopics: z.string().optional(),
+      moreAboutYou: z.string().optional(),
+      aiTone: z.enum(['default', 'friendly', 'warmer', 'professional', 'gen-z']).optional(),
+      responseLength: z.enum(['default', 'concise', 'detail']).optional(),
+      customInstructions: z.string().optional(),
+      memoryEnabled: z.boolean().optional(),
+    }).optional(),
+  }),
+});
 
 function mergeUserSettings(
   existingSettings?: Partial<UserSettings>,
@@ -92,12 +114,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { settings } = body;
-
-    if (!settings || typeof settings !== 'object') {
-      return NextResponse.json({ error: 'Invalid settings data' }, { status: 400 });
+    const parsed = settingsPostSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid settings data', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
     }
+    const { settings } = parsed.data;
 
     const supabase = getSupabaseAdminClient();
 
@@ -107,7 +131,7 @@ export async function POST(req: Request) {
       .eq('clerk_user_id', clerkUserId)
       .single();
 
-    const mergedSettings = mergeUserSettings(existingSettings?.settings_data, settings);
+    const mergedSettings = mergeUserSettings(existingSettings?.settings_data, settings as Partial<UserSettings>);
 
     const { data, error } = await supabase
       .from('user_settings')

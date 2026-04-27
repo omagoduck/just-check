@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { ensureConversationNotTemporary } from '@/lib/chat-history';
+import { z } from 'zod';
+
+const paramsSchema = z.object({
+  conversationId: z.string().uuid(),
+});
+
+const renameBodySchema = z.object({
+  title: z.string().trim().min(1),
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -13,13 +22,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { conversationId } = await params;
-    const body = await req.json();
-    const { title } = body;
+    const { conversationId } = paramsSchema.parse(await params);
 
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return NextResponse.json({ error: 'Invalid title' }, { status: 400 });
+    const parsed = renameBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
     }
+    const { title } = parsed.data;
 
     const supabase = getSupabaseAdminClient();
 
@@ -28,7 +40,7 @@ export async function PATCH(
     // Update conversation title
     const { error } = await supabase
       .from('conversations')
-      .update({ title: title.trim() })
+      .update({ title })
       .eq('id', conversationId)
       .eq('clerk_user_id', clerkUserId);
 
@@ -38,6 +50,12 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid conversation ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error renaming conversation:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     const isNotFound = message === 'Conversation not found' || message === 'Temporary conversations cannot be organized';
@@ -59,7 +77,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { conversationId } = await params;
+    const { conversationId } = paramsSchema.parse(await params);
+
     const supabase = getSupabaseAdminClient();
 
     // Soft delete - update deleted_at timestamp
@@ -75,6 +94,12 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid conversation ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error deleting conversation:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

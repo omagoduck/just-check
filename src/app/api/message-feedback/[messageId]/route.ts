@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-client';
 import { messageFeedbackChangeRatelimit, messageFeedbackGetRatelimit } from '@/lib/ratelimit';
+import { z } from 'zod';
+
+const paramsSchema = z.object({
+  messageId: z.string().uuid(),
+});
+
+const feedbackBodySchema = z.object({
+  type: z.enum(['like', 'dislike']),
+  presets: z.array(z.string()).default([]),
+  comment: z.string().nullable().default(null),
+});
 
 /**
  * GET /api/message-feedback/[messageId]
@@ -18,7 +29,6 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limit check
     const { success } = await messageFeedbackGetRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json(
@@ -27,17 +37,7 @@ export async function GET(
       );
     }
 
-    const { messageId } = await params;
-
-    // Validate UUID format
-    try {
-      // Simple UUID validation
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId)) {
-        return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-    }
+    const { messageId } = paramsSchema.parse(await params);
 
     const supabase = getSupabaseAdminClient();
 
@@ -59,6 +59,12 @@ export async function GET(
 
     return NextResponse.json(data);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid message ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error fetching message feedback:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -70,7 +76,6 @@ export async function GET(
 /**
  * POST /api/message-feedback/[messageId]
  * Creates or updates feedback for a specific message
- * Body: { type: 'like' | 'dislike', presets?: string[], comment?: string }
  */
 export async function POST(
   req: NextRequest,
@@ -82,7 +87,6 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limit check
     const { success } = await messageFeedbackChangeRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json(
@@ -91,52 +95,22 @@ export async function POST(
       );
     }
 
-    const { messageId } = await params;
+    const { messageId } = paramsSchema.parse(await params);
 
-    // Validate UUID format
-    try {
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId)) {
-        return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-    }
-
-    const body = await req.json();
-    const { type, presets = [], comment = null } = body;
-
-    // Validate feedback type
-    if (!type || (type !== 'like' && type !== 'dislike')) {
+    const parsed = feedbackBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid feedback type. Must be "like" or "dislike"' },
+        { error: 'Invalid request body', details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
         { status: 400 }
       );
     }
 
-    // Validate presets is an array
-    if (!Array.isArray(presets)) {
-      return NextResponse.json(
-        { error: 'Presets must be an array' },
-        { status: 400 }
-      );
-    }
-
-    // Validate comment is a string or null
-    if (comment !== null && typeof comment !== 'string') {
-      return NextResponse.json(
-        { error: 'Comment must be a string or null' },
-        { status: 400 }
-      );
-    }
+    const { type, presets, comment } = parsed.data;
 
     const supabase = getSupabaseAdminClient();
 
     // Build feedback JSONB object
-    const feedbackData = {
-      type,
-      presets,
-      comment,
-    };
+    const feedbackData = { type, presets, comment };
 
     // Check if feedback already exists
     const { data: existing } = await supabase
@@ -181,6 +155,12 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid message ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error saving message feedback:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -203,7 +183,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate limit check
     const { success } = await messageFeedbackChangeRatelimit.limit(clerkUserId);
     if (!success) {
       return NextResponse.json(
@@ -212,16 +191,7 @@ export async function DELETE(
       );
     }
 
-    const { messageId } = await params;
-
-    // Validate UUID format
-    try {
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId)) {
-        return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-      }
-    } catch {
-      return NextResponse.json({ error: 'Invalid message ID format' }, { status: 400 });
-    }
+    const { messageId } = paramsSchema.parse(await params);
 
     const supabase = getSupabaseAdminClient();
 
@@ -238,6 +208,12 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid message ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
     console.error('Error deleting message feedback:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
