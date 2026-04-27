@@ -83,8 +83,8 @@ interface ChatPageShellProps {
   onSubmitRegeneratedMessage: (context: ChatPageRegenerateContext) => void;
   canSendMessages: boolean;
   canMutateMessages: boolean;
-  isFreeUser: boolean;
-  hasAllowance: boolean;
+  isFreeUser: boolean | undefined;
+  hasAllowance: boolean | undefined;
   remainingPercentage: number;
   allowanceResetTime: string | null;
   isLoadingAllowance: boolean;

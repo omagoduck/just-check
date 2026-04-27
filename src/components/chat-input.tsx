@@ -73,9 +73,9 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   onUIModelChange: (uiModelId: string) => void;
   maxInputCharacterLength?: number;
   /** Whether user is on the free plan */
-  isFreeUser?: boolean;
+  isFreeUser?: boolean | undefined;
   /** Whether user has remaining allowance to send messages */
-  hasAllowance?: boolean;
+  hasAllowance?: boolean | undefined;
   /** Percentage of allowance remaining (0-100) */
   remainingPercentage?: number;
   /** When the current daily allowance window ends (ISO string) */
@@ -111,8 +111,8 @@ export function ChatInput({
   selectedUIModelId,
   onUIModelChange,
   maxInputCharacterLength,
-  isFreeUser = false,
-  hasAllowance = true,
+  isFreeUser,
+  hasAllowance,
   remainingPercentage = 100,
   allowanceResetTime = null,
   isLoadingAllowance = false,
@@ -1322,11 +1322,13 @@ export function ChatInput({
                       <p>
                         {canSubmit
                           ? "Send message"
-                          : !hasAllowance
-                            ? isFreeUser
-                              ? "Free access is temporarily unavailable"
-                              : "Allowance exhausted - wait for reset or upgrade"
-                            : "Enter a message to send"}
+                          : isLoadingAllowance
+                            ? "Loading..."
+                            : !hasAllowance
+                              ? isFreeUser
+                                ? "Free access is temporarily unavailable"
+                                : "Allowance exhausted - wait for reset or upgrade"
+                              : "Enter a message to send"}
                       </p>
                     </TooltipContent>
                   </Tooltip>

@@ -85,8 +85,8 @@ export default function ChatPage() {
           body: { UIModelId: currentUIModelId },
         });
       }}
-      canSendMessages={hasAllowance}
-      canMutateMessages={hasAllowance}
+      canSendMessages={!!hasAllowance}
+      canMutateMessages={!!hasAllowance}
       isFreeUser={isFreeUser}
       hasAllowance={hasAllowance}
       remainingPercentage={remainingPercentage}

@@ -258,8 +258,8 @@ export default function TemporaryChatPage() {
           body: { id: conversationId, UIModelId: currentUIModelId },
         });
       }}
-      canSendMessages={hasAllowance}
-      canMutateMessages={hasAllowance && !!conversationId}
+      canSendMessages={!!hasAllowance}
+      canMutateMessages={!!hasAllowance && !!conversationId}
       isFreeUser={isFreeUser}
       hasAllowance={hasAllowance}
       remainingPercentage={remainingPercentage}
