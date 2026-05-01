@@ -1,4 +1,4 @@
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+﻿import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 
 export async function ensureConversationNotTemporary(
   conversationId: string,

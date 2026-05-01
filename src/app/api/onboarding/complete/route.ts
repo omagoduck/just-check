@@ -1,6 +1,6 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+﻿import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { getSupabaseAdminClient } from '@/lib/supabase-client'
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server'
 import { clerkClient } from '@/lib/clerk/clerk-client'
 import { validateAge } from '@/lib/age-validation'
 import { splitFullName } from '@/lib/clerk/utils'

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getSupabaseAdminClient } from "@/lib/supabase-client";
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { clerkClient } from "@/lib/clerk/clerk-client";
 import { DODO_API_KEY, DODO_API_URL, DODO_RETURN_URL } from "@/lib/dodo-utils.server";
 import { getDodoProductId } from "@/lib/subscription-utils.server";
@@ -21,7 +21,7 @@ interface DODOCustomer {
 /**
  * Gets or creates a DODO customer for the authenticated Clerk user.
  * Checks for existing mapping in database, creates new DODO customer if needed,
- * and stores the clerk_id ↔ dodo_customer_id mapping.
+ * and stores the clerk_id â†” dodo_customer_id mapping.
  */
 async function getOrCreateDODOCustomer(clerkUserId: string): Promise<string> {
   const supabase = getSupabaseAdminClient();

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { getRemainingAllowance } from '@/lib/allowance';
 import { v4 as uuidv4 } from 'uuid';
 import { conversationsRatelimit } from '@/lib/ratelimit';

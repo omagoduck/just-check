@@ -1,4 +1,4 @@
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+﻿import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getModelPricing, type ModelPricing } from './pricing';
 import type { TotalUsage } from '@/lib/conversation-history/types';

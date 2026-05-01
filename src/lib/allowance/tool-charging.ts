@@ -1,5 +1,5 @@
-import { deductAllowance } from './service';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+﻿import { deductAllowance } from './service';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 
 export interface ToolChargeAndLogParams {
   toolName: string;

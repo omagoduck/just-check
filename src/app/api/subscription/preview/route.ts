@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { DODO_API_KEY, DODO_API_URL } from '@/lib/dodo-utils.server';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { getDodoProductId } from '@/lib/subscription-utils.server';
 import { subscriptionPreviewRatelimit } from '@/lib/ratelimit';
 

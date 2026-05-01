@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { feedbackSubmitRatelimit } from '@/lib/ratelimit';
 import { uploadFeedbackFileToStorage, deleteFileFromStorage } from '@/lib/storage/file-storage-service';
 import { SUPPORTED_IMAGE_MIME_TYPES, validateFiles } from '@/lib/storage/file-validation';

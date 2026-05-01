@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Conversation Folders Service
  *
  * Database operations for folder CRUD and conversation-folder management.
  */
 
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type {
   ConversationFolder,
   CreateFolderParams,

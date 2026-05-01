@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { clerkClient } from '@/lib/clerk/clerk-client';
 import { UpdateProfileRequest } from '@/types/profile';
 import { splitFullName } from '@/lib/clerk/utils';

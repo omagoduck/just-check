@@ -1,7 +1,7 @@
-import { verifyWebhook } from '@clerk/nextjs/webhooks'
+﻿import { verifyWebhook } from '@clerk/nextjs/webhooks'
 import { NextRequest } from 'next/server'
 import { clerkClient } from '@/lib/clerk/clerk-client'
-import { getSupabaseAdminClient } from '@/lib/supabase-client'
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server'
 
 // TODO: This file was a important piece missing in this codebase for a longtime, though it didn't catch our eye, cause it never cause build error, and we are not in production yet.
 // Now we have copy pasted it here from our old codebase for critical fix. But this needs a super clear review later.
@@ -15,14 +15,14 @@ import { getSupabaseAdminClient } from '@/lib/supabase-client'
 export async function POST(req: NextRequest) {
   
   try {
-    // ✅ CORRECT: Use Clerk's built-in verifyWebhook helper for security
+    // âœ… CORRECT: Use Clerk's built-in verifyWebhook helper for security
     // This validates the webhook signature to prevent malicious requests
     const evt = await verifyWebhook(req)
 
 
     const eventType = evt.type
 
-    // ✅ PROPER TYPE CHECKING: Handle different event types appropriately
+    // âœ… PROPER TYPE CHECKING: Handle different event types appropriately
     if (eventType === 'user.created' || eventType === 'user.updated') {
       const userData = evt.data as any // Clerk User type
       const { 
@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
           })
 
         if (profileError) {
-          console.error('🚨 ERROR: Profile creation failed:', profileError)
-          console.error('🚨 ERROR DETAILS:', {
+          console.error('ðŸš¨ ERROR: Profile creation failed:', profileError)
+          console.error('ðŸš¨ ERROR DETAILS:', {
             code: profileError.code,
             message: profileError.message,
             details: profileError.details,
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         }
 
 
-        // 🔑 IMPORTANT: Set Clerk publicMetadata for session claims
+        // ðŸ”‘ IMPORTANT: Set Clerk publicMetadata for session claims
         // This data will appear in JWT tokens and be available in middleware
         // Configure _session template in Clerk Dashboard to include:
         // { "publicMetadata": { "profileComplete": "{{user.public_metadata.profileComplete}}" } }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
               .eq('clerk_user_id', clerkUserId)
 
             if (avatarUpdateError) {
-              console.error('🚨 ERROR: Failed to sync avatar_url:', avatarUpdateError)
+              console.error('ðŸš¨ ERROR: Failed to sync avatar_url:', avatarUpdateError)
             }
           }
         }
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
           .single()
 
         if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error('🚨 ERROR: Error fetching profile:', fetchError)
+          console.error('ðŸš¨ ERROR: Error fetching profile:', fetchError)
           return new Response('Error fetching profile', { status: 500 })
         }
 
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     return new Response('Webhook processed successfully', { status: 200 })
   } catch (error) {
-    console.error('🚨 ERROR: Webhook verification failed:', error)
+    console.error('ðŸš¨ ERROR: Webhook verification failed:', error)
     return new Response('Invalid webhook', { status: 400 })
   }
 }

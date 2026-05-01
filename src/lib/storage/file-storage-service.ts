@@ -1,4 +1,4 @@
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+﻿import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { UploadedFile } from '@/lib/conversation-history/types';
 import { v4 as uuidv4 } from 'uuid';
 

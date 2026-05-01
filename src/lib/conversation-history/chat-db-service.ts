@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Conversation Message Database Service
  *
  * Contains database operations for storing and retrieving messages within a conversation.
  * This service handles direct Supabase interactions for messages.
  */
 
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { UIMessage } from 'ai';
 
 import type {

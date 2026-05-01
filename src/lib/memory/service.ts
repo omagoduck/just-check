@@ -1,4 +1,4 @@
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+﻿import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { MemoryAction, MemoryOperationResult, MemoryUpdatePair } from '@/types/memory';
 
 function sanitizeMemoryString(memory: string): string {

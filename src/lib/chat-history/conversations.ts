@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Conversation Database Service
  *
  * Contains database operations for conversation listing.
  */
 
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type {
   ListConversationsParams,
   ListConversationsResult,

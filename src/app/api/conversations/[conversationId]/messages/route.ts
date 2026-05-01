@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMessagesForConversation, type AssistantResponseMetadata } from '@/lib/conversation-history';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { ClientMessageMetadata } from '@/lib/conversation-history/types';
 
 /**

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dodo Payment Provider Webhook Handler
  * 
  * This file handles incoming webhooks from the Dodo payment provider.
@@ -30,7 +30,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdminClient, SupabaseClient } from "@/lib/supabase-client";
+import { getSupabaseAdminClient, SupabaseClient } from '@/lib/supabase-client.server';
 import { Webhook } from "standardwebhooks";
 import { getPlanIdFromDodoProductId, PLAN_ALLOWANCES } from "@/lib/subscription-utils.server";
 import { getCurrentUtcDailyAllowanceWindow } from "@/lib/allowance";

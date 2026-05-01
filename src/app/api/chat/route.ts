@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
+﻿import { streamText, convertToModelMessages, UIMessage } from 'ai';
 import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool, manageMemoryTool } from '@/lib/tools';
 import { chatRatelimit } from '@/lib/ratelimit';
 import { NextResponse } from 'next/server';
@@ -22,7 +22,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getRemainingAllowance, deductAllowance, getModelPricing, calculateCost } from '@/lib/allowance';
 import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { preprocessMessagesAttachmentsForModel } from '@/lib/storage/message-attachment-preprocessor';
 
 // Import raw executors for tool charging

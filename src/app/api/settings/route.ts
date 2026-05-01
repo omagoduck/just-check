@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient } from '@/lib/supabase-client';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { UserSettings, DEFAULT_USER_SETTINGS } from '@/types/settings';
 import { userSettingsPostRatelimit, userSettingsGetRatelimit } from '@/lib/ratelimit';
 import { z } from 'zod';
