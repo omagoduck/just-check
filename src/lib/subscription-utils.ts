@@ -17,7 +17,7 @@ export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
  * Mapping from internal plan IDs to user-friendly display names
  */
 export const PLAN_DISPLAY_NAMES: Record<string, string> = {
-  free_monthly: 'Free',
+  free: 'Free',
   go_monthly: 'Go',
   plus_monthly: 'Plus',
   pro_monthly: 'Pro',

@@ -31,7 +31,7 @@ export async function GET() {
 
     if (!subscription) {
       return NextResponse.json({
-        planId: 'free_monthly',
+        planId: 'free',
         status: 'inactive',
         currentPeriodStart: null,
         currentPeriodEnd: null,

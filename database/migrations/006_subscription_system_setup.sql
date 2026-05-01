@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     clerk_user_id TEXT NOT NULL REFERENCES public.profiles(clerk_user_id) ON DELETE CASCADE,
     dodo_subscription_id TEXT UNIQUE,
     status TEXT NOT NULL DEFAULT 'inactive',
-    plan_id TEXT NOT NULL DEFAULT 'free_monthly',
+    plan_id TEXT NOT NULL DEFAULT 'free',
     billing_period TEXT,
     current_period_start TIMESTAMP WITH TIME ZONE,
     current_period_end TIMESTAMP WITH TIME ZONE,

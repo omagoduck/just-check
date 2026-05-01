@@ -23,8 +23,8 @@ export function useSubscriptionAndAllowanceStatus(): SubscriptionAndAllowanceSta
   const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
 
   const isLoading = usageLoading || subscriptionLoading;
-  const planId = isLoading ? undefined : (subscription?.planId ?? 'free_monthly');
-  const isFreeUser = isLoading ? undefined : planId === 'free_monthly';
+  const planId = isLoading ? undefined : (subscription?.planId ?? 'free');
+  const isFreeUser = isLoading ? undefined : planId === 'free';
   const remainingPercentage = usage?.remainingPercentage ?? 0;
   const periodEnd = usage?.periodEnd ?? null;
 

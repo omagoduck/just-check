@@ -126,8 +126,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
 
   // Determine subscription button state
   // Database already filters for active/on_hold subscriptions via get_user_subscription
-  // If planId is 'free_monthly', user has no paid subscription
-  const hasActiveSubscription = subscription && subscription.planId !== 'free_monthly';
+  // If planId is 'free', user has no paid subscription
+  const hasActiveSubscription = subscription && subscription.planId !== 'free';
 
   const subscriptionButtonLabel = hasActiveSubscription
     ? getPlanDisplayName(subscription.planId)

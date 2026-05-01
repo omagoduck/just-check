@@ -228,7 +228,7 @@ async function upsertSubscriptionAndResetAllowance(
  * This ensures users on free tier get the correct allowance even if the value changes
  */
 async function resetAllowanceToFreePlan(supabase: SupabaseClient, clerkUserId: string) {
-  const freePlanAllowance = PLAN_ALLOWANCES['free_monthly'];
+  const freePlanAllowance = PLAN_ALLOWANCES['free'];
   const now = new Date().toISOString();
   const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
 

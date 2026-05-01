@@ -200,8 +200,8 @@ export default function UpgradePage() {
     },
   });
 
-  // Determine current plan ID from subscription (default to 'free_monthly' if none)
-  const currentPlanId = subscription?.planId || 'free_monthly';
+  // Determine current plan ID from subscription (default to 'free' if none)
+  const currentPlanId = subscription?.planId || 'free';
 
   // EFFECT: Fetch preview data when confirmation dialog opens
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function UpgradePage() {
         // Go to app
         window.location.href = '/';
       }
-    } else if (subscription && subscription.planId !== 'free_monthly') {
+    } else if (subscription && subscription.planId !== 'free') {
       // User has an existing paid subscription and wants to change
       if (isScheduledToCancel) {
         // If scheduled to cancel, first show uncancel dialog
