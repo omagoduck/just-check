@@ -83,7 +83,7 @@ interface ChatPageShellProps {
   onSubmitRegeneratedMessage: (context: ChatPageRegenerateContext) => void;
   canSendMessages: boolean;
   canMutateMessages: boolean;
-  isFreeUser: boolean | undefined;
+  planId: string | undefined;
   hasAllowance: boolean | undefined;
   remainingPercentage: number;
   allowanceResetTime: string | null;
@@ -125,7 +125,7 @@ export function ChatPageShell({
   onSubmitRegeneratedMessage,
   canSendMessages,
   canMutateMessages,
-  isFreeUser,
+  planId,
   hasAllowance,
   remainingPercentage,
   allowanceResetTime,
@@ -426,7 +426,7 @@ export function ChatPageShell({
                 placeholder="Type your message..."
                 selectedUIModelId={currentUIModelId}
                 onUIModelChange={setCurrentUIModelId}
-                isFreeUser={isFreeUser}
+                planId={planId}
                 hasAllowance={hasAllowance}
                 remainingPercentage={remainingPercentage}
                 allowanceResetTime={allowanceResetTime}

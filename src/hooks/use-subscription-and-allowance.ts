@@ -4,8 +4,6 @@ import { useUsage } from './use-usage';
 import { useSubscription } from './use-subscription';
 
 interface SubscriptionAndAllowanceStatus {
-  /** Whether user is on the free plan. `undefined` while loading. */
-  isFreeUser: boolean | undefined;
   /** Whether user has remaining allowance. `undefined` while loading. */
   hasAllowance: boolean | undefined;
   /** Percentage of allowance remaining (0-100+) */
@@ -24,14 +22,12 @@ export function useSubscriptionAndAllowanceStatus(): SubscriptionAndAllowanceSta
 
   const isLoading = usageLoading || subscriptionLoading;
   const planId = isLoading ? undefined : (subscription?.planId ?? 'free');
-  const isFreeUser = isLoading ? undefined : planId === 'free';
   const remainingPercentage = usage?.remainingPercentage ?? 0;
   const periodEnd = usage?.periodEnd ?? null;
 
-  const hasAllowance = isLoading ? undefined : (!isFreeUser && usage?.hasAllowance === true);
+  const hasAllowance = isLoading ? undefined : (planId !== 'free' && usage?.hasAllowance === true);
 
   return {
-    isFreeUser,
     hasAllowance,
     remainingPercentage,
     periodEnd,

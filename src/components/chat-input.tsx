@@ -72,8 +72,8 @@ interface ChatInputProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onS
   /** Called when the user selects a different model */
   onUIModelChange: (uiModelId: string) => void;
   maxInputCharacterLength?: number;
-  /** Whether user is on the free plan */
-  isFreeUser?: boolean | undefined;
+  /** The user's plan ID. `undefined` while loading. */
+  planId?: string | undefined;
   /** Whether user has remaining allowance to send messages */
   hasAllowance?: boolean | undefined;
   /** Percentage of allowance remaining (0-100) */
@@ -111,7 +111,7 @@ export function ChatInput({
   selectedUIModelId,
   onUIModelChange,
   maxInputCharacterLength,
-  isFreeUser,
+  planId,
   hasAllowance,
   remainingPercentage = 100,
   allowanceResetTime = null,
@@ -743,23 +743,23 @@ export function ChatInput({
           <div className="overflow-hidden">
             <div className={cn(
               "flex items-center justify-between gap-3 px-4 py-3 rounded-xl border",
-              isFreeUser
+              planId === 'free'
                 ? "bg-amber-50 border-amber-300 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-100"
                 : "bg-orange-50 border-orange-300 text-orange-900 dark:bg-orange-500/10 dark:border-orange-500/30 dark:text-orange-100"
             )}>
               <div className="flex items-center gap-3 min-w-0">
-                {isFreeUser ? (
+                {planId === 'free' ? (
                   <Zap className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 ) : (
                   <Clock className="h-5 w-5 shrink-0 text-orange-600 dark:text-orange-400" />
                 )}
                 <div className="min-w-0">
                   <p className="text-sm font-medium">
-                    {isFreeUser
+                    {planId === 'free'
                       ? "Free access is temporarily unavailable due to heavy demand."
                       : "Your daily allowance has ended."}
                   </p>
-                  {!isFreeUser && allowanceResetTime && (
+                  {planId !== 'free' && allowanceResetTime && (
                     <p className="text-xs text-orange-800/80 dark:text-orange-200/80 mt-0.5">
                       Resets at {new Date(allowanceResetTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -770,7 +770,7 @@ export function ChatInput({
                 href="/upgrade"
                 className={cn(
                   "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                  isFreeUser
+                  planId === 'free'
                     ? "bg-amber-500 hover:bg-amber-500/80 text-amber-950"
                     : "bg-orange-500 hover:bg-orange-500/80 text-orange-950"
                 )}
@@ -1325,7 +1325,7 @@ export function ChatInput({
                           : isLoadingAllowance
                             ? "Loading..."
                             : !hasAllowance
-                              ? isFreeUser
+                              ? planId === 'free'
                                 ? "Free access is temporarily unavailable"
                                 : "Allowance exhausted - wait for reset or upgrade"
                               : "Enter a message to send"}

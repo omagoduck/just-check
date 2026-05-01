@@ -12,7 +12,7 @@ export default function Main() {
   const setConversationStarter = useConversationStarterStore((state) => state.setConversationStarter);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUIModelId, setCurrentUIModelId] = useState<string>('fast');
-  const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
+  const { planId, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
   const handleSubmit = (message: string, attachments?: Array<{ url: string; originalName: string; mimeType: string }>) => {
     if (!message.trim()) return;
@@ -64,7 +64,7 @@ export default function Main() {
           placeholder="Type your message..."
           selectedUIModelId={currentUIModelId}
           onUIModelChange={setCurrentUIModelId}
-          isFreeUser={isFreeUser}
+          planId={planId}
           hasAllowance={hasAllowance}
           remainingPercentage={remainingPercentage}
           allowanceResetTime={periodEnd}

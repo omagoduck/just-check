@@ -18,7 +18,7 @@ export default function ChatPage() {
   const chatId = params['chat-id'] as string;
   const conversationStarter = useConversationStarterStore((state) => state.conversationStarter);
   const clearConversationStarter = useConversationStarterStore((state) => state.clearConversationStarter);
-  const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
+  const { planId, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
   const { data: messagesData, isPending: isLoadingHistory, isError } = useMessages(chatId);
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function ChatPage() {
       }}
       canSendMessages={!!hasAllowance}
       canMutateMessages={!!hasAllowance}
-      isFreeUser={isFreeUser}
+      planId={planId}
       hasAllowance={hasAllowance}
       remainingPercentage={remainingPercentage}
       allowanceResetTime={periodEnd}

@@ -28,7 +28,7 @@ export default function TemporaryChatPage() {
   const hasRequestedTemporaryEndRef = useRef(false);
   const pendingEndUsesBeaconRef = useRef(false);
   const branchChatKey = localSessionIdRef.current;
-  const { isFreeUser, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
+  const { planId, hasAllowance, remainingPercentage, periodEnd, isLoading: isLoadingAllowance } = useSubscriptionAndAllowanceStatus();
 
   const { mutateAsync: createTemporaryConversationMutateAsync } = useMutation({
     mutationFn: async (title: string) => {
@@ -260,7 +260,7 @@ export default function TemporaryChatPage() {
       }}
       canSendMessages={!!hasAllowance}
       canMutateMessages={!!hasAllowance && !!conversationId}
-      isFreeUser={isFreeUser}
+      planId={planId}
       hasAllowance={hasAllowance}
       remainingPercentage={remainingPercentage}
       allowanceResetTime={periodEnd}
