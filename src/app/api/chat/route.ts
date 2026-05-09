@@ -1,4 +1,5 @@
-﻿import { streamText, convertToModelMessages, UIMessage } from 'ai';
+﻿import { streamText, convertToModelMessages, UIMessage, consumeStream } from 'ai';
+import { countTokens } from 'gpt-tokenizer';
 import { getTimeTool, getWeatherTool, webSearchTool, viewWebsiteTool, manageMemoryTool } from '@/lib/tools';
 import { chatRatelimit } from '@/lib/ratelimit';
 import { NextResponse } from 'next/server';
@@ -297,12 +298,55 @@ export async function POST(req: Request) {
       } : {})
     };
 
+    // =========================================================================
+    // ABORT TRACKING
+    // =========================================================================
+    // When a user cancels mid-stream (e.g. clicks "Stop"), streamText fires
+    // onFinish with null usage — the provider never reported final token counts.
+    // To still record approximate usage and deduct allowance, we track:
+    //
+    // 1. stepsStarted — incremented in onStepStart, compared against
+    //    currentStepData.length (populated in onStepFinish) to detect a
+    //    partially-completed step that never called onStepFinish.
+    //
+    // 2. stepInputMessages — saved in onStepStart so we can estimate input
+    //    tokens for the aborted step by concatenating system prompt + messages.
+    //
+    // 3. runningStepOutputText — accumulated in onChunk from text/reasoning/tool-input
+    //    deltas, reset on each onStepStart. On abort, this holds whatever the
+    //    model had generated so far in the interrupted step.
+    //
+    // Token estimation uses gpt-tokenizer (GPT BPE) which is NOT provider-specific.
+    // A 1.3x multiplier overestimates to avoid under-charging. This is intentional
+    // since exact counts are unavailable on abort — the provider never reported them.
+    // TODO: Replace gpt-tokenizer with provider-specific tokenizers for better accuracy. Also keep constant eye on AI SDK updates to know if they have done something good with it.
+    let stepsStarted = 0;
+    let stepInputMessages: any[] = [];
+    let runningStepOutputText = '';
+
     const result = streamText({
       model: modelInstance,
       messages: modelMessages,
       system: systemPrompt,
       tools,
       providerOptions,
+      abortSignal: req.signal,
+
+      onChunk: ({ chunk }) => {
+        if (chunk.type === 'text-delta') {
+          runningStepOutputText += chunk.text;
+        } else if (chunk.type === 'reasoning-delta') {
+          runningStepOutputText += chunk.text;
+        } else if (chunk.type === 'tool-input-delta') {
+          runningStepOutputText += chunk.delta;
+        }
+      },
+
+      experimental_onStepStart: ({ messages }) => {
+        stepsStarted++;
+        stepInputMessages = messages;
+        runningStepOutputText = '';
+      },
 
       // Track each step as it happens
       onStepFinish: async ({ finishReason, usage, toolCalls, warnings, providerMetadata }) => {
@@ -357,6 +401,7 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       generateMessageId: () => assistantMessageId,
+      consumeSseStream: consumeStream,
       // 1. Define message metadata behavior - ONLY client-safe fields
       messageMetadata: ({ part }) => {
 
@@ -379,7 +424,7 @@ export async function POST(req: Request) {
 
       // 2. Handle original messages and DB saving
       originalMessages: messages,
-      onFinish: async ({ messages: completedMessages, isContinuation, finishReason }) => {
+      onFinish: async ({ messages: completedMessages, isContinuation, finishReason, isAborted }) => {
 
         // The assistant message is the last one in the completed messages
         const assistantMessage = completedMessages[completedMessages.length - 1];
@@ -392,20 +437,59 @@ export async function POST(req: Request) {
         // =========================================================================
         // BUILD SERVER-ONLY METADATA
         // =========================================================================
-        // Use captured final usage from streamText's onFinish
+
+        // Account for the step that was running when abort happened
+        const hasRunningStep = isAborted && stepsStarted > currentStepData.length;
+        if (hasRunningStep) {
+          const estimatedOutputTokens = Math.ceil(countTokens(runningStepOutputText) * 1.3);
+          const inputText = systemPrompt + stepInputMessages
+            .map((m: any) => {
+              if (typeof m.content === 'string') return m.content;
+              if (Array.isArray(m.content)) return m.content.map((p: any) => p.text || '').join('');
+              return '';
+            })
+            .join('');
+          const estimatedInputTokens = Math.ceil(countTokens(inputText) * 1.3);
+          currentStepData.push({
+            timestamp: new Date().toISOString(),
+            finishReason: 'abort',
+            usage: {
+              totalTokens: estimatedInputTokens + estimatedOutputTokens,
+              inputTokens: estimatedInputTokens,
+              outputTokens: estimatedOutputTokens,
+            },
+            toolCallsCount: 0,
+            warnings: [],
+            providerMetadata: {},
+          });
+        }
+
+        // Use real usage from streamOnFinishUsage when available,
+        // otherwise sum from currentStepData (covers abort scenarios where
+        // streamText's onFinish fires with null usage)
+        const currentRequestTokens = streamOnFinishUsage?.inputTokens != null
+          ? streamOnFinishUsage
+          : currentStepData.length > 0
+            ? {
+                totalTokens: currentStepData.reduce((sum, s) => sum + (s.usage.totalTokens || 0), 0),
+                inputTokens: currentStepData.reduce((sum, s) => sum + (s.usage.inputTokens || 0), 0),
+                outputTokens: currentStepData.reduce((sum, s) => sum + (s.usage.outputTokens || 0), 0),
+              }
+            : undefined;
+
         const serverMetadata: AssistantResponseMetadata = {
           // Client fields (will be merged from assistantMessage.metadata)
           model_data: { UIModelId, internalModelId, provider },
           hasAttachments: hasFiles,
-          finishReason: finishReason || 'stop',
+          finishReason: isAborted ? 'abort' : (finishReason || 'unknown'),
 
           // Server-only fields (accumulated during streaming)
           totalUsage: {
-            totalUsedTokens: accumulatedUsage.totalUsedTokens + (streamOnFinishUsage?.totalTokens || 0),
-            totalInputTokens: accumulatedUsage.totalInputTokens + (streamOnFinishUsage?.inputTokens || 0),
-            totalOutputTokens: accumulatedUsage.totalOutputTokens + (streamOnFinishUsage?.outputTokens || 0),
+            totalUsedTokens: accumulatedUsage.totalUsedTokens + (currentRequestTokens?.totalTokens || 0),
+            totalInputTokens: accumulatedUsage.totalInputTokens + (currentRequestTokens?.inputTokens || 0),
+            totalOutputTokens: accumulatedUsage.totalOutputTokens + (currentRequestTokens?.outputTokens || 0),
             inputTokenDetails: (() => {
-              const current = streamOnFinishUsage?.inputTokenDetails;
+              const current = currentRequestTokens?.inputTokenDetails;
               const accumulated = accumulatedUsage.inputTokenDetails;
               if (!current && !accumulated) return undefined;
               return {
@@ -415,7 +499,7 @@ export async function POST(req: Request) {
               };
             })(),
             outputTokenDetails: (() => {
-              const current = streamOnFinishUsage?.outputTokenDetails;
+              const current = currentRequestTokens?.outputTokenDetails;
               const accumulated = accumulatedUsage.outputTokenDetails;
               if (!current && !accumulated) return undefined;
               return {
@@ -456,11 +540,10 @@ export async function POST(req: Request) {
         // =========================================================================
         // ALLOWANCE DEDUCTION
         // =========================================================================
-        // Use streamOnFinishUsage for cost calculation (only current request tokens)
-        // Do NOT use accumulated total - that would cause double-charging!
+        // Use currentRequestTokens for cost calculation (covers both normal and abort paths)
         try {
 
-          if (streamOnFinishUsage && route) {
+          if (currentRequestTokens && route) {
             const pricing = getModelPricing(route.provider, route.id);
             let cost = 0;
 
@@ -468,8 +551,8 @@ export async function POST(req: Request) {
               console.error(`Pricing not found for model ${route.provider}/${route.id}`);
             } else {
               cost = calculateCost(
-                streamOnFinishUsage.inputTokens || 0,
-                streamOnFinishUsage.outputTokens || 0,
+                currentRequestTokens.inputTokens || 0,
+                currentRequestTokens.outputTokens || 0,
                 pricing
               );
               if (cost > 0) {
@@ -480,11 +563,11 @@ export async function POST(req: Request) {
             // Log token usage for analytics
             try {
               const currentUsageTotal: TotalUsage = {
-                totalUsedTokens: streamOnFinishUsage.totalTokens || 0,
-                totalInputTokens: streamOnFinishUsage.inputTokens || 0,
-                totalOutputTokens: streamOnFinishUsage.outputTokens || 0,
-                inputTokenDetails: streamOnFinishUsage.inputTokenDetails,
-                outputTokenDetails: streamOnFinishUsage.outputTokenDetails,
+                totalUsedTokens: currentRequestTokens.totalTokens || 0,
+                totalInputTokens: currentRequestTokens.inputTokens || 0,
+                totalOutputTokens: currentRequestTokens.outputTokens || 0,
+                inputTokenDetails: currentRequestTokens.inputTokenDetails,
+                outputTokenDetails: currentRequestTokens.outputTokenDetails,
               };
               await logMessageTokenUsage({
                 messageId: assistantMessage.id,
