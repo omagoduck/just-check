@@ -25,6 +25,7 @@ import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_AI_CUSTOMIZATION_SETTINGS, type AICustomizationSettings } from '@/types/settings';
 import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import { preprocessMessagesAttachmentsForModel } from '@/lib/storage/message-attachment-preprocessor';
+import { validateChatMessages } from '@/lib/validation/validate-chat-messages';
 
 // Import raw executors for tool charging
 import { executeWebSearch } from '@/lib/tools/executor/web-search-executor';
@@ -64,7 +65,17 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { messages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId, trigger, messageId } = parsed.data;
+    const { messages: rawMessages, id: conversationId, UIModelId, previousMessageId: clientPreviousMessageId, trigger, messageId } = parsed.data;
+
+    // Validate message structure and application constraints
+    const messageValidation = await validateChatMessages(rawMessages);
+    if (!messageValidation.success) {
+      return NextResponse.json(
+        { error: messageValidation.error, details: messageValidation.details },
+        { status: 400 }
+      );
+    }
+    const messages = messageValidation.messages;
 
     const isRegeneration = trigger === 'regenerate-message';
 

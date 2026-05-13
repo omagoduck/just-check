@@ -6,9 +6,12 @@ import type { UIMessage, UIMessagePart } from '@/lib/conversation-history/types'
  * This function resolves such URLs to fresh signed URLs
  */
 const ATTACHMENT_URL_PREFIX = 'attachment://';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isAttachmentUrl(url: string): boolean {
-  return url.startsWith(ATTACHMENT_URL_PREFIX);
+  if (!url.startsWith(ATTACHMENT_URL_PREFIX)) return false;
+  const fileId = url.slice(ATTACHMENT_URL_PREFIX.length);
+  return UUID_REGEX.test(fileId);
 }
 
 export function extractFileIdFromAttachmentUrl(url: string): string {
