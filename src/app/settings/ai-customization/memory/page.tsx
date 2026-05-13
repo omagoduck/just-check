@@ -39,7 +39,7 @@ Return your answer exactly in the following given format.
 I want you to remember them for my swift continuity."
 
 ### Rules:
-- Make sure every remembered item is written as a bullet point beginning with "- User ...". 
+- Make sure every remembered item is written as a bullet point beginning with "- User ...".
 - Do not add any extra commentary rather than the provided format.
 - Do not include user name.
 - If you don't remember anything, just politely deny that you don't have anything remembered.`;
@@ -138,42 +138,6 @@ export default function MemorySettingsPage() {
 
   return (
     <div className="space-y-6">
-      {memoryEnabled && (
-        <div className="rounded-3xl border border-border/70 bg-linear-to-br from-primary/10 via-background to-emerald-500/10 p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-2xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground">
-                <Brain className="h-3.5 w-3.5" />
-                Persistent memory outside chat
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold tracking-tight">Memory Manager</h1>
-                <p className="text-sm text-muted-foreground">
-                  Review what Lumy carries across conversations and refine it when your preferences change.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid min-w-[220px] grid-cols-2 gap-3">
-              <Card className="gap-3 py-4">
-                <CardHeader className="px-4">
-                  <CardDescription>Total memories</CardDescription>
-                  <CardTitle className="text-2xl">{memoryQuery.data?.count ?? 0}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="gap-3 py-4">
-                <CardHeader className="px-4">
-                  <CardDescription>Status</CardDescription>
-                  <CardTitle className="text-base">
-                    {pendingNetworkAction ? "Syncing" : "Ready"}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
-
       {memoryEnabled && (
         <Card className="border-border/70 bg-linear-to-r from-background via-background to-primary/5">
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
