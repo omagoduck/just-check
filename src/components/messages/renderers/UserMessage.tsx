@@ -74,6 +74,14 @@ const MessageImage = memo(function MessageImage({
         <OverlayContent
           onClick={() => setOpen(false)}
           showCloseButton={false}
+          onOpenAutoFocus={(e) => {
+            // Prevent auto-focus on the download button (which shows its tooltip).
+            // Instead, focus the content container itself to keep keyboard trap working.
+            e.preventDefault();
+            const container = e.currentTarget as HTMLElement;
+            container.tabIndex = -1;
+            container.focus();
+          }}
         >
           <OverlayTitle className="sr-only">{filename || 'Image preview'}</OverlayTitle>
           <OverlayDescription className="sr-only">Full-size image preview</OverlayDescription>
