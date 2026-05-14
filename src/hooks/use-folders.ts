@@ -11,10 +11,11 @@ async function fetchFolders(): Promise<{ folders: ConversationFolder[] }> {
   return response.json();
 }
 
-export function useFolders() {
+export function useFolders(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['folders'],
     queryFn: fetchFolders,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -65,6 +66,7 @@ export function useCreateFolder() {
     mutationFn: createFolder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['folderLimit'] });
     },
   });
 }
@@ -121,6 +123,7 @@ export function useDeleteFolder() {
     mutationFn: deleteFolder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['folderLimit'] });
       // Also invalidate conversations since folder_id will be cleared
       queryClient.invalidateQueries({ queryKey: ['conversations', 'regular'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
@@ -159,5 +162,30 @@ export function useMoveToFolder() {
       queryClient.invalidateQueries({ queryKey: ['conversations', 'pinned'] });
       queryClient.invalidateQueries({ queryKey: ['folders'] });
     },
+  });
+}
+
+// ============================================================================
+// FOLDER COUNT
+// ============================================================================
+
+interface FolderLimitInfo {
+  count: number;
+  limit: number;
+  canCreate: boolean;
+}
+
+async function fetchFolderLimit(): Promise<FolderLimitInfo> {
+  const response = await fetch('/api/folders/folder-limit');
+  if (!response.ok) throw new Error('Failed to fetch folder limit info');
+  return response.json();
+}
+
+export function useFolderLimit(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['folderLimit'],
+    queryFn: fetchFolderLimit,
+    staleTime: 30000, // 30 seconds, same as pinnedCount
+    enabled: options?.enabled ?? true,
   });
 }

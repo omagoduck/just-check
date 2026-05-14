@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTouchDevice } from '@/hooks/use-touch-device';
 import { useConversations, usePinnedConversations, useDeleteConversation, useRenameConversation, usePinConversation, useArchiveConversation, usePinnedCount } from '@/hooks/use-conversations';
-import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder, useMoveToFolder } from '@/hooks/use-folders';
+import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder, useMoveToFolder, useFolderLimit } from '@/hooks/use-folders';
 import { useSubscription } from '@/hooks/use-subscription';
 import { getPlanDisplayName } from '@/lib/subscription-utils';
 import { useUser, useAuth } from '@clerk/nextjs';
@@ -96,12 +96,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Folder state
-  const { data: foldersData } = useFolders();
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
+  const { data: foldersData, isPending: foldersLoading } = useFolders({ enabled: foldersExpanded });
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
   const moveToFolder = useMoveToFolder();
-  const [foldersExpanded, setFoldersExpanded] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
 
   // Folder dialog state
@@ -120,6 +120,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
   const folders = foldersData?.folders || [];
   const canPin = pinnedCountData?.canPin ?? true;
   const pinnedCount = pinnedCountData?.count ?? 0;
+
+  const { data: folderLimitData } = useFolderLimit({ enabled: foldersExpanded });
+  const canCreateFolder = folderLimitData?.canCreate ?? true;
+  const folderCount = folderLimitData?.count ?? 0;
+  const folderLimit = folderLimitData?.limit ?? 1;
 
   // Subscription data for dynamic upgrade button
   const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
@@ -384,7 +389,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
             </button>
             {foldersExpanded && (
               <div className="space-y-1">
-                {folders.slice(0, 3).map((folder) => {
+                {foldersLoading ? (
+                  <>
+                    <Skeleton className="h-9 w-full rounded-md" />
+                    <Skeleton className="h-9 w-full rounded-md" />
+                  </>
+                ) : (
+                <>
+                {folders.map((folder) => {
                   const folderColor = folder.color || undefined;
                   const isActive = pathname === `/folders/${folder.id}`;
 
@@ -523,7 +535,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                 <div
                   className={cn(
                     "group flex items-center justify-between h-10 px-2 py-1.5 rounded-md cursor-pointer transition-colors duration-200",
-                    "hover:bg-sidebar-accent"
+                    "hover:bg-sidebar-accent",
+                    !canCreateFolder && "opacity-50 cursor-not-allowed"
                   )}
                   style={{
                     width: isCollapsed ? '40px' : '100%',
@@ -534,6 +547,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                   tabIndex={0}
                   role="button"
                   onClick={() => {
+                    if (!canCreateFolder) return;
                     setFolderToEdit(null);
                     setFolderDialogError(null);
                     setFolderDialogOpen(true);
@@ -542,7 +556,10 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                   <div className="flex items-center gap-2 min-w-0">
                     <FolderPlus
                       size={18}
-                      className="shrink-0 text-muted-foreground"
+                      className={cn(
+                        "shrink-0 text-muted-foreground",
+                        !canCreateFolder && "opacity-50"
+                      )}
                     />
                     <span
                       className={cn(
@@ -550,10 +567,25 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ isMobileSidebarOpen, onMobile
                         isCollapsed ? "opacity-0 w-0" : "opacity-100"
                       )}
                     >
-                      New Folder
+                      {canCreateFolder ? "New Folder" : "Folder limit reached"}
                     </span>
                   </div>
+                  {!isCollapsed && !canCreateFolder && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {folderCount}/{folderLimit}
+                      </span>
+                      <a
+                        href="/upgrade"
+                        className="text-xs text-blue-500 hover:text-blue-600"
+                      >
+                        Upgrade
+                      </a>
+                    </div>
+                  )}
                 </div>
+                </>
+                )}
               </div>
             )}
           </div>

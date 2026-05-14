@@ -41,3 +41,18 @@ export const PLAN_ALLOWANCES: Record<string, number> = {
   plus_monthly: 54,
   pro_monthly: 275,
 };
+
+/**
+ * Folder count limit by plan.
+ * Maximum number of non-deleted folders a user can have.
+ */
+export const FOLDER_LIMITS: Record<string, number> = {
+  free: 1,
+  go_monthly: 5,
+  plus_monthly: 20,
+  pro_monthly: 50,
+};
+
+export function getFolderLimit(planId: string): number {
+  return FOLDER_LIMITS[planId] ?? FOLDER_LIMITS.free;
+}

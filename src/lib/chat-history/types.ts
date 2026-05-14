@@ -101,6 +101,7 @@ export interface CreateFolderParams {
   clerkUserId: string;
   name: string;
   color?: string;
+  planId: string;
 }
 
 /**

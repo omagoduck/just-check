@@ -21,7 +21,7 @@ import {
   DropdownTrigger,
 } from "@/components/experimental-components/Experimental_DropDown";
 import { FolderDialog } from "@/components/folder-dialog";
-import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
+import { useFolders, useCreateFolder, useUpdateFolder, useDeleteFolder, useFolderLimit } from "@/hooks/use-folders";
 import type { ConversationFolder } from "@/lib/chat-history";
 
 const FOLDER_COLORS: Record<string, string> = {
@@ -39,9 +39,14 @@ const FOLDER_COLORS: Record<string, string> = {
 export default function FoldersPage() {
   const router = useRouter();
   const { data, isPending } = useFolders();
+  const { data: folderLimitData } = useFolderLimit();
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
+
+  const canCreateFolder = folderLimitData?.canCreate ?? true;
+  const folderCount = folderLimitData?.count ?? 0;
+  const folderLimit = folderLimitData?.limit ?? 1;
 
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [folderToEdit, setFolderToEdit] = useState<ConversationFolder | null>(null);
@@ -63,9 +68,12 @@ export default function FoldersPage() {
                 {folders.length} folder{folders.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button onClick={() => { setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}>
+            <Button
+              disabled={!canCreateFolder}
+              onClick={() => { if (!canCreateFolder) return; setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}
+            >
               <Plus size={18} />
-              New Folder
+              {canCreateFolder ? "New Folder" : `Limit reached (${folderCount}/${folderLimit})`}
             </Button>
           </div>
         </div>
@@ -92,10 +100,17 @@ export default function FoldersPage() {
               <p className="text-muted-foreground max-w-md mb-6">
                 Create folders to organize your conversations by topic, project, or any way you like.
               </p>
-              <Button onClick={() => { setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}>
-                <Plus size={18} />
-                Create your first folder
-              </Button>
+              {canCreateFolder ? (
+                <Button onClick={() => { setFolderToEdit(null); setFolderDialogError(null); setFolderDialogOpen(true); }}>
+                  <Plus size={18} />
+                  Create your first folder
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Folder limit reached ({folderCount}/{folderLimit}).
+                  <a href="/upgrade" className="text-blue-500 hover:text-blue-600 ml-1">Upgrade</a> for more folders.
+                </p>
+              )}
             </motion.div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

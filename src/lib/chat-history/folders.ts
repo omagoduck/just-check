@@ -12,39 +12,80 @@ import type {
   ListFoldersParams,
   MoveToFolderParams,
 } from './types';
+import { getFolderLimit } from '@/lib/subscription-utils.server';
 
 /**
- * Creates a new folder for a user
+ * Counts a user's non-deleted folders
+ *
+ * @param clerkUserId - Clerk user ID
+ * @param planId - User's subscription plan ID
+ * @returns { count: number, limit: number, canCreate: boolean }
+ */
+export async function getFolderLimitInfo(
+  clerkUserId: string,
+  planId: string
+): Promise<{ count: number; limit: number; canCreate: boolean }> {
+  const supabase = getSupabaseAdminClient();
+
+  const { count, error } = await supabase
+    .from('conversation_folders')
+    .select('*', { count: 'exact', head: true })
+    .eq('clerk_user_id', clerkUserId)
+    .is('deleted_at', null);
+
+  if (error) {
+    throw new Error(`Failed to count folders: ${error.message}`);
+  }
+
+  const folderCount = count || 0;
+  const limit = getFolderLimit(planId);
+  return {
+    count: folderCount,
+    limit,
+    canCreate: folderCount < limit,
+  };
+}
+
+/**
+ * Creates a new folder for a user using atomic RPC function
  *
  * @param params - Folder creation parameters
  * @returns The created folder
- * @throws Error if folder name already exists or database query fails
+ * @throws Error if folder limit reached or database query fails
  */
 export async function createFolder(
   params: CreateFolderParams
 ): Promise<ConversationFolder> {
-  const { clerkUserId, name, color } = params;
-
+  const { clerkUserId, name, color, planId } = params;
+  const limit = getFolderLimit(planId);
   const supabase = getSupabaseAdminClient();
 
-  const { data, error } = await supabase
-    .from('conversation_folders')
-    .insert({
-      clerk_user_id: clerkUserId,
-      name: name.trim(),
-      color: color || null,
-    })
-    .select()
-    .single();
+  // Atomic count + insert via RPC (race-condition safe)
+  const { data: folderId, error } = await supabase.rpc('create_folder_with_limit', {
+    p_clerk_user_id: clerkUserId,
+    p_name: name.trim(),
+    p_color: color || null,
+    p_max_folders: limit,
+  });
 
   if (error) {
+    if (error.message.includes('Folder limit reached')) {
+      throw new Error(error.message);
+    }
     if (error.code === '23505') {
       throw new Error('A folder with this name already exists');
     }
     throw new Error(`Failed to create folder: ${error.message}`);
   }
 
-  return data as ConversationFolder;
+  // Fetch the created folder to return full object
+  const { data: folder } = await supabase
+    .from('conversation_folders')
+    .select('*')
+    .eq('id', folderId)
+    .single();
+
+  return folder as ConversationFolder;
 }
 
 /**

@@ -42,6 +42,7 @@ export {
   listFolders,
   moveConversationToFolder,
   getFolder,
+  getFolderLimitInfo,
 } from './folders';
 
 export {
