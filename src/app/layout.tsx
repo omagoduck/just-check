@@ -21,7 +21,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Lumy",
-  description: "Chat with Lumy",
+  description:
+    "A smart AI workspace to think, chat, and get things done.",
 };
 
 export const viewport: Viewport = {

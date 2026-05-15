@@ -12,6 +12,44 @@ const renameBodySchema = z.object({
   title: z.string().trim().min(1),
 });
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ conversationId: string }> }
+) {
+  try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { conversationId } = paramsSchema.parse(await params);
+    const supabase = getSupabaseAdminClient();
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('title')
+      .eq('id', conversationId)
+      .eq('clerk_user_id', clerkUserId)
+      .is('deleted_at', null)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ title: data.title });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid conversation ID format', details: error.issues.map(i => `${i.path.join('.')}: ${i.message}`) },
+        { status: 400 }
+      );
+    }
+    console.error('Error fetching conversation:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> }

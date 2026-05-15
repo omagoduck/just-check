@@ -7,7 +7,7 @@ import {
 } from "@/lib/branding-constants";
 
 export const metadata: Metadata = {
-  title: `How Billing Works | ${APP_BRAND_NAME}`,
+  title: 'How Billing Works - Lumy',
   description: `How billing works for ${APP_BRAND_NAME}, including checkout charges, renewals, plan changes, cancellation, wallet credits, refunds, and Dodo Payments.`,
 };
 
