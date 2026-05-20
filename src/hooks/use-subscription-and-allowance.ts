@@ -25,7 +25,7 @@ export function useSubscriptionAndAllowanceStatus(): SubscriptionAndAllowanceSta
   const remainingPercentage = usage?.remainingPercentage ?? 0;
   const periodEnd = usage?.periodEnd ?? null;
 
-  const hasAllowance = isLoading ? undefined : (planId !== 'free' && usage?.hasAllowance === true);
+  const hasAllowance = isLoading ? undefined : (usage?.hasAllowance === true);
 
   return {
     hasAllowance,

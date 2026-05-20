@@ -1,5 +1,7 @@
-﻿import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
+import { getSupabaseAdminClient } from '@/lib/supabase-client.server';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isFreeTierEnabled } from '@/lib/app-config.server';
+import { PLAN_ALLOWANCES } from '@/lib/subscription-utils.server';
 
 const getSupabase = (): SupabaseClient => {
   return getSupabaseAdminClient();
@@ -27,9 +29,141 @@ export function getCurrentUtcDailyAllowanceWindow(now = new Date()) {
   };
 }
 
-async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<AllowanceStatus> {
-  const supabase = getSupabase();
+type AllowanceInput = {
+  remainingAllowance: number;
+  allotedAllowance: number;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+};
 
+function makeAllowanceStatus(input: AllowanceInput): AllowanceStatus {
+  const { remainingAllowance, allotedAllowance, ...rest } = input;
+  return {
+    hasAllowance: remainingAllowance > 0,
+    remainingPercentage: allotedAllowance > 0
+      ? Number(Math.max(0, (remainingAllowance / allotedAllowance) * 100).toFixed(6))
+      : 0,
+    ...rest,
+    periodStart: rest.periodStart ?? null,
+    periodEnd: rest.periodEnd ?? null,
+    remainingAllowance,
+    allotedAllowance,
+  };
+}
+
+async function getUserPlanId(clerkUserId: string): Promise<string> {
+  const supabase = getSupabase();
+  const { data } = await supabase.rpc('get_user_subscription', { p_clerk_user_id: clerkUserId });
+  return data?.plan_id ?? 'free';
+}
+
+/**
+ * Retrieves the allowance status for a user.
+ *
+ * Paid: reads allowance row, resets from config if period expired. Same as before.
+ * Free: checks kill switch first. If OFF, returns zero immediately.
+ *   If ON, reads/creates row and handles daily reset from config.
+ */
+async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<AllowanceStatus> {
+  const planId = await getUserPlanId(clerkUserId);
+  const supabase = getSupabase();
+  const isFree = planId === 'free';
+
+  // ---------------------------------------------------------------------------
+  // FREE USER — check kill switch first, then read row
+  // ---------------------------------------------------------------------------
+  if (isFree) {
+    const freeEnabled = await isFreeTierEnabled();
+    if (!freeEnabled) {
+      return makeAllowanceStatus({ remainingAllowance: 0, allotedAllowance: 0 });
+    }
+
+    // Kill switch is ON — read row
+    const { data, error } = await supabase
+      .from('periodic_allowance')
+      .select('remaining_allowance, alloted_allowance, period_start, period_end')
+      .eq('clerk_user_id', clerkUserId)
+      .single();
+
+    // No row — create one with free allowance
+    if (error) {
+      if (error.code === 'PGRST116') {
+        const freeAmount = PLAN_ALLOWANCES.free;
+        const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
+
+        // Concurrent requests may both reach here — onConflict deduplicates.
+        // Both writes are identical values so the extra upsert is harmless.
+        // Alternative: a Postgres function with INSERT ... ON CONFLICT DO NOTHING RETURNING *
+        // to avoid the redundant write entirely. 
+        // Acceptable as-is for now.
+        await supabase.from('periodic_allowance').upsert({
+          clerk_user_id: clerkUserId,
+          alloted_allowance: freeAmount,
+          remaining_allowance: freeAmount,
+          period_start: periodStart,
+          period_end: periodEnd,
+          last_reset_at: new Date().toISOString(),
+        }, { onConflict: 'clerk_user_id' });
+
+        return makeAllowanceStatus({
+          periodStart,
+          periodEnd,
+          remainingAllowance: freeAmount,
+          allotedAllowance: freeAmount,
+        });
+      }
+      throw error;
+    }
+
+    // Row exists — parse values
+    const remaining = Number(data?.remaining_allowance ?? 0);
+    const allotted = Number(data?.alloted_allowance ?? 0);
+    const periodEnd = data?.period_end ? new Date(data.period_end) : null;
+    const freeAmount = PLAN_ALLOWANCES.free;
+
+    // Period expired — reset from config
+    if (periodEnd && new Date() > periodEnd) {
+      const resetTime = new Date().toISOString();
+      const { periodStart, periodEnd: newPeriodEnd } = getCurrentUtcDailyAllowanceWindow();
+
+      const { data: updateData, error: updateError } = await supabase
+        .from('periodic_allowance')
+        .update({
+          remaining_allowance: freeAmount,
+          alloted_allowance: freeAmount,
+          period_start: periodStart,
+          period_end: newPeriodEnd,
+          last_reset_at: resetTime,
+        })
+        .eq('clerk_user_id', clerkUserId)
+        .select('remaining_allowance, alloted_allowance, period_start, period_end')
+        .single();
+
+      if (updateError) throw updateError;
+
+      const updatedRemaining = Number(updateData?.remaining_allowance ?? freeAmount);
+      const updatedAllotted = Number(updateData?.alloted_allowance ?? freeAmount);
+
+      return makeAllowanceStatus({
+        periodStart: updateData?.period_start ?? periodStart,
+        periodEnd: updateData?.period_end ?? newPeriodEnd,
+        remainingAllowance: updatedRemaining,
+        allotedAllowance: updatedAllotted,
+      });
+    }
+
+    // Period still active — return current status
+    return makeAllowanceStatus({
+      periodStart: data?.period_start ?? null,
+      periodEnd: data?.period_end ?? null,
+      remainingAllowance: remaining,
+      allotedAllowance: allotted,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // PAID USER — same logic as before
+  // ---------------------------------------------------------------------------
   const { data, error } = await supabase
     .from('periodic_allowance')
     .select('remaining_allowance, alloted_allowance, period_start, period_end')
@@ -38,14 +172,7 @@ async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<Allo
 
   if (error) {
     if (error.code === 'PGRST116') {
-      return {
-        periodStart: null,
-        periodEnd: null,
-        remainingAllowance: 0,
-        allotedAllowance: 0,
-        hasAllowance: false,
-        remainingPercentage: 0,
-      };
+      return makeAllowanceStatus({ remainingAllowance: 0, allotedAllowance: 0 });
     }
     throw error;
   }
@@ -55,58 +182,46 @@ async function getAllowanceStatusFromDatabase(clerkUserId: string): Promise<Allo
   const periodEnd = data?.period_end ? new Date(data.period_end) : null;
 
   if (allotted > 0 && periodEnd && new Date() > periodEnd) {
+    const configAmount = PLAN_ALLOWANCES[planId] ?? 0;
     const resetTime = new Date().toISOString();
-    const { periodStart, periodEnd } = getCurrentUtcDailyAllowanceWindow();
+    const { periodStart, periodEnd: newPeriodEnd } = getCurrentUtcDailyAllowanceWindow();
 
     const { data: updateData, error: updateError } = await supabase
       .from('periodic_allowance')
       .update({
-        remaining_allowance: allotted,
+        remaining_allowance: configAmount,
+        alloted_allowance: configAmount,
         period_start: periodStart,
-        period_end: periodEnd,
+        period_end: newPeriodEnd,
         last_reset_at: resetTime,
       })
       .eq('clerk_user_id', clerkUserId)
       .select('remaining_allowance, alloted_allowance, period_start, period_end')
       .single();
 
-    if (updateError) {
-      throw updateError;
-    }
+    if (updateError) throw updateError;
 
-    const updatedRemaining = Number(updateData?.remaining_allowance ?? allotted);
-    const updatedAllotted = Number(updateData?.alloted_allowance ?? allotted);
+    const updatedRemaining = Number(updateData?.remaining_allowance ?? configAmount);
+    const updatedAllotted = Number(updateData?.alloted_allowance ?? configAmount);
 
-    return {
+    return makeAllowanceStatus({
       periodStart: updateData?.period_start ?? periodStart,
-      periodEnd: updateData?.period_end ?? periodEnd,
+      periodEnd: updateData?.period_end ?? newPeriodEnd,
       remainingAllowance: updatedRemaining,
       allotedAllowance: updatedAllotted,
-      hasAllowance: updatedRemaining > 0,
-      remainingPercentage: updatedAllotted > 0
-        ? Number(Math.max(0, (updatedRemaining / updatedAllotted) * 100).toFixed(6))
-        : 0,
-    };
+    });
   }
 
-  return {
+  return makeAllowanceStatus({
     periodStart: data?.period_start ?? null,
     periodEnd: data?.period_end ?? null,
     remainingAllowance: remaining,
     allotedAllowance: allotted,
-    hasAllowance: remaining > 0,
-    remainingPercentage: allotted > 0
-      ? Number(Math.max(0, (remaining / allotted) * 100).toFixed(6))
-      : 0,
-  };
+  });
 }
 
 /**
  * Retrieves the remaining allowance (in cents) for a user.
- * Implements a daily UTC allowance window based on period_start and period_end.
- * If the daily window expired, automatically resets allowance to full for the current UTC day.
- * Returns 0 if the user has no allowance record.
- * Throws on database errors.
  */
 export async function getRemainingAllowance(clerkUserId: string): Promise<number> {
   const status = await getAllowanceStatusFromDatabase(clerkUserId);
@@ -119,25 +234,14 @@ export async function getAllowanceStatus(clerkUserId: string): Promise<Allowance
 
 /**
  * Atomically deducts the specified cost from the user's remaining allowance.
- * Uses a Postgres row-level lock via UPDATE to ensure safe concurrent modifications.
- * The allowance is clamped to a minimum of 0 (no negative balances).
- *
- * @param clerkUserId - The user's Clerk ID
- * @param cost - The amount to deduct (must be >= 0), with sub-cent precision
- * @returns The new remaining allowance after deduction
- * @throws If the database update fails
  */
 export async function deductAllowance(clerkUserId: string, cost: number): Promise<number> {
   if (cost <= 0) {
-    // No deduction needed; just return current
     return getRemainingAllowance(clerkUserId);
   }
 
-  await getRemainingAllowance(clerkUserId);
-
   const supabase = getSupabase();
 
-  // Use RPC to call the database function for atomic deduction
   const { data, error } = await supabase.rpc('deduct_allowance', {
     p_clerk_user_id: clerkUserId,
     p_cost: cost,
@@ -147,7 +251,5 @@ export async function deductAllowance(clerkUserId: string, cost: number): Promis
     throw error;
   }
 
-  // If no row was updated (e.g., user has no allowance record), return 0.
-  // The function returns NULL when no matching row exists.
   return data ?? 0;
 }

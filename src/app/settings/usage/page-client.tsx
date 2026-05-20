@@ -24,6 +24,7 @@ import { RefreshCw } from "lucide-react";
 export default function UsagePageClient() {
   const { data: usageData, isLoading: usageLoading, error: usageError, isFetching: isUsageFetching } = useUsage();
   const { data: subscriptionData, isLoading: subscriptionLoading, error: subscriptionError } = useSubscription();
+  const isFree = subscriptionData?.planId === 'free';
   const queryClient = useQueryClient();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showUncancelDialog, setShowUncancelDialog] = useState(false);
@@ -279,11 +280,13 @@ export default function UsagePageClient() {
                 </Badge>
               )}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {formatDate(subscriptionData?.currentPeriodStart)} - {formatDate(subscriptionData?.currentPeriodEnd)}
-            </div>
-            {/* Cancel subscription button - subtle styling */}
-            {subscriptionData && !subscriptionData.cancelAtPeriodEnd && (
+            {subscriptionData?.currentPeriodStart && (
+              <div className="text-sm text-muted-foreground mt-1">
+                {formatDate(subscriptionData.currentPeriodStart)} - {formatDate(subscriptionData.currentPeriodEnd)}
+              </div>
+            )}
+            {/* Cancel subscription button - only for paid users */}
+            {subscriptionData && !isFree && !subscriptionData.cancelAtPeriodEnd && (
               <div className="mt-4 pt-4 border-t">
                 <Button
                   variant="outline"

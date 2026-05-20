@@ -36,7 +36,7 @@ export function getPlanIdFromDodoProductId(dodoProductId: string): ProductId | n
  * These values represent the per-day allowance budget used by billing/webhook sync.
  */
 export const PLAN_ALLOWANCES: Record<string, number> = {
-  free: 0,
+  free: 4,
   go_monthly: 13.2,
   plus_monthly: 54,
   pro_monthly: 275,
